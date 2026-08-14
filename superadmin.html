@@ -10,42 +10,66 @@
 <body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col">
 
     <nav class="bg-slate-800 border-b border-slate-700 px-4 sm:px-6 py-4 flex flex-col sm:flex-row justify-between items-center gap-3">
-        <h1 class="text-lg sm:text-xl font-bold text-red-400">Superadmin Master Control</h1>
+        <h1 class="text-lg sm:text-xl font-bold text-red-400">Superadmin Master Control Center</h1>
         <button id="logoutBtn" class="bg-red-600 hover:bg-red-500 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium w-full sm:w-auto">Logout</button>
     </nav>
 
     <main class="flex-1 max-w-7xl w-full mx-auto p-3 sm:p-6 space-y-6 box-border">
-        <!-- Navigation Tabs -->
+        <!-- Master Navigation Tabs -->
         <div class="flex space-x-2 sm:space-x-4 border-b border-slate-700 pb-2 overflow-x-auto">
-            <button onclick="switchTab('inventory')" id="tab-inventory-btn" class="text-red-400 font-semibold pb-2 border-b-2 border-red-400 text-sm sm:text-base whitespace-nowrap px-2">System Inventory Audit</button>
-            <button onclick="switchTab('managers')" id="tab-managers-btn" class="text-slate-400 pb-2 text-sm sm:text-base whitespace-nowrap px-2">Provision Manager Account</button>
+            <button onclick="switchTab('inventory')" id="tab-inventory-btn" class="text-red-400 font-semibold pb-2 border-b-2 border-red-400 text-sm sm:text-base whitespace-nowrap px-2">Global Inventory Ledger</button>
+            <button onclick="switchTab('directory')" id="tab-directory-btn" class="text-slate-400 pb-2 text-sm sm:text-base whitespace-nowrap px-2">System User Directory</button>
+            <button onclick="switchTab('provision')" id="tab-provision-btn" class="text-slate-400 pb-2 text-sm sm:text-base whitespace-nowrap px-2">Provision Manager</button>
         </div>
 
-        <!-- Tab 1: Inventory Oversight Ledger -->
+        <!-- Tab 1: Global Inventory Ledger (See Everything) -->
         <section id="tab-inventory" class="bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-700 space-y-4 shadow-xl">
             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-                <h2 class="text-base sm:text-lg font-bold">Complete System Inventory & Accountability Log</h2>
-                <button onclick="exportToExcel()" class="bg-emerald-600 hover:bg-emerald-500 px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold w-full sm:w-auto">Export Report</button>
+                <h2 class="text-base sm:text-lg font-bold">Complete System Inventory & Audit Trail</h2>
+                <button onclick="exportTableToExcel('inventoryTable', 'Global_Inventory_Report.xlsx')" class="bg-emerald-600 hover:bg-emerald-500 px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold w-full sm:w-auto">Export Inventory</button>
             </div>
             <div class="overflow-x-auto rounded-xl border border-slate-700">
-                <table id="superadminTable" class="w-full text-left border-collapse min-w-[600px]">
+                <table id="inventoryTable" class="w-full text-left border-collapse min-w-[700px]">
                     <thead>
                         <tr class="bg-slate-900/50 border-b border-slate-700 text-slate-400 text-xs sm:text-sm">
                             <th class="p-3">Code / SN</th>
                             <th class="p-3">Name</th>
+                            <th class="p-3">Type</th>
+                            <th class="p-3">Category</th>
                             <th class="p-3">Status</th>
                             <th class="p-3">Location</th>
                             <th class="p-3">Created By</th>
                             <th class="p-3">Last Edited By</th>
                         </tr>
                     </thead>
-                    <tbody id="superadminTableBody" class="divide-y divide-slate-700 text-xs sm:text-sm"></tbody>
+                    <tbody id="inventoryTableBody" class="divide-y divide-slate-700 text-xs sm:text-sm"></tbody>
                 </table>
             </div>
         </section>
 
-        <!-- Tab 2: Provision Manager Card -->
-        <section id="tab-managers" class="bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-700 space-y-4 shadow-xl hidden max-w-lg">
+        <!-- Tab 2: System User Directory (See All Accounts) -->
+        <section id="tab-directory" class="bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-700 space-y-4 shadow-xl hidden">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                <h2 class="text-base sm:text-lg font-bold">All Registered System Users</h2>
+                <button onclick="exportTableToExcel('userTable', 'System_Users_Report.xlsx')" class="bg-emerald-600 hover:bg-emerald-500 px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold w-full sm:w-auto">Export Users</button>
+            </div>
+            <div class="overflow-x-auto rounded-xl border border-slate-700">
+                <table id="userTable" class="w-full text-left border-collapse min-w-[500px]">
+                    <thead>
+                        <tr class="bg-slate-900/50 border-b border-slate-700 text-slate-400 text-xs sm:text-sm">
+                            <th class="p-3">Email</th>
+                            <th class="p-3">Role</th>
+                            <th class="p-3">Status</th>
+                            <th class="p-3">Created At</th>
+                        </tr>
+                    </thead>
+                    <tbody id="userTableBody" class="divide-y divide-slate-700 text-xs sm:text-sm"></tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Tab 3: Provision Manager Card -->
+        <section id="tab-provision" class="bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-700 space-y-4 shadow-xl hidden max-w-lg">
             <h2 class="text-base sm:text-lg font-bold">Provision New Manager Account</h2>
             <form id="createManagerForm" class="space-y-4">
                 <div>
@@ -72,7 +96,8 @@
             if (!userSnap.exists() || userSnap.data().role !== "superadmin") {
                 window.location.href = "index.html";
             } else {
-                loadSuperadminInventory();
+                loadGlobalInventory();
+                loadUserDirectory();
             }
         });
 
@@ -81,19 +106,54 @@
         });
 
         window.switchTab = (tabName) => {
-            document.getElementById("tab-inventory").classList.add("hidden");
-            document.getElementById("tab-managers").classList.add("hidden");
-            document.getElementById("tab-inventory-btn").className = "text-slate-400 pb-2 text-sm sm:text-base whitespace-nowrap px-2";
-            document.getElementById("tab-managers-btn").className = "text-slate-400 pb-2 text-sm sm:text-base whitespace-nowrap px-2";
+            ['inventory', 'directory', 'provision'].forEach(tab => {
+                document.getElementById(`tab-${tab}`).classList.add("hidden");
+                document.getElementById(`tab-${tab}-btn`).className = "text-slate-400 pb-2 text-sm sm:text-base whitespace-nowrap px-2";
+            });
 
-            if (tabName === 'inventory') {
-                document.getElementById("tab-inventory").classList.remove("hidden");
-                document.getElementById("tab-inventory-btn").className = "text-red-400 font-semibold pb-2 border-b-2 border-red-400 text-sm sm:text-base whitespace-nowrap px-2";
-            } else {
-                document.getElementById("tab-managers").classList.remove("hidden");
-                document.getElementById("tab-managers-btn").className = "text-red-400 font-semibold pb-2 border-b-2 border-red-400 text-sm sm:text-base whitespace-nowrap px-2";
-            }
+            document.getElementById(`tab-${tabName}`).classList.remove("hidden");
+            document.getElementById(`tab-${tabName}-btn`).className = "text-red-400 font-semibold pb-2 border-b-2 border-red-400 text-sm sm:text-base whitespace-nowrap px-2";
         };
+
+        // Load complete system inventory from Firestore
+        async function loadGlobalInventory() {
+            const tbody = document.getElementById("inventoryTableBody");
+            tbody.innerHTML = "";
+            const querySnapshot = await getDocs(collection(db, "inventory"));
+            querySnapshot.forEach((docSnap) => {
+                const data = docSnap.data();
+                tbody.innerHTML += `
+                    <tr class="hover:bg-slate-700/50">
+                        <td class="p-3 font-mono break-all">${data.itemCode}</td>
+                        <td class="p-3">${data.name}</td>
+                        <td class="p-3">${data.type}</td>
+                        <td class="p-3">${data.category}</td>
+                        <td class="p-3"><span class="px-2 py-1 rounded bg-red-900 text-red-300 text-xs">${data.status}</span></td>
+                        <td class="p-3">${data.currentLocation}</td>
+                        <td class="p-3 text-slate-400 break-all">${data.createdBy}</td>
+                        <td class="p-3 text-slate-400 break-all">${data.lastEditedBy || 'None'}</td>
+                    </tr>
+                `;
+            });
+        }
+
+        // Load all users from the 'users' collection for complete visibility
+        async function loadUserDirectory() {
+            const tbody = document.getElementById("userTableBody");
+            tbody.innerHTML = "";
+            const querySnapshot = await getDocs(collection(db, "users"));
+            querySnapshot.forEach((docSnap) => {
+                const data = docSnap.data();
+                tbody.innerHTML += `
+                    <tr class="hover:bg-slate-700/50">
+                        <td class="p-3 break-all font-medium">${data.email}</td>
+                        <td class="p-3"><span class="px-2 py-1 rounded bg-slate-700 text-cyan-300 text-xs font-semibold uppercase">${data.role}</span></td>
+                        <td class="p-3"><span class="px-2 py-1 rounded bg-emerald-900 text-emerald-300 text-xs">${data.status}</span></td>
+                        <td class="p-3 text-slate-400 text-xs">${new Date(data.createdAt).toLocaleString()}</td>
+                    </tr>
+                `;
+            });
+        }
 
         document.getElementById("createManagerForm").addEventListener("submit", async (e) => {
             e.preventDefault();
@@ -111,34 +171,16 @@
                 });
                 alert("Manager account created successfully!");
                 document.getElementById("createManagerForm").reset();
+                loadUserDirectory(); // Refresh directory immediately
             } catch (err) {
                 alert("Error: " + err.message);
             }
         });
 
-        async function loadSuperadminInventory() {
-            const tbody = document.getElementById("superadminTableBody");
-            tbody.innerHTML = "";
-            const querySnapshot = await getDocs(collection(db, "inventory"));
-            querySnapshot.forEach((docSnap) => {
-                const data = docSnap.data();
-                tbody.innerHTML += `
-                    <tr class="hover:bg-slate-700/50">
-                        <td class="p-3 font-mono break-all">${data.itemCode}</td>
-                        <td class="p-3">${data.name}</td>
-                        <td class="p-3"><span class="px-2 py-1 rounded bg-red-900 text-red-300 text-xs">${data.status}</span></td>
-                        <td class="p-3">${data.currentLocation}</td>
-                        <td class="p-3 text-slate-400 break-all">${data.createdBy}</td>
-                        <td class="p-3 text-slate-400 break-all">${data.lastEditedBy || 'None'}</td>
-                    </tr>
-                `;
-            });
-        }
-
-        window.exportToExcel = () => {
-            const table = document.getElementById("superadminTable");
-            const wb = XLSX.utils.table_to_book(table, {sheet: "Master Oversight"});
-            XLSX.writeFile(wb, "Superadmin_Inventory_Report.xlsx");
+        window.exportTableToExcel = (tableId, filename) => {
+            const table = document.getElementById(tableId);
+            const wb = XLSX.utils.table_to_book(table, {sheet: "Sheet1"});
+            XLSX.writeFile(wb, filename);
         };
     </script>
 </body>
