@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Superadmin Master Control - IMS</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col">
+
+    <nav class="bg-slate-800 border-b border-slate-700 px-4 sm:px-6 py-4 flex flex-col sm:flex-row justify-between items-center gap-3">
+        <h1 class="text-lg sm:text-xl font-bold text-red-400">Superadmin Master Control</h1>
+        <button id="logoutBtn" class="bg-red-600 hover:bg-red-500 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium w-full sm:w-auto">Logout</button>
+    </nav>
+
+    <main class="flex-1 max-w-7xl w-full mx-auto p-3 sm:p-6 space-y-6 box-border">
+        <div class="bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-700 space-y-4 shadow-xl max-w-md">
+            <h2 class="text-base sm:text-lg font-bold">Provision Manager Account</h2>
+            <form id="createManagerForm" class="space-y-4">
+                <div>
+                    <label class="block text-xs sm:text-sm font-medium mb-1">Manager Email</label>
+                    <input type="email" id="managerEmail" required class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs sm:text-sm font-medium mb-1">Password</label>
+                    <input type="password" id="managerPassword" required class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm">
+                </div>
+                <button type="submit" class="w-full sm:w-auto bg-red-600 hover:bg-red-500 text-white font-bold py-2.5 px-6 rounded-lg text-sm">Create Manager</button>
+            </form>
+        </div>
+    </main>
+
+    <script type="module">
+        import { auth, db } from "./firebase-config.js";
+        import { onAuthStateChanged, signOut, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
+        import { doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+
+        onAuthStateChanged(auth, async (user) => {
+            if (!user) { window.location.href = "index.html"; return; }
+            const userSnap = await getDoc(doc(db, "users", user.uid));
+            if (!userSnap.exists() || userSnap.data().role !== "superadmin") {
+                window.location.href = "index.html";
+            }
+        });
+
+        document.getElementById("logoutBtn").addEventListener("click", () => {
+            signOut(auth).then(() => window.location.href = "index.html");
+        });
+
+        document.getElementById("createManagerForm").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const email = document.getElementById("managerEmail").value;
+            const password = document.getElementById("managerPassword").value;
+
+            try {
+                const userCred = await createUserWithEmailAndPassword(auth, email, password);
+                await setDoc(doc(db, "users", userCred.user.uid), {
+                    uid: userCred.user.uid,
+                    email: email,
+                    role: "manager",
+                    status: "active",
+                    createdAt: new Date().toISOString()
+                });
+                alert("Manager account created successfully!");
+                document.getElementById("createManagerForm").reset();
+            } catch (err) {
+                alert("Error: " + err.message);
+            }
+        });
+    </script>
+</body>
+</html>

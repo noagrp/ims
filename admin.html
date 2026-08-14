@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - IMS</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col">
+
+    <nav class="bg-slate-800 border-b border-slate-700 px-4 sm:px-6 py-4 flex flex-col sm:flex-row justify-between items-center gap-3">
+        <h1 class="text-lg sm:text-xl font-bold text-cyan-400">Admin Workbench</h1>
+        <button id="logoutBtn" class="bg-red-600 hover:bg-red-500 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium w-full sm:w-auto">Logout</button>
+    </nav>
+
+    <main class="flex-1 max-w-7xl w-full mx-auto p-3 sm:p-6 space-y-6 box-border">
+        <!-- Responsive Navigation Tabs -->
+        <div class="flex space-x-2 sm:space-x-4 border-b border-slate-700 pb-2 overflow-x-auto">
+            <button onclick="switchTab('register')" id="tab-register-btn" class="text-cyan-400 font-semibold pb-2 border-b-2 border-cyan-400 text-sm sm:text-base whitespace-nowrap px-2">Register Asset</button>
+            <button onclick="switchTab('inventory')" id="tab-inventory-btn" class="text-slate-400 pb-2 text-sm sm:text-base whitespace-nowrap px-2">Inventory Ledger</button>
+        </div>
+
+        <!-- Tab 1: Register Asset Card -->
+        <section id="tab-register" class="bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-700 space-y-4 shadow-xl">
+            <h2 class="text-base sm:text-lg font-bold">Register New Equipment or Part</h2>
+            <form id="registerForm" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs sm:text-sm font-medium mb-1">Item Type</label>
+                    <select id="itemType" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm">
+                        <option value="Equipment">Equipment</option>
+                        <option value="Part">Part</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs sm:text-sm font-medium mb-1">Item Code / Serial Number</label>
+                    <input type="text" id="itemCode" required class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs sm:text-sm font-medium mb-1">Item Name</label>
+                    <input type="text" id="itemName" required class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs sm:text-sm font-medium mb-1">Category</label>
+                    <input type="text" id="itemCategory" placeholder="e.g. Drilling Tools" required class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs sm:text-sm font-medium mb-1">Initial Status</label>
+                    <select id="itemStatus" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm">
+                        <option value="In Stock">In Stock</option>
+                        <option value="Rented">Rented</option>
+                        <option value="In Maintenance">In Maintenance</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs sm:text-sm font-medium mb-1">Current Location</label>
+                    <input type="text" id="itemLocation" placeholder="HQ Warehouse" required class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm">
+                </div>
+                
+                <div class="sm:col-span-2 border-t border-slate-700 pt-4">
+                    <label class="block text-xs sm:text-sm font-medium mb-1">Initial Document (Optional)</label>
+                    <input type="file" id="initialDoc" class="w-full text-xs sm:text-sm text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs sm:file:text-sm file:font-semibold file:bg-cyan-600 file:text-white hover:file:bg-cyan-500">
+                </div>
+
+                <div class="sm:col-span-2">
+                    <button type="submit" class="w-full sm:w-auto bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-2.5 px-6 rounded-lg text-sm">Save & Register Item</button>
+                </div>
+            </form>
+        </section>
+
+        <!-- Tab 2: Inventory Ledger Card -->
+        <section id="tab-inventory" class="bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-700 space-y-4 shadow-xl hidden">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                <h2 class="text-base sm:text-lg font-bold">Inventory Records</h2>
+                <button onclick="exportToExcel()" class="bg-emerald-600 hover:bg-emerald-500 px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold w-full sm:w-auto">Export to Excel</button>
+            </div>
+            <!-- Scrollable container prevents table breaking on mobile screens -->
+            <div class="overflow-x-auto rounded-xl border border-slate-700">
+                <table id="inventoryTable" class="w-full text-left border-collapse min-w-[600px]">
+                    <thead>
+                        <tr class="bg-slate-900/50 border-b border-slate-700 text-slate-400 text-xs sm:text-sm">
+                            <th class="p-3">Code / SN</th>
+                            <th class="p-3">Name</th>
+                            <th class="p-3">Type</th>
+                            <th class="p-3">Category</th>
+                            <th class="p-3">Status</th>
+                            <th class="p-3">Location</th>
+                            <th class="p-3">Created By</th>
+                        </tr>
+                    </thead>
+                    <tbody id="inventoryTableBody" class="divide-y divide-slate-700 text-xs sm:text-sm"></tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <script type="module">
+        import { auth, db } from "./firebase-config.js";
+        import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
+        import { collection, addDoc, getDocs, doc, getDoc } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+
+        let currentUserEmail = "";
+
+        onAuthStateChanged(auth, async (user) => {
+            if (!user) { window.location.href = "index.html"; return; }
+            const userSnap = await getDoc(doc(db, "users", user.uid));
+            if (userSnap.exists()) {
+                currentUserEmail = userSnap.data().email;
+                loadInventory();
+            } else {
+                window.location.href = "index.html";
+            }
+        });
+
+        document.getElementById("logoutBtn").addEventListener("click", () => {
+            signOut(auth).then(() => window.location.href = "index.html");
+        });
+
+        window.switchTab = (tabName) => {
+            document.getElementById("tab-register").classList.add("hidden");
+            document.getElementById("tab-inventory").classList.add("hidden");
+            document.getElementById("tab-register-btn").className = "text-slate-400 pb-2 text-sm sm:text-base whitespace-nowrap px-2";
+            document.getElementById("tab-inventory-btn").className = "text-slate-400 pb-2 text-sm sm:text-base whitespace-nowrap px-2";
+
+            document.getElementById(`tab-${tabName}`).classList.remove("hidden");
+            document.getElementById(`tab-${tabName}-btn`).className = "text-cyan-400 font-semibold pb-2 border-b-2 border-cyan-400 text-sm sm:text-base whitespace-nowrap px-2";
+        };
+
+        const fileToBase64 = file => new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = error => reject(error);
+        });
+
+        document.getElementById("registerForm").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const fileInput = document.getElementById("initialDoc");
+            let documents = [];
+
+            if (fileInput.files.length > 0) {
+                const file = fileInput.files[0];
+                const base64Data = await fileToBase64(file);
+                documents.push({
+                    docId: "doc_" + Date.now(),
+                    title: "Initial Doc",
+                    fileName: file.name,
+                    base64Data: base64Data,
+                    uploadedAt: new Date().toISOString(),
+                    uploadedBy: currentUserEmail
+                });
+            }
+
+            const newItem = {
+                type: document.getElementById("itemType").value,
+                itemCode: document.getElementById("itemCode").value,
+                name: document.getElementById("itemName").value,
+                category: document.getElementById("itemCategory").value,
+                status: document.getElementById("itemStatus").value,
+                currentLocation: document.getElementById("itemLocation").value,
+                documents: documents,
+                lifecycleHistory: [{
+                    status: document.getElementById("itemStatus").value,
+                    location: document.getElementById("itemLocation").value,
+                    timestamp: new Date().toISOString(),
+                    user: currentUserEmail
+                }],
+                createdBy: currentUserEmail,
+                createdAt: new Date().toISOString(),
+                lastEditedBy: null,
+                lastEditedAt: null
+            };
+
+            try {
+                await addDoc(collection(db, "inventory"), newItem);
+                alert("Asset registered successfully!");
+                document.getElementById("registerForm").reset();
+                loadInventory();
+            } catch (err) {
+                alert("Error: " + err.message);
+            }
+        });
+
+        async function loadInventory() {
+            const tbody = document.getElementById("inventoryTableBody");
+            tbody.innerHTML = "";
+            const querySnapshot = await getDocs(collection(db, "inventory"));
+            querySnapshot.forEach((docSnap) => {
+                const data = docSnap.data();
+                tbody.innerHTML += `
+                    <tr class="hover:bg-slate-700/50">
+                        <td class="p-3 font-mono break-all">${data.itemCode}</td>
+                        <td class="p-3">${data.name}</td>
+                        <td class="p-3">${data.type}</td>
+                        <td class="p-3">${data.category}</td>
+                        <td class="p-3"><span class="px-2 py-1 rounded bg-cyan-900 text-cyan-300 text-xs">${data.status}</span></td>
+                        <td class="p-3">${data.currentLocation}</td>
+                        <td class="p-3 text-slate-400 break-all">${data.createdBy}</td>
+                    </tr>
+                `;
+            });
+        }
+
+        window.exportToExcel = () => {
+            const table = document.getElementById("inventoryTable");
+            const wb = XLSX.utils.table_to_book(table, {sheet: "Inventory"});
+            XLSX.writeFile(wb, "Inventory_Report.xlsx");
+        };
+    </script>
+</body>
+</html>

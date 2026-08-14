@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manager Dashboard - IMS</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col">
+
+    <nav class="bg-slate-800 border-b border-slate-700 px-4 sm:px-6 py-4 flex flex-col sm:flex-row justify-between items-center gap-3">
+        <h1 class="text-lg sm:text-xl font-bold text-amber-400">Manager Oversight Dashboard</h1>
+        <button id="logoutBtn" class="bg-red-600 hover:bg-red-500 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium w-full sm:w-auto">Logout</button>
+    </nav>
+
+    <main class="flex-1 max-w-7xl w-full mx-auto p-3 sm:p-6 space-y-6 box-border">
+        <div class="flex space-x-2 sm:space-x-4 border-b border-slate-700 pb-2 overflow-x-auto">
+            <button onclick="switchTab('inventory')" id="tab-inventory-btn" class="text-amber-400 font-semibold pb-2 border-b-2 border-amber-400 text-sm sm:text-base whitespace-nowrap px-2">Inventory Oversight</button>
+            <button onclick="switchTab('users')" id="tab-users-btn" class="text-slate-400 pb-2 text-sm sm:text-base whitespace-nowrap px-2">Create Admin Account</button>
+        </div>
+
+        <!-- Tab 1: Inventory Oversight Card -->
+        <section id="tab-inventory" class="bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-700 space-y-4 shadow-xl">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                <h2 class="text-base sm:text-lg font-bold">System Inventory (Audit Log)</h2>
+                <button onclick="exportToExcel()" class="bg-emerald-600 hover:bg-emerald-500 px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold w-full sm:w-auto">Export Report</button>
+            </div>
+            <div class="overflow-x-auto rounded-xl border border-slate-700">
+                <table id="managerTable" class="w-full text-left border-collapse min-w-[600px]">
+                    <thead>
+                        <tr class="bg-slate-900/50 border-b border-slate-700 text-slate-400 text-xs sm:text-sm">
+                            <th class="p-3">Code / SN</th>
+                            <th class="p-3">Name</th>
+                            <th class="p-3">Status</th>
+                            <th class="p-3">Location</th>
+                            <th class="p-3">Created By</th>
+                            <th class="p-3">Last Edited By</th>
+                        </tr>
+                    </thead>
+                    <tbody id="managerTableBody" class="divide-y divide-slate-700 text-xs sm:text-sm"></tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Tab 2: Admin Creation Card -->
+        <section id="tab-users" class="bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-700 space-y-4 shadow-xl hidden max-w-lg">
+            <h2 class="text-base sm:text-lg font-bold">Provision New Admin Account</h2>
+            <form id="createAdminForm" class="space-y-4">
+                <div>
+                    <label class="block text-xs sm:text-sm font-medium mb-1">Admin Email</label>
+                    <input type="email" id="adminEmail" required class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs sm:text-sm font-medium mb-1">Password</label>
+                    <input type="password" id="adminPassword" required class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm">
+                </div>
+                <button type="submit" class="w-full sm:w-auto bg-amber-600 hover:bg-amber-500 text-white font-bold py-2.5 px-6 rounded-lg text-sm">Create Admin</button>
+            </form>
+        </section>
+    </main>
+
+    <script type="module">
+        import { auth, db } from "./firebase-config.js";
+        import { onAuthStateChanged, signOut, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
+        import { collection, getDocs, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+
+        onAuthStateChanged(auth, async (user) => {
+            if (!user) { window.location.href = "index.html"; return; }
+            const userSnap = await getDoc(doc(db, "users", user.uid));
+            if (userSnap.exists() && (userSnap.data().role === "manager" || userSnap.data().role === "superadmin")) {
+                loadManagerInventory();
+            } else {
+                window.location.href = "index.html";
+            }
+        });
+
+        document.getElementById("logoutBtn").addEventListener("click", () => {
+            signOut(auth).then(() => window.location.href = "index.html");
+        });
+
+        window.switchTab = (tabName) => {
+            document.getElementById("tab-inventory").classList.add("hidden");
+            document.getElementById("tab-users").classList.add("hidden");
+            document.getElementById("tab-inventory-btn").className = "text-slate-400 pb-2 text-sm sm:text-base whitespace-nowrap px-2";
+            document.getElementById("tab-users-btn").className = "text-slate-400 pb-2 text-sm sm:text-base whitespace-nowrap px-2";
+
+            document.getElementById(`tab-${tabName}`).classList.remove("hidden");
+            document.getElementById(`tab-${tabName}-btn`).className = "text-amber-400 font-semibold pb-2 border-b-2 border-amber-400 text-sm sm:text-base whitespace-nowrap px-2";
+        };
+
+        document.getElementById("createAdminForm").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const email = document.getElementById("adminEmail").value;
+            const password = document.getElementById("adminPassword").value;
+
+            try {
+                const userCred = await createUserWithEmailAndPassword(auth, email, password);
+                await setDoc(doc(db, "users", userCred.user.uid), {
+                    uid: userCred.user.uid,
+                    email: email,
+                    role: "admin",
+                    status: "active",
+                    createdAt: new Date().toISOString()
+                });
+                alert("Admin account created successfully!");
+                document.getElementById("createAdminForm").reset();
+            } catch (err) {
+                alert("Error: " + err.message);
+            }
+        });
+
+        async function loadManagerInventory() {
+            const tbody = document.getElementById("managerTableBody");
+            tbody.innerHTML = "";
+            const querySnapshot = await getDocs(collection(db, "inventory"));
+            querySnapshot.forEach((docSnap) => {
+                const data = docSnap.data();
+                tbody.innerHTML += `
+                    <tr class="hover:bg-slate-700/50">
+                        <td class="p-3 font-mono break-all">${data.itemCode}</td>
+                        <td class="p-3">${data.name}</td>
+                        <td class="p-3"><span class="px-2 py-1 rounded bg-amber-900 text-amber-300 text-xs">${data.status}</span></td>
+                        <td class="p-3">${data.currentLocation}</td>
+                        <td class="p-3 text-slate-400 break-all">${data.createdBy}</td>
+                        <td class="p-3 text-slate-400 break-all">${data.lastEditedBy || 'None'}</td>
+                    </tr>
+                `;
+            });
+        }
+
+        window.exportToExcel = () => {
+            const table = document.getElementById("managerTable");
+            const wb = XLSX.utils.table_to_book(table, {sheet: "Oversight"});
+            XLSX.writeFile(wb, "Manager_Audit_Report.xlsx");
+        };
+    </script>
+</body>
+</html>
