@@ -54,8 +54,8 @@
                 <table id="inventoryTable" class="w-full text-left border-collapse min-w-[800px]">
                     <thead>
                         <tr class="bg-slate-900/50 border-b border-slate-700 text-slate-400 text-xs sm:text-sm">
-                            <th class="p-3">Code / SN</th>
-                            <th class="p-3">Name</th>
+                            <th class="p-3 cursor-pointer" onclick="toggleTableSort('inventoryTable', 0)">Code / SN ↕</th>
+                            <th class="p-3 cursor-pointer" onclick="toggleTableSort('inventoryTable', 1)">Name ↕</th>
                             <th class="p-3">Type / Category</th>
                             <th class="p-3">Status</th>
                             <th class="p-3">Location</th>
@@ -159,13 +159,13 @@
             </form>
         </section>
 
-        <!-- Tab 4: Clients (Section 1: Client Registration, Section 2: Client Documents - Both Filterable/Sortable) -->
+        <!-- Tab 4: Clients (Section 1 Full Width Above, Section 2 Full Width Below - Filterable & Sortable) -->
         <section id="tab-clients" class="bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-700 space-y-6 shadow-xl hidden w-full max-w-5xl">
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-                <!-- Section 1: Client Registration -->
-                <div class="bg-slate-900/60 p-5 rounded-xl border border-slate-700 space-y-4 shadow-md">
-                    <h2 class="text-base font-bold text-red-400 text-center">Section 1: Register Client Profile</h2>
-                    <form id="clientRegisterForm" class="space-y-3">
+            <!-- Section 1: Client Registration (Full Width) -->
+            <div class="bg-slate-900/60 p-5 rounded-xl border border-slate-700 space-y-4 shadow-md w-full">
+                <h2 class="text-base font-bold text-red-400 text-center">Section 1: Register Client Profile</h2>
+                <form id="clientRegisterForm" class="space-y-3">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <label class="block text-xs font-medium mb-1">Client Company Name</label>
                             <input type="text" id="regClientName" required placeholder="e.g. Petronas Carigali" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm">
@@ -174,81 +174,81 @@
                             <label class="block text-xs font-medium mb-1">Contact Person & Email</label>
                             <input type="text" id="regClientContact" placeholder="e.g. John Doe (john@petronas.com)" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm">
                         </div>
-                        <button type="submit" class="w-full bg-red-600 hover:bg-red-500 text-white font-bold py-2 px-4 rounded-lg text-sm">Save Client Profile</button>
-                    </form>
-                    <div class="mt-4 space-y-2">
-                        <input type="text" id="clientSearch" placeholder="🔍 Search Clients..." onkeyup="filterClientsTable()" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-xs">
-                        <div class="overflow-x-auto rounded-xl border border-slate-700 max-h-48 overflow-y-auto">
-                            <table id="clientProfileTable" class="w-full text-left border-collapse min-w-[300px]">
-                                <thead>
-                                    <tr class="bg-slate-900/50 border-b border-slate-700 text-slate-400 text-xs">
-                                        <th class="p-2 cursor-pointer" onclick="sortClientsTable()">Client Name ↕</th>
-                                        <th class="p-2">Contact</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="clientProfileBody" class="divide-y divide-slate-700 text-xs"></tbody>
-                            </table>
-                        </div>
+                    </div>
+                    <button type="submit" class="w-full sm:w-auto bg-red-600 hover:bg-red-500 text-white font-bold py-2 px-6 rounded-lg text-sm">Save Client Profile</button>
+                </form>
+                <div class="mt-4 space-y-2">
+                    <input type="text" id="clientSearch" placeholder="🔍 Search Clients..." onkeyup="filterClientsTable()" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-xs">
+                    <div class="overflow-x-auto rounded-xl border border-slate-700 max-h-48 overflow-y-auto">
+                        <table id="clientProfileTable" class="w-full text-left border-collapse min-w-[300px]">
+                            <thead>
+                                <tr class="bg-slate-900/50 border-b border-slate-700 text-slate-400 text-xs">
+                                    <th class="p-2 cursor-pointer" onclick="sortClientProfilesTable()">Client Name ↕</th>
+                                    <th class="p-2">Contact</th>
+                                </tr>
+                            </thead>
+                            <tbody id="clientProfileBody" class="divide-y divide-slate-700 text-xs"></tbody>
+                        </table>
                     </div>
                 </div>
+            </div>
 
-                <!-- Section 2: Client Documents (PO, Inv, DO, Date) -->
-                <div class="bg-slate-900/60 p-5 rounded-xl border border-slate-700 space-y-4 shadow-md">
-                    <h2 class="text-base font-bold text-red-400 text-center">Section 2: Client Commercial Documents</h2>
-                    <form id="clientDocForm" class="space-y-3">
+            <!-- Section 2: Client Documents (Full Width Below) -->
+            <div class="bg-slate-900/60 p-5 rounded-xl border border-slate-700 space-y-4 shadow-md w-full">
+                <h2 class="text-base font-bold text-red-400 text-center">Section 2: Client Commercial Documents</h2>
+                <form id="clientDocForm" class="space-y-3">
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                         <div>
                             <label class="block text-xs font-medium mb-1">Select Client</label>
                             <select id="clientDocSelect" required class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm">
                                 <option value="">-- Choose Client --</option>
                             </select>
                         </div>
-                        <div class="grid grid-cols-2 gap-2">
-                            <div>
-                                <label class="block text-xs font-medium mb-1">Doc Type</label>
-                                <select id="clientDocType" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm">
-                                    <option value="PO">Purchase Order (PO)</option>
-                                    <option value="DO">Delivery Order (DO)</option>
-                                    <option value="Invoice">Invoice (Inv)</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-xs font-medium mb-1">Document Date</label>
-                                <input type="date" id="clientDocDate" required class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm">
-                            </div>
+                        <div>
+                            <label class="block text-xs font-medium mb-1">Doc Type</label>
+                            <select id="clientDocType" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm">
+                                <option value="PO">Purchase Order (PO)</option>
+                                <option value="DO">Delivery Order (DO)</option>
+                                <option value="Invoice">Invoice (Inv)</option>
+                            </select>
                         </div>
                         <div>
-                            <label class="block text-xs font-medium mb-1">File Attachment (Base64)</label>
-                            <input type="file" id="clientFile" required class="w-full text-xs text-slate-400 file:mr-2 file:py-1.5 file:px-3 file:rounded file:border-0 file:bg-red-600 file:text-white">
+                            <label class="block text-xs font-medium mb-1">Document Date</label>
+                            <input type="date" id="clientDocDate" required class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm">
                         </div>
-                        <button type="submit" class="w-full bg-red-600 hover:bg-red-500 text-white font-bold py-2 px-4 rounded-lg text-sm">Upload Document</button>
-                    </form>
-                    <div class="mt-4 space-y-2">
-                        <input type="text" id="clientDocSearch" placeholder="🔍 Search Client Docs..." onkeyup="filterClientDocsTable()" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-xs">
-                        <div class="overflow-x-auto rounded-xl border border-slate-700 max-h-48 overflow-y-auto">
-                            <table id="clientDocTable" class="w-full text-left border-collapse min-w-[300px]">
-                                <thead>
-                                    <tr class="bg-slate-900/50 border-b border-slate-700 text-slate-400 text-xs">
-                                        <th class="p-2 cursor-pointer" onclick="sortClientDocsTable()">Client ↕</th>
-                                        <th class="p-2">Type</th>
-                                        <th class="p-2">Date</th>
-                                        <th class="p-2">File</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="clientDocTableBody" class="divide-y divide-slate-700 text-xs"></tbody>
-                            </table>
-                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium mb-1">File Attachment (Base64)</label>
+                        <input type="file" id="clientFile" required class="w-full text-xs text-slate-400 file:mr-2 file:py-1.5 file:px-3 file:rounded file:border-0 file:bg-red-600 file:text-white">
+                    </div>
+                    <button type="submit" class="w-full sm:w-auto bg-red-600 hover:bg-red-500 text-white font-bold py-2 px-6 rounded-lg text-sm">Upload Document</button>
+                </form>
+                <div class="mt-4 space-y-2">
+                    <input type="text" id="clientDocSearch" placeholder="🔍 Search Client Docs..." onkeyup="filterClientDocsTable()" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-xs">
+                    <div class="overflow-x-auto rounded-xl border border-slate-700 max-h-48 overflow-y-auto">
+                        <table id="clientDocTable" class="w-full text-left border-collapse min-w-[300px]">
+                            <thead>
+                                <tr class="bg-slate-900/50 border-b border-slate-700 text-slate-400 text-xs">
+                                    <th class="p-2 cursor-pointer" onclick="sortClientDocsTable()">Client ↕</th>
+                                    <th class="p-2 cursor-pointer" onclick="sortClientDocsTableType()">Type ↕</th>
+                                    <th class="p-2">Date</th>
+                                    <th class="p-2">File</th>
+                                </tr>
+                            </thead>
+                            <tbody id="clientDocTableBody" class="divide-y divide-slate-700 text-xs"></tbody>
+                        </table>
                     </div>
                 </div>
             </div>
         </section>
 
-        <!-- Tab 5: Suppliers (Section 1: Supplier Registration, Section 2: Supplier Documents - Both Filterable/Sortable) -->
+        <!-- Tab 5: Suppliers (Section 1 Full Width Above, Section 2 Full Width Below - Filterable & Sortable) -->
         <section id="tab-suppliers" class="bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-700 space-y-6 shadow-xl hidden w-full max-w-5xl">
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-                <!-- Section 1: Supplier Registration -->
-                <div class="bg-slate-900/60 p-5 rounded-xl border border-slate-700 space-y-4 shadow-md">
-                    <h2 class="text-base font-bold text-red-400 text-center">Section 1: Register Supplier Profile</h2>
-                    <form id="supplierRegisterForm" class="space-y-3">
+            <!-- Section 1: Supplier Registration (Full Width) -->
+            <div class="bg-slate-900/60 p-5 rounded-xl border border-slate-700 space-y-4 shadow-md w-full">
+                <h2 class="text-base font-bold text-red-400 text-center">Section 1: Register Supplier Profile</h2>
+                <form id="supplierRegisterForm" class="space-y-3">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <label class="block text-xs font-medium mb-1">Supplier Company Name</label>
                             <input type="text" id="regSupplierName" required placeholder="e.g. Schlumberger Parts" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm">
@@ -257,71 +257,71 @@
                             <label class="block text-xs font-medium mb-1">Contact Person & Email</label>
                             <input type="text" id="regSupplierContact" placeholder="e.g. Jane Smith (jane@schlumberger.com)" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm">
                         </div>
-                        <button type="submit" class="w-full bg-red-600 hover:bg-red-500 text-white font-bold py-2 px-4 rounded-lg text-sm">Save Supplier Profile</button>
-                    </form>
-                    <div class="mt-4 space-y-2">
-                        <input type="text" id="supplierSearch" placeholder="🔍 Search Suppliers..." onkeyup="filterSuppliersTable()" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-xs">
-                        <div class="overflow-x-auto rounded-xl border border-slate-700 max-h-48 overflow-y-auto">
-                            <table id="supplierProfileTable" class="w-full text-left border-collapse min-w-[300px]">
-                                <thead>
-                                    <tr class="bg-slate-900/50 border-b border-slate-700 text-slate-400 text-xs">
-                                        <th class="p-2 cursor-pointer" onclick="sortSuppliersTable()">Supplier Name ↕</th>
-                                        <th class="p-2">Contact</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="supplierProfileBody" class="divide-y divide-slate-700 text-xs"></tbody>
-                            </table>
-                        </div>
+                    </div>
+                    <button type="submit" class="w-full sm:w-auto bg-red-600 hover:bg-red-500 text-white font-bold py-2 px-6 rounded-lg text-sm">Save Supplier Profile</button>
+                </form>
+                <div class="mt-4 space-y-2">
+                    <input type="text" id="supplierSearch" placeholder="🔍 Search Suppliers..." onkeyup="filterSuppliersTable()" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-xs">
+                    <div class="overflow-x-auto rounded-xl border border-slate-700 max-h-48 overflow-y-auto">
+                        <table id="supplierProfileTable" class="w-full text-left border-collapse min-w-[300px]">
+                            <thead>
+                                <tr class="bg-slate-900/50 border-b border-slate-700 text-slate-400 text-xs">
+                                    <th class="p-2 cursor-pointer" onclick="sortSupplierProfilesTable()">Supplier Name ↕</th>
+                                    <th class="p-2">Contact</th>
+                                </tr>
+                            </thead>
+                            <tbody id="supplierProfileBody" class="divide-y divide-slate-700 text-xs"></tbody>
+                        </table>
                     </div>
                 </div>
+            </div>
 
-                <!-- Section 2: Supplier Documents (Supplier Inv, Our PO, DO, SIRIM, Permit, Date) -->
-                <div class="bg-slate-900/60 p-5 rounded-xl border border-slate-700 space-y-4 shadow-md">
-                    <h2 class="text-base font-bold text-red-400 text-center">Section 2: Supplier Compliance Documents</h2>
-                    <form id="supplierDocForm" class="space-y-3">
+            <!-- Section 2: Supplier Documents (Full Width Below) -->
+            <div class="bg-slate-900/60 p-5 rounded-xl border border-slate-700 space-y-4 shadow-md w-full">
+                <h2 class="text-base font-bold text-red-400 text-center">Section 2: Supplier Compliance Documents</h2>
+                <form id="supplierDocForm" class="space-y-3">
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                         <div>
                             <label class="block text-xs font-medium mb-1">Select Supplier</label>
                             <select id="supplierDocSelect" required class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm">
                                 <option value="">-- Choose Supplier --</option>
                             </select>
                         </div>
-                        <div class="grid grid-cols-2 gap-2">
-                            <div>
-                                <label class="block text-xs font-medium mb-1">Doc Type</label>
-                                <select id="supplierDocType" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm">
-                                    <option value="Supplier Invoice">Supplier Invoice</option>
-                                    <option value="Our PO">Our PO to Supplier</option>
-                                    <option value="Supplier DO">Supplier DO</option>
-                                    <option value="SIRIM Certificate">SIRIM Certificate</option>
-                                    <option value="Permit of Sale">Permit of Sale</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-xs font-medium mb-1">Document Date</label>
-                                <input type="date" id="supplierDocDate" required class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm">
-                            </div>
+                        <div>
+                            <label class="block text-xs font-medium mb-1">Doc Type</label>
+                            <select id="supplierDocType" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm">
+                                <option value="Supplier Invoice">Supplier Invoice</option>
+                                <option value="Our PO">Our PO to Supplier</option>
+                                <option value="Supplier DO">Supplier DO</option>
+                                <option value="SIRIM Certificate">SIRIM Certificate</option>
+                                <option value="Permit of Sale">Permit of Sale</option>
+                            </select>
                         </div>
                         <div>
-                            <label class="block text-xs font-medium mb-1">File Attachment (Base64)</label>
-                            <input type="file" id="supplierFile" required class="w-full text-xs text-slate-400 file:mr-2 file:py-1.5 file:px-3 file:rounded file:border-0 file:bg-red-600 file:text-white">
+                            <label class="block text-xs font-medium mb-1">Document Date</label>
+                            <input type="date" id="supplierDocDate" required class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm">
                         </div>
-                        <button type="submit" class="w-full bg-red-600 hover:bg-red-500 text-white font-bold py-2 px-4 rounded-lg text-sm">Upload Document</button>
-                    </form>
-                    <div class="mt-4 space-y-2">
-                        <input type="text" id="supplierDocSearch" placeholder="🔍 Search Supplier Docs..." onkeyup="filterSupplierDocsTable()" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-xs">
-                        <div class="overflow-x-auto rounded-xl border border-slate-700 max-h-48 overflow-y-auto">
-                            <table id="supplierDocTable" class="w-full text-left border-collapse min-w-[300px]">
-                                <thead>
-                                    <tr class="bg-slate-900/50 border-b border-slate-700 text-slate-400 text-xs">
-                                        <th class="p-2 cursor-pointer" onclick="sortSupplierDocsTable()">Supplier ↕</th>
-                                        <th class="p-2">Type</th>
-                                        <th class="p-2">Date</th>
-                                        <th class="p-2">File</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="supplierDocTableBody" class="divide-y divide-slate-700 text-xs"></tbody>
-                            </table>
-                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium mb-1">File Attachment (Base64)</label>
+                        <input type="file" id="supplierFile" required class="w-full text-xs text-slate-400 file:mr-2 file:py-1.5 file:px-3 file:rounded file:border-0 file:bg-red-600 file:text-white">
+                    </div>
+                    <button type="submit" class="w-full sm:w-auto bg-red-600 hover:bg-red-500 text-white font-bold py-2 px-6 rounded-lg text-sm">Upload Document</button>
+                </form>
+                <div class="mt-4 space-y-2">
+                    <input type="text" id="supplierDocSearch" placeholder="🔍 Search Supplier Docs..." onkeyup="filterSupplierDocsTable()" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-xs">
+                    <div class="overflow-x-auto rounded-xl border border-slate-700 max-h-48 overflow-y-auto">
+                        <table id="supplierDocTable" class="w-full text-left border-collapse min-w-[300px]">
+                            <thead>
+                                <tr class="bg-slate-900/50 border-b border-slate-700 text-slate-400 text-xs">
+                                    <th class="p-2 cursor-pointer" onclick="sortSupplierDocsTable()">Supplier ↕</th>
+                                    <th class="p-2 cursor-pointer" onclick="sortSupplierDocsTableType()">Type ↕</th>
+                                    <th class="p-2">Date</th>
+                                    <th class="p-2">File</th>
+                                </tr>
+                            </thead>
+                            <tbody id="supplierDocTableBody" class="divide-y divide-slate-700 text-xs"></tbody>
+                        </table>
                     </div>
                 </div>
             </div>
@@ -416,8 +416,10 @@
         let supplierDocsData = [];
         let clientSortAsc = true;
         let clientDocSortAsc = true;
+        let clientDocTypeSortAsc = true;
         let supplierSortAsc = true;
         let supplierDocSortAsc = true;
+        let supplierDocTypeSortAsc = true;
 
         onAuthStateChanged(auth, async (user) => {
             if (!user) { window.location.href = "index.html"; return; }
@@ -521,6 +523,25 @@
                 `;
             });
         }
+
+        let tableSortDirections = {};
+        window.toggleTableSort = (tableId, colIndex) => {
+            const table = document.getElementById(tableId);
+            const tbody = table.querySelector("tbody");
+            const rowsArray = Array.from(tbody.querySelectorAll("tr"));
+            if (rowsArray.length <= 1) return;
+
+            tableSortDirections[colIndex] = !tableSortDirections[colIndex];
+            const asc = tableSortDirections[colIndex];
+
+            rowsArray.sort((rowA, rowB) => {
+                const cellA = rowA.cells[colIndex].textContent.trim();
+                const cellB = rowB.cells[colIndex].textContent.trim();
+                return asc ? cellA.localeCompare(cellB) : cellB.localeCompare(cellA);
+            });
+
+            rowsArray.forEach(row => tbody.appendChild(row));
+        };
 
         window.deleteItem = async (itemId) => {
             if (confirm("Permanently purge this item from the system?")) {
@@ -682,7 +703,7 @@
             renderClientProfilesTable(filtered);
         };
 
-        window.sortClientsTable = () => {
+        window.sortClientProfilesTable = () => {
             clientSortAsc = !clientSortAsc;
             clientProfilesData.sort((a, b) => clientSortAsc ? a.clientName.localeCompare(b.clientName) : b.clientName.localeCompare(a.clientName));
             renderClientProfilesTable(clientProfilesData);
@@ -746,6 +767,12 @@
             renderClientDocsTable(clientDocsData);
         };
 
+        window.sortClientDocsTableType = () => {
+            clientDocTypeSortAsc = !clientDocTypeSortAsc;
+            clientDocsData.sort((a, b) => clientDocTypeSortAsc ? a.docType.localeCompare(b.docType) : b.docType.localeCompare(a.docType));
+            renderClientDocsTable(clientDocsData);
+        };
+
         // 5. Suppliers Handling (Section 1 Profiles & Section 2 Docs - Filterable & Sortable)
         document.getElementById("supplierRegisterForm").addEventListener("submit", async (e) => {
             e.preventDefault();
@@ -787,7 +814,7 @@
             renderSupplierProfilesTable(filtered);
         };
 
-        window.sortSuppliersTable = () => {
+        window.sortSupplierProfilesTable = () => {
             supplierSortAsc = !supplierSortAsc;
             supplierProfilesData.sort((a, b) => supplierSortAsc ? a.supplierName.localeCompare(b.supplierName) : b.supplierName.localeCompare(a.supplierName));
             renderSupplierProfilesTable(supplierProfilesData);
@@ -848,6 +875,12 @@
         window.sortSupplierDocsTable = () => {
             supplierDocSortAsc = !supplierDocSortAsc;
             supplierDocsData.sort((a, b) => supplierDocSortAsc ? a.supplierName.localeCompare(b.supplierName) : b.supplierName.localeCompare(a.supplierName));
+            renderSupplierDocsTable(supplierDocsData);
+        };
+
+        window.sortSupplierDocsTableType = () => {
+            supplierDocTypeSortAsc = !supplierDocTypeSortAsc;
+            supplierDocsData.sort((a, b) => supplierDocTypeSortAsc ? a.docType.localeCompare(b.docType) : b.docType.localeCompare(a.docType));
             renderSupplierDocsTable(supplierDocsData);
         };
 
