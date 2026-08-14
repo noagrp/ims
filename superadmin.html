@@ -26,16 +26,16 @@
             <button onclick="switchTab('settings')" id="tab-settings-btn" class="text-slate-400 pb-2 text-xs sm:text-sm md:text-base px-3 py-1.5 transition rounded-lg hover:bg-slate-800/40">Other settings</button>
         </div>
 
-        <!-- Tab 1: Inventory Overview (Sortable & Filterable Table) -->
+        <!-- Tab 1: Inventory Overview (Sortable & Filterable Table with Integrated Document Tracking) -->
         <section id="tab-inventory" class="bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-700 space-y-4 shadow-xl w-full max-w-5xl">
             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-                <h2 class="text-base sm:text-lg font-bold">Inventory & Audit Log</h2>
+                <h2 class="text-base sm:text-lg font-bold">Inventory & Audit Log (Relational Document Tracking)</h2>
                 <button onclick="exportTableToExcel('inventoryTable', 'Master_Audit_Report.xlsx')" class="bg-emerald-600 hover:bg-emerald-500 px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold w-full sm:w-auto transition">Export Report</button>
             </div>
             
             <!-- Sorting & Filtering Controls -->
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-slate-900/50 p-3 rounded-xl border border-slate-700">
-                <input type="text" id="inventorySearch" placeholder="🔍 Search inventory..." onkeyup="filterAndSortInventory()" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm focus:outline-none focus:border-red-500">
+                <input type="text" id="inventorySearch" placeholder="🔍 Search inventory & linked docs..." onkeyup="filterAndSortInventory()" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm focus:outline-none focus:border-red-500">
                 <select id="inventoryFilterStatus" onchange="filterAndSortInventory()" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm focus:outline-none focus:border-red-500">
                     <option value="">Filter by Status / Location (All)</option>
                     <option value="In Stock">In Stock</option>
@@ -51,7 +51,7 @@
             </div>
 
             <div class="overflow-x-auto rounded-xl border border-slate-700">
-                <table id="inventoryTable" class="w-full text-left border-collapse min-w-[800px]">
+                <table id="inventoryTable" class="w-full text-left border-collapse min-w-[900px]">
                     <thead>
                         <tr class="bg-slate-900/50 border-b border-slate-700 text-slate-400 text-xs sm:text-sm">
                             <th class="p-3 cursor-pointer select-none" onclick="toggleTableSort('inventoryTable', 0)">Code / SN ↕</th>
@@ -59,7 +59,8 @@
                             <th class="p-3 cursor-pointer select-none" onclick="toggleTableSort('inventoryTable', 2)">Type / Category ↕</th>
                             <th class="p-3 cursor-pointer select-none" onclick="toggleTableSort('inventoryTable', 3)">Status ↕</th>
                             <th class="p-3 cursor-pointer select-none" onclick="toggleTableSort('inventoryTable', 4)">Location ↕</th>
-                            <th class="p-3 cursor-pointer select-none" onclick="toggleTableSort('inventoryTable', 5)">Remark ↕</th>
+                            <th class="p-3">Linked Commercial Docs</th>
+                            <th class="p-3">Remark</th>
                             <th class="p-3">Master Actions</th>
                         </tr>
                     </thead>
@@ -159,11 +160,11 @@
             </form>
         </section>
 
-        <!-- Tab 4: Clients (Section 1 Full Width Above, Section 2 Full Width Below - Filterable & Sortable) -->
+        <!-- Tab 4: Clients (Section 1 Full Width Above, Section 2 Full Width Below with Asset Code Linking) -->
         <section id="tab-clients" class="bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-700 space-y-6 shadow-xl hidden w-full max-w-5xl">
             <!-- Client Registration (Full Width) -->
             <div class="bg-slate-900/60 p-5 rounded-xl border border-slate-700 space-y-4 shadow-md w-full">
-                <h2 class="text-base font-bold text-red-400 text-center">Register Client Profile</h2>
+                <h2 class="text-base font-bold text-red-400 text-center">Section 1: Register Client Profile</h2>
                 <form id="clientRegisterForm" class="space-y-3">
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
@@ -193,11 +194,11 @@
                 </div>
             </div>
 
-            <!-- Documentation (Full Width Below) -->
+            <!-- Documentation with Asset Code Linking (Full Width Below) -->
             <div class="bg-slate-900/60 p-5 rounded-xl border border-slate-700 space-y-4 shadow-md w-full">
-                <h2 class="text-base font-bold text-red-400 text-center">Documentation</h2>
+                <h2 class="text-base font-bold text-red-400 text-center">Section 2: Client Commercial Documents (Relational Asset Link)</h2>
                 <form id="clientDocForm" class="space-y-3">
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                         <div>
                             <label class="block text-xs font-medium mb-1">Select Client</label>
                             <select id="clientDocSelect" required class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm">
@@ -216,23 +217,30 @@
                             <label class="block text-xs font-medium mb-1">Document Date</label>
                             <input type="date" id="clientDocDate" required class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm">
                         </div>
+                        <div>
+                            <label class="block text-xs font-medium mb-1">Link to Asset Code / SN (Optional)</label>
+                            <select id="clientDocAssetCode" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm">
+                                <option value="">-- None / General Doc --</option>
+                            </select>
+                        </div>
                     </div>
                     <div>
                         <label class="block text-xs font-medium mb-1">File Attachment (Base64)</label>
                         <input type="file" id="clientFile" required class="w-full text-xs text-slate-400 file:mr-2 file:py-1.5 file:px-3 file:rounded file:border-0 file:bg-red-600 file:text-white">
                     </div>
-                    <button type="submit" class="w-full sm:w-auto bg-red-600 hover:bg-red-500 text-white font-bold py-2 px-6 rounded-lg text-sm">Upload Document</button>
+                    <button type="submit" class="w-full sm:w-auto bg-red-600 hover:bg-red-500 text-white font-bold py-2 px-6 rounded-lg text-sm">Upload Document & Link Asset</button>
                 </form>
                 <div class="mt-4 space-y-2">
-                    <input type="text" id="clientDocSearch" placeholder="🔍 Search Client Docs..." onkeyup="filterClientDocsTable()" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-xs">
+                    <input type="text" id="clientDocSearch" placeholder="🔍 Search Client Docs or Asset Codes..." onkeyup="filterClientDocsTable()" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-xs">
                     <div class="overflow-x-auto rounded-xl border border-slate-700 max-h-48 overflow-y-auto">
                         <table id="clientDocTable" class="w-full text-left border-collapse min-w-[300px]">
                             <thead>
                                 <tr class="bg-slate-900/50 border-b border-slate-700 text-slate-400 text-xs">
                                     <th class="p-2 cursor-pointer select-none" onclick="toggleTableSort('clientDocTable', 0)">Client ↕</th>
                                     <th class="p-2 cursor-pointer select-none" onclick="toggleTableSort('clientDocTable', 1)">Type ↕</th>
-                                    <th class="p-2 cursor-pointer select-none" onclick="toggleTableSort('clientDocTable', 2)">Date ↕</th>
-                                    <th class="p-2 select-none">File</th>
+                                    <th class="p-2 cursor-pointer select-none" onclick="toggleTableSort('clientDocTable', 2)">Linked Asset Code ↕</th>
+                                    <th class="p-2">Date</th>
+                                    <th class="p-2">File</th>
                                 </tr>
                             </thead>
                             <tbody id="clientDocTableBody" class="divide-y divide-slate-700 text-xs"></tbody>
@@ -242,11 +250,11 @@
             </div>
         </section>
 
-        <!-- Tab 5: Suppliers (Section 1 Full Width Above, Section 2 Full Width Below - Filterable & Sortable) -->
+        <!-- Tab 5: Suppliers (Section 1 Full Width Above, Section 2 Full Width Below with Asset Code Linking) -->
         <section id="tab-suppliers" class="bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-700 space-y-6 shadow-xl hidden w-full max-w-5xl">
             <!-- Supplier Registration (Full Width) -->
             <div class="bg-slate-900/60 p-5 rounded-xl border border-slate-700 space-y-4 shadow-md w-full">
-                <h2 class="text-base font-bold text-red-400 text-center">Register Supplier Profile</h2>
+                <h2 class="text-base font-bold text-red-400 text-center">Section 1: Register Supplier Profile</h2>
                 <form id="supplierRegisterForm" class="space-y-3">
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
@@ -276,11 +284,11 @@
                 </div>
             </div>
 
-            <!-- Documentation (Full Width Below) -->
+            <!-- Documentation with Asset Code Linking (Full Width Below) -->
             <div class="bg-slate-900/60 p-5 rounded-xl border border-slate-700 space-y-4 shadow-md w-full">
-                <h2 class="text-base font-bold text-red-400 text-center">Documentation</h2>
+                <h2 class="text-base font-bold text-red-400 text-center">Section 2: Supplier Compliance Documents (Relational Asset Link)</h2>
                 <form id="supplierDocForm" class="space-y-3">
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                         <div>
                             <label class="block text-xs font-medium mb-1">Select Supplier</label>
                             <select id="supplierDocSelect" required class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm">
@@ -301,23 +309,30 @@
                             <label class="block text-xs font-medium mb-1">Document Date</label>
                             <input type="date" id="supplierDocDate" required class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm">
                         </div>
+                        <div>
+                            <label class="block text-xs font-medium mb-1">Link to Asset Code / SN (Optional)</label>
+                            <select id="supplierDocAssetCode" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm">
+                                <option value="">-- None / General Doc --</option>
+                            </select>
+                        </div>
                     </div>
                     <div>
                         <label class="block text-xs font-medium mb-1">File Attachment (Base64)</label>
                         <input type="file" id="supplierFile" required class="w-full text-xs text-slate-400 file:mr-2 file:py-1.5 file:px-3 file:rounded file:border-0 file:bg-red-600 file:text-white">
                     </div>
-                    <button type="submit" class="w-full sm:w-auto bg-red-600 hover:bg-red-500 text-white font-bold py-2 px-6 rounded-lg text-sm">Upload Document</button>
+                    <button type="submit" class="w-full sm:w-auto bg-red-600 hover:bg-red-500 text-white font-bold py-2 px-6 rounded-lg text-sm">Upload Document & Link Asset</button>
                 </form>
                 <div class="mt-4 space-y-2">
-                    <input type="text" id="supplierDocSearch" placeholder="🔍 Search Supplier Docs..." onkeyup="filterSupplierDocsTable()" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-xs">
+                    <input type="text" id="supplierDocSearch" placeholder="🔍 Search Supplier Docs or Asset Codes..." onkeyup="filterSupplierDocsTable()" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-xs">
                     <div class="overflow-x-auto rounded-xl border border-slate-700 max-h-48 overflow-y-auto">
                         <table id="supplierDocTable" class="w-full text-left border-collapse min-w-[300px]">
                             <thead>
                                 <tr class="bg-slate-900/50 border-b border-slate-700 text-slate-400 text-xs">
                                     <th class="p-2 cursor-pointer select-none" onclick="toggleTableSort('supplierDocTable', 0)">Supplier ↕</th>
                                     <th class="p-2 cursor-pointer select-none" onclick="toggleTableSort('supplierDocTable', 1)">Type ↕</th>
-                                    <th class="p-2 cursor-pointer select-none" onclick="toggleTableSort('supplierDocTable', 2)">Date ↕</th>
-                                    <th class="p-2 select-none">File</th>
+                                    <th class="p-2 cursor-pointer select-none" onclick="toggleTableSort('supplierDocTable', 2)">Linked Asset Code ↕</th>
+                                    <th class="p-2">Date</th>
+                                    <th class="p-2">File</th>
                                 </tr>
                             </thead>
                             <tbody id="supplierDocTableBody" class="divide-y divide-slate-700 text-xs"></tbody>
@@ -378,7 +393,7 @@
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full">
                 <!-- Warehouses -->
                 <div class="bg-slate-900/50 p-4 rounded-xl border border-slate-700 shadow-md space-y-3">
-                    <h3 class="font-semibold text-sm text-cyan-400 text-center">Warehouses</h3>
+                    <h3 class="font-semibold text-sm text-cyan-400 text-center">Section 1: Warehouse Settings</h3>
                     <form id="warehouseForm" class="space-y-2">
                         <input type="text" id="warehouseName" placeholder="e.g. Labuan Base" required class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm">
                         <button type="submit" class="w-full bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-2 rounded-lg text-sm">Add Warehouse</button>
@@ -388,7 +403,7 @@
 
                 <!-- Categories -->
                 <div class="bg-slate-900/50 p-4 rounded-xl border border-slate-700 shadow-md space-y-3">
-                    <h3 class="font-semibold text-sm text-amber-400 text-center">Categories</h3>
+                    <h3 class="font-semibold text-sm text-amber-400 text-center">Section 2: Categories Setting</h3>
                     <form id="categoryForm" class="space-y-2">
                         <input type="text" id="categoryName" placeholder="e.g. Drilling Bits (800+ Series)" required class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm">
                         <div>
@@ -416,10 +431,8 @@
         let supplierDocsData = [];
         let clientSortAsc = true;
         let clientDocSortAsc = true;
-        let clientDocTypeSortAsc = true;
         let supplierSortAsc = true;
         let supplierDocSortAsc = true;
-        let supplierDocTypeSortAsc = true;
 
         onAuthStateChanged(auth, async (user) => {
             if (!user) { window.location.href = "index.html"; return; }
@@ -459,6 +472,20 @@
             reader.onerror = error => reject(error);
         });
 
+        // Populate Asset Code Link Dropdowns across Client and Supplier doc forms
+        function populateAssetCodeDropdowns() {
+            const clientAssetSelect = document.getElementById("clientDocAssetCode");
+            const supplierAssetSelect = document.getElementById("supplierDocAssetCode");
+            
+            let optionsHTML = '<option value="">-- None / General Doc --</option>';
+            globalInventoryData.forEach(item => {
+                optionsHTML += `<option value="${item.itemCode}">${item.itemCode} - ${item.name}</option>`;
+            });
+
+            if (clientAssetSelect) clientAssetSelect.innerHTML = optionsHTML;
+            if (supplierAssetSelect) supplierAssetSelect.innerHTML = optionsHTML;
+        }
+
         // 1. Global Inventory Overview & Filter/Sort
         async function loadGlobalInventory() {
             const transitSelect = document.getElementById("transitItemSelect");
@@ -473,6 +500,7 @@
                 transitSelect.innerHTML += `<option value="${data.id}">${data.itemCode} - ${data.name}</option>`;
             });
 
+            populateAssetCodeDropdowns();
             filterAndSortInventory();
         }
 
@@ -503,11 +531,24 @@
             const tbody = document.getElementById("inventoryTableBody");
             tbody.innerHTML = "";
             if (dataArray.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="7" class="p-4 text-center text-slate-500">No inventory records found.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="8" class="p-4 text-center text-slate-500">No inventory records found.</td></tr>`;
                 return;
             }
 
             dataArray.forEach((data) => {
+                // Find linked client/supplier docs for this specific item code
+                const linkedClientDocs = clientDocsData.filter(d => d.linkedAssetCode === data.itemCode);
+                const linkedSupplierDocs = supplierDocsData.filter(d => d.linkedAssetCode === data.itemCode);
+                
+                let docBadges = '';
+                linkedClientDocs.forEach(d => {
+                    docBadges += `<span class="inline-block px-1.5 py-0.5 rounded bg-cyan-900/80 text-cyan-200 text-[10px] mr-1 mb-1">Client ${d.docType} (${d.clientName})</span>`;
+                });
+                linkedSupplierDocs.forEach(d => {
+                    docBadges += `<span class="inline-block px-1.5 py-0.5 rounded bg-amber-900/80 text-amber-200 text-[10px] mr-1 mb-1">${d.docType} (${d.supplierName})</span>`;
+                });
+                if (!docBadges) docBadges = '<span class="text-slate-500 text-xs">No linked docs</span>';
+
                 tbody.innerHTML += `
                     <tr class="hover:bg-slate-700/50" id="row-${data.id}">
                         <td class="p-3 font-mono break-all">${data.itemCode}</td>
@@ -515,6 +556,7 @@
                         <td class="p-3">${data.type} <br><span class="text-xs text-slate-400">${data.category}</span></td>
                         <td class="p-3"><span class="px-2 py-1 rounded bg-red-900 text-red-300 text-xs">${data.status}</span></td>
                         <td class="p-3">${data.currentLocation}</td>
+                        <td class="p-3 max-w-[200px]">${docBadges}</td>
                         <td class="p-3 text-slate-300 text-xs">${data.remark || 'None'}</td>
                         <td class="p-3">
                             <button onclick="deleteItem('${data.id}')" class="bg-red-700/80 hover:bg-red-600 text-white px-2.5 py-1 rounded text-xs transition">Purge</button>
@@ -662,7 +704,7 @@
             }
         });
 
-        // 4. Clients Handling (Section 1 Profiles & Section 2 Docs - Filterable & Sortable)
+        // 4. Clients Handling (Section 1 Profiles & Section 2 Docs with Asset Code Link)
         document.getElementById("clientRegisterForm").addEventListener("submit", async (e) => {
             e.preventDefault();
             const clientName = document.getElementById("regClientName").value;
@@ -703,17 +745,12 @@
             renderClientProfilesTable(filtered);
         };
 
-        window.sortClientProfilesTable = () => {
-            clientSortAsc = !clientSortAsc;
-            clientProfilesData.sort((a, b) => clientSortAsc ? a.clientName.localeCompare(b.clientName) : b.clientName.localeCompare(a.clientName));
-            renderClientProfilesTable(clientProfilesData);
-        };
-
         document.getElementById("clientDocForm").addEventListener("submit", async (e) => {
             e.preventDefault();
             const clientName = document.getElementById("clientDocSelect").value;
             const docType = document.getElementById("clientDocType").value;
             const docDate = document.getElementById("clientDocDate").value;
+            const linkedAssetCode = document.getElementById("clientDocAssetCode").value;
             const fileInput = document.getElementById("clientFile");
 
             try {
@@ -723,11 +760,12 @@
                     b64 = await fileToBase64(fileInput.files[0]);
                 }
                 await addDoc(collection(db, "client_docs"), {
-                    clientName, docType, docDate, fileName, base64Data: b64, uploadedBy: currentUserEmail, createdAt: new Date().toISOString()
+                    clientName, docType, docDate, linkedAssetCode, fileName, base64Data: b64, uploadedBy: currentUserEmail, createdAt: new Date().toISOString()
                 });
-                alert("Client document uploaded successfully!");
+                alert("Client document uploaded & linked successfully!");
                 document.getElementById("clientDocForm").reset();
                 loadClientDocs();
+                loadGlobalInventory();
             } catch (err) { alert("Error: " + err.message); }
         });
 
@@ -740,6 +778,7 @@
                 clientDocsData.push(data);
             });
             renderClientDocsTable(clientDocsData);
+            renderInventoryTable(globalInventoryData);
         }
 
         function renderClientDocsTable(data) {
@@ -749,6 +788,7 @@
                 tbody.innerHTML += `<tr>
                     <td class="p-2 font-medium">${item.clientName}</td>
                     <td class="p-2 text-cyan-300">${item.docType}</td>
+                    <td class="p-2 font-mono text-amber-300">${item.linkedAssetCode || 'General'}</td>
                     <td class="p-2 text-slate-300">${item.docDate}</td>
                     <td class="p-2 truncate max-w-[100px]">${item.fileName || 'None'}</td>
                 </tr>`;
@@ -757,11 +797,11 @@
 
         window.filterClientDocsTable = () => {
             const query = document.getElementById("clientDocSearch").value.toLowerCase();
-            const filtered = clientDocsData.filter(d => d.clientName.toLowerCase().includes(query) || d.docType.toLowerCase().includes(query) || d.docDate.includes(query));
+            const filtered = clientDocsData.filter(d => d.clientName.toLowerCase().includes(query) || d.docType.toLowerCase().includes(query) || d.docDate.includes(query) || (d.linkedAssetCode && d.linkedAssetCode.toLowerCase().includes(query)));
             renderClientDocsTable(filtered);
         };
 
-        // 5. Suppliers Handling (Section 1 Profiles & Section 2 Docs - Filterable & Sortable)
+        // 5. Suppliers Handling (Section 1 Profiles & Section 2 Docs with Asset Code Link)
         document.getElementById("supplierRegisterForm").addEventListener("submit", async (e) => {
             e.preventDefault();
             const supplierName = document.getElementById("regSupplierName").value;
@@ -807,6 +847,7 @@
             const supplierName = document.getElementById("supplierDocSelect").value;
             const docType = document.getElementById("supplierDocType").value;
             const docDate = document.getElementById("supplierDocDate").value;
+            const linkedAssetCode = document.getElementById("supplierDocAssetCode").value;
             const fileInput = document.getElementById("supplierFile");
 
             try {
@@ -816,11 +857,12 @@
                     b64 = await fileToBase64(fileInput.files[0]);
                 }
                 await addDoc(collection(db, "supplier_docs"), {
-                    supplierName, docType, docDate, fileName, base64Data: b64, uploadedBy: currentUserEmail, createdAt: new Date().toISOString()
+                    supplierName, docType, docDate, linkedAssetCode, fileName, base64Data: b64, uploadedBy: currentUserEmail, createdAt: new Date().toISOString()
                 });
-                alert("Supplier document uploaded successfully!");
+                alert("Supplier document uploaded & linked successfully!");
                 document.getElementById("supplierDocForm").reset();
                 loadSupplierDocs();
+                loadGlobalInventory();
             } catch (err) { alert("Error: " + err.message); }
         });
 
@@ -833,6 +875,7 @@
                 supplierDocsData.push(data);
             });
             renderSupplierDocsTable(supplierDocsData);
+            renderInventoryTable(globalInventoryData);
         }
 
         function renderSupplierDocsTable(data) {
@@ -842,6 +885,7 @@
                 tbody.innerHTML += `<tr>
                     <td class="p-2 font-medium">${item.supplierName}</td>
                     <td class="p-2 text-amber-300">${item.docType}</td>
+                    <td class="p-2 font-mono text-cyan-300">${item.linkedAssetCode || 'General'}</td>
                     <td class="p-2 text-slate-300">${item.docDate}</td>
                     <td class="p-2 truncate max-w-[100px]">${item.fileName || 'None'}</td>
                 </tr>`;
@@ -850,7 +894,7 @@
 
         window.filterSupplierDocsTable = () => {
             const query = document.getElementById("supplierDocSearch").value.toLowerCase();
-            const filtered = supplierDocsData.filter(d => d.supplierName.toLowerCase().includes(query) || d.docType.toLowerCase().includes(query) || d.docDate.includes(query));
+            const filtered = supplierDocsData.filter(d => d.supplierName.toLowerCase().includes(query) || d.docType.toLowerCase().includes(query) || d.docDate.includes(query) || (d.linkedAssetCode && d.linkedAssetCode.toLowerCase().includes(query)));
             renderSupplierDocsTable(filtered);
         };
 
