@@ -15,7 +15,7 @@
     </nav>
 
     <main class="flex-1 max-w-6xl w-full mx-auto p-3 sm:p-6 space-y-6 box-border flex flex-col items-center">
-        <!-- Master Navigation Tabs Refactored for Mobile Wrapping -->
+        <!-- Master Navigation Tabs -->
         <div class="flex flex-wrap justify-center gap-2 border-b border-slate-700 pb-3 w-full">
             <button onclick="switchTab('inventory')" id="tab-inventory-btn" class="text-red-400 font-semibold pb-2 border-b-2 border-red-400 text-xs sm:text-sm md:text-base px-3 py-1.5 transition rounded-lg bg-slate-800/80">Inventory Overview</button>
             <button onclick="switchTab('transit')" id="tab-transit-btn" class="text-slate-400 pb-2 text-xs sm:text-sm md:text-base px-3 py-1.5 transition rounded-lg hover:bg-slate-800/40">Logistic</button>
@@ -26,14 +26,13 @@
             <button onclick="switchTab('settings')" id="tab-settings-btn" class="text-slate-400 pb-2 text-xs sm:text-sm md:text-base px-3 py-1.5 transition rounded-lg hover:bg-slate-800/40">Other settings</button>
         </div>
 
-        <!-- Tab 1: Inventory Overview (Sortable & Filterable Table with Integrated Document Tracking) -->
+        <!-- Tab 1: Inventory Overview -->
         <section id="tab-inventory" class="bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-700 space-y-4 shadow-xl w-full max-w-5xl">
             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                 <h2 class="text-base sm:text-lg font-bold">Inventory & Audit Log (Relational Document Tracking)</h2>
                 <button onclick="exportTableToExcel('inventoryTable', 'Master_Audit_Report.xlsx')" class="bg-emerald-600 hover:bg-emerald-500 px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold w-full sm:w-auto transition">Export Report</button>
             </div>
             
-            <!-- Sorting & Filtering Controls -->
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-slate-900/50 p-3 rounded-xl border border-slate-700">
                 <input type="text" id="inventorySearch" placeholder="🔍 Search inventory & linked docs..." onkeyup="filterAndSortInventory()" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm focus:outline-none focus:border-red-500">
                 <select id="inventoryFilterStatus" onchange="filterAndSortInventory()" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm focus:outline-none focus:border-red-500">
@@ -69,7 +68,7 @@
             </div>
         </section>
 
-        <!-- Tab 2: Logistic (Transit with Remark & Doc Upload) -->
+        <!-- Tab 2: Logistic -->
         <section id="tab-transit" class="bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-700 space-y-6 shadow-xl hidden w-full max-w-5xl flex flex-col items-center">
             <h2 class="text-base sm:text-lg font-bold text-center">Movement & Shipping</h2>
             <form id="transitForm" class="space-y-4 bg-slate-900/50 p-5 rounded-xl border border-slate-700 shadow-md w-full max-w-2xl">
@@ -105,7 +104,7 @@
             </form>
         </section>
 
-        <!-- Tab 3: Register Asset & Lifecycle Followup Management -->
+        <!-- Tab 3: Register & Lifecycle Followup -->
         <section id="tab-register" class="bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-700 space-y-6 shadow-xl hidden w-full max-w-5xl">
             <h2 class="text-base sm:text-lg font-bold text-center">Register New Equipment or Part</h2>
             <form id="registerForm" class="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-slate-900/50 p-5 rounded-xl border border-slate-700">
@@ -159,7 +158,6 @@
                 </div>
             </form>
 
-            <!-- Lifecycle Followup / Edit Section -->
             <div class="bg-slate-900/60 p-5 rounded-xl border border-slate-700 space-y-4">
                 <h3 class="text-base font-bold text-red-400 text-center">Lifecycle Followup, Edit Name & Status Updates</h3>
                 <div>
@@ -193,7 +191,7 @@
                         </div>
                         <div>
                             <label class="block text-xs font-medium mb-1">Append Remark / Status Note</label>
-                            <input type="text" id="editItemRemark" placeholder="e.g. Updated final name from temp" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm">
+                            <input type="text" id="editItemRemark" placeholder="e.g. Returned safely to warehouse" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm">
                         </div>
                     </div>
                     <div>
@@ -207,9 +205,8 @@
             </div>
         </section>
 
-        <!-- Tab 4: Clients (Section 1 Full Width Above, Section 2 Full Width Below with Asset Code Linking) -->
+        <!-- Tab 4: Clients -->
         <section id="tab-clients" class="bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-700 space-y-6 shadow-xl hidden w-full max-w-5xl">
-            <!-- Client Registration (Full Width) -->
             <div class="bg-slate-900/60 p-5 rounded-xl border border-slate-700 space-y-4 shadow-md w-full">
                 <h2 class="text-base font-bold text-red-400 text-center">Register Client Profile</h2>
                 <form id="clientRegisterForm" class="space-y-3">
@@ -241,7 +238,6 @@
                 </div>
             </div>
 
-            <!-- Documentation with Asset Code Linking (Full Width Below) -->
             <div class="bg-slate-900/60 p-5 rounded-xl border border-slate-700 space-y-4 shadow-md w-full">
                 <h2 class="text-base font-bold text-red-400 text-center">Client Commercial Documents</h2>
                 <form id="clientDocForm" class="space-y-3">
@@ -297,9 +293,8 @@
             </div>
         </section>
 
-        <!-- Tab 5: Suppliers (Section 1 Full Width Above, Section 2 Full Width Below with Asset Code Linking) -->
+        <!-- Tab 5: Suppliers -->
         <section id="tab-suppliers" class="bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-700 space-y-6 shadow-xl hidden w-full max-w-5xl">
-            <!-- Supplier Registration (Full Width) -->
             <div class="bg-slate-900/60 p-5 rounded-xl border border-slate-700 space-y-4 shadow-md w-full">
                 <h2 class="text-base font-bold text-red-400 text-center">Register Supplier Profile</h2>
                 <form id="supplierRegisterForm" class="space-y-3">
@@ -331,7 +326,6 @@
                 </div>
             </div>
 
-            <!-- Documentation with Asset Code Linking (Full Width Below) -->
             <div class="bg-slate-900/60 p-5 rounded-xl border border-slate-700 space-y-4 shadow-md w-full">
                 <h2 class="text-base font-bold text-red-400 text-center">Supplier Compliance Documents</h2>
                 <form id="supplierDocForm" class="space-y-3">
@@ -389,7 +383,7 @@
             </div>
         </section>
 
-        <!-- Tab 6: User Management (With Active / Inactive Read-Only Toggle) -->
+        <!-- Tab 6: User Management -->
         <section id="tab-users" class="bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-700 space-y-6 shadow-xl hidden w-full max-w-5xl">
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
                 <div class="bg-slate-900/60 p-5 rounded-xl border border-slate-700 space-y-4 lg:col-span-1 shadow-md">
@@ -433,7 +427,7 @@
             </div>
         </section>
 
-        <!-- Tab 7: Other Settings (Warehouse and Categories Configuration) -->
+        <!-- Tab 7: Other Settings -->
         <section id="tab-settings" class="bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-700 space-y-6 shadow-xl hidden w-full max-w-5xl flex flex-col items-center">
             <h2 class="text-base sm:text-lg font-bold text-center">Global Master Settings Configuration</h2>
             
@@ -464,6 +458,32 @@
             </div>
         </section>
     </main>
+
+    <!-- Asset History & Document Modal -->
+    <div id="historyModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl max-w-2xl w-full p-6 space-y-5 shadow-2xl max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center border-b border-slate-700 pb-3">
+                <h3 id="modalAssetTitle" class="text-base sm:text-lg font-bold text-red-400">Asset History & Files</h3>
+                <button onclick="closeHistoryModal()" class="text-slate-400 hover:text-white font-bold text-lg px-2">✕</button>
+            </div>
+            
+            <div class="space-y-4">
+                <div>
+                    <h4 class="text-xs sm:text-sm font-semibold text-cyan-400 mb-2">📜 Movement & Lifecycle History Log</h4>
+                    <div id="modalHistoryContainer" class="space-y-2 bg-slate-900/60 p-3 rounded-xl border border-slate-700 text-xs max-h-48 overflow-y-auto"></div>
+                </div>
+
+                <div>
+                    <h4 class="text-xs sm:text-sm font-semibold text-amber-400 mb-2">📎 Attached Documents (Transit, Registration & Followups)</h4>
+                    <div id="modalDocsContainer" class="space-y-2 bg-slate-900/60 p-3 rounded-xl border border-slate-700 text-xs max-h-48 overflow-y-auto"></div>
+                </div>
+            </div>
+
+            <div class="flex justify-end pt-2">
+                <button onclick="closeHistoryModal()" class="bg-slate-700 hover:bg-slate-600 px-4 py-2 rounded-lg text-xs font-semibold">Close</button>
+            </div>
+        </div>
+    </div>
 
     <script type="module">
         import { auth, db } from "./firebase-config.js";
@@ -519,7 +539,6 @@
             reader.onerror = error => reject(error);
         });
 
-        // Populate Asset Code Link Dropdowns across Client, Supplier, and Followup forms
         function populateAssetCodeDropdowns() {
             const clientAssetSelect = document.getElementById("clientDocAssetCode");
             const supplierAssetSelect = document.getElementById("supplierDocAssetCode");
@@ -538,7 +557,6 @@
             if (followupSelect) followupSelect.innerHTML = followupOptionsHTML;
         }
 
-        // 1. Global Inventory Overview & Filter/Sort
         async function loadGlobalInventory() {
             const transitSelect = document.getElementById("transitItemSelect");
             transitSelect.innerHTML = '<option value="">-- Choose Asset --</option>';
@@ -609,13 +627,73 @@
                         <td class="p-3">${data.currentLocation}</td>
                         <td class="p-3 max-w-[200px]">${docBadges}</td>
                         <td class="p-3 text-slate-300 text-xs">${data.remark || 'None'}</td>
-                        <td class="p-3">
+                        <td class="p-3 flex gap-2">
+                            <button onclick="openHistoryModal('${data.id}')" class="bg-cyan-700/80 hover:bg-cyan-600 text-white px-2.5 py-1 rounded text-xs transition">History & Docs</button>
                             <button onclick="deleteItem('${data.id}')" class="bg-red-700/80 hover:bg-red-600 text-white px-2.5 py-1 rounded text-xs transition">Purge</button>
                         </td>
                     </tr>
                 `;
             });
         }
+
+        // Open History & Document Modal
+        window.openHistoryModal = async (itemId) => {
+            const modal = document.getElementById("historyModal");
+            const titleEl = document.getElementById("modalAssetTitle");
+            const historyContainer = document.getElementById("modalHistoryContainer");
+            const docsContainer = document.getElementById("modalDocsContainer");
+
+            const itemSnap = await getDoc(doc(db, "inventory", itemId));
+            if (!itemSnap.exists()) return;
+
+            const data = itemSnap.data();
+            titleEl.textContent = `Asset: ${data.itemCode} - ${data.name}`;
+
+            // Render Lifecycle History
+            historyContainer.innerHTML = "";
+            if (data.lifecycleHistory && data.lifecycleHistory.length > 0) {
+                data.lifecycleHistory.forEach((h, idx) => {
+                    historyContainer.innerHTML += `
+                        <div class="p-2 bg-slate-800 rounded border border-slate-700 space-y-1">
+                            <div class="flex justify-between text-slate-400"><span>#${idx + 1} Status: <strong class="text-white">${h.status}</strong></span><span>${new Date(h.timestamp).toLocaleString()}</span></div>
+                            <div>Location: <span class="text-cyan-300">${h.location}</span> | User: ${h.user || 'System'}</div>
+                            ${h.note ? `<div class="text-slate-300 italic">Note: ${h.note}</div>` : ''}
+                        </div>
+                    `;
+                });
+            } else {
+                historyContainer.innerHTML = `<p class="text-slate-500">No historical logs recorded.</p>`;
+            }
+
+            // Render Uploaded Documents (Transit, Registration, Followups)
+            docsContainer.innerHTML = "";
+            if (data.documents && data.documents.length > 0) {
+                data.documents.forEach((docItem, idx) => {
+                    const fileName = docItem.docName || docItem.fileName || `Document #${idx + 1}`;
+                    const uploadDate = docItem.uploadedAt ? new Date(docItem.uploadedAt).toLocaleString() : 'N/A';
+                    docsContainer.innerHTML += `
+                        <div class="flex items-center justify-between p-2 bg-slate-800 rounded border border-slate-700">
+                            <div>
+                                <div class="font-medium text-amber-200">${fileName}</div>
+                                <div class="text-[10px] text-slate-400">Uploaded: ${uploadDate}</div>
+                            </div>
+                            ${docItem.base64Data ? `<a href="${docItem.base64Data}" download="${fileName}" class="bg-amber-600 hover:bg-amber-500 px-2.5 py-1 rounded text-white text-[10px] font-semibold">Download</a>` : '<span class="text-slate-500 text-[10px]">No File Data</span>'}
+                        </div>
+                    `;
+                });
+            } else {
+                docsContainer.innerHTML = `<p class="text-slate-500">No files attached to this asset.</p>`;
+            }
+
+            modal.classList.remove("hidden");
+            modal.classList.add("flex");
+        };
+
+        window.closeHistoryModal = () => {
+            const modal = document.getElementById("historyModal");
+            modal.classList.remove("flex");
+            modal.classList.add("hidden");
+        };
 
         let tableSortDirections = {};
         window.toggleTableSort = (tableId, colIndex) => {
@@ -648,7 +726,6 @@
             }
         };
 
-        // 2. Logistic Dispatch with Remark & Shipping Document
         document.getElementById("transitForm").addEventListener("submit", async (e) => {
             e.preventDefault();
             const itemId = document.getElementById("transitItemSelect").value;
@@ -705,7 +782,6 @@
             }
         });
 
-        // 3. Register Asset with Remark & Lifecycle Followup Management
         document.getElementById("registerForm").addEventListener("submit", async (e) => {
             e.preventDefault();
             const fileInput = document.getElementById("initialDoc");
@@ -755,7 +831,6 @@
             }
         });
 
-        // Populate Followup Form when an asset is selected
         window.populateFollowupForm = async () => {
             const assetId = document.getElementById("followupAssetSelect").value;
             const followupForm = document.getElementById("followupForm");
@@ -776,7 +851,6 @@
             }
         };
 
-        // Handle Lifecycle Followup & Name Edit Submission
         document.getElementById("followupForm").addEventListener("submit", async (e) => {
             e.preventDefault();
             const assetId = document.getElementById("editAssetId").value;
@@ -840,7 +914,6 @@
             }
         });
 
-        // 4. Clients Handling (Section 1 Profiles & Section 2 Docs with Asset Code Link)
         document.getElementById("clientRegisterForm").addEventListener("submit", async (e) => {
             e.preventDefault();
             const clientName = document.getElementById("regClientName").value;
@@ -937,7 +1010,6 @@
             renderClientDocsTable(filtered);
         };
 
-        // 5. Suppliers Handling (Section 1 Profiles & Section 2 Docs with Asset Code Link)
         document.getElementById("supplierRegisterForm").addEventListener("submit", async (e) => {
             e.preventDefault();
             const supplierName = document.getElementById("regSupplierName").value;
@@ -1034,7 +1106,6 @@
             renderSupplierDocsTable(filtered);
         };
 
-        // 6. User Management with Active/Inactive Read-Only Toggle
         async function loadUserDirectory() {
             const tbody = document.getElementById("userTableBody");
             tbody.innerHTML = "";
@@ -1092,7 +1163,6 @@
             } catch (err) { alert("Error: " + err.message); }
         });
 
-        // 7. Other Settings: Warehouse and Categories Configuration
         document.getElementById("warehouseForm").addEventListener("submit", async (e) => {
             e.preventDefault();
             const name = document.getElementById("warehouseName").value;
