@@ -17,31 +17,36 @@
     <main class="flex-1 max-w-6xl w-full mx-auto p-3 sm:p-6 space-y-6 box-border flex flex-col items-center">
         <!-- Master Navigation Tabs Refactored for Mobile Wrapping -->
         <div class="flex flex-wrap justify-center gap-2 border-b border-slate-700 pb-3 w-full">
-            <button onclick="switchTab('inventory')" id="tab-inventory-btn" class="text-red-400 font-semibold pb-2 border-b-2 border-red-400 text-xs sm:text-sm md:text-base px-3 py-1.5 transition rounded-lg bg-slate-800/80">Global Inventory</button>
-            <button onclick="switchTab('transit')" id="tab-transit-btn" class="text-slate-400 pb-2 text-xs sm:text-sm md:text-base px-3 py-1.5 transition rounded-lg hover:bg-slate-800/40">Transit Logistics</button>
-            <button onclick="switchTab('register')" id="tab-register-btn" class="text-slate-400 pb-2 text-xs sm:text-sm md:text-base px-3 py-1.5 transition rounded-lg hover:bg-slate-800/40">Register Asset</button>
-            <button onclick="switchTab('clients')" id="tab-clients-btn" class="text-slate-400 pb-2 text-xs sm:text-sm md:text-base px-3 py-1.5 transition rounded-lg hover:bg-slate-800/40">Client Docs</button>
-            <button onclick="switchTab('suppliers')" id="tab-suppliers-btn" class="text-slate-400 pb-2 text-xs sm:text-sm md:text-base px-3 py-1.5 transition rounded-lg hover:bg-slate-800/40">Supplier Docs</button>
+            <button onclick="switchTab('inventory')" id="tab-inventory-btn" class="text-red-400 font-semibold pb-2 border-b-2 border-red-400 text-xs sm:text-sm md:text-base px-3 py-1.5 transition rounded-lg bg-slate-800/80">Inventory Overview</button>
+            <button onclick="switchTab('transit')" id="tab-transit-btn" class="text-slate-400 pb-2 text-xs sm:text-sm md:text-base px-3 py-1.5 transition rounded-lg hover:bg-slate-800/40">Logistic</button>
+            <button onclick="switchTab('register')" id="tab-register-btn" class="text-slate-400 pb-2 text-xs sm:text-sm md:text-base px-3 py-1.5 transition rounded-lg hover:bg-slate-800/40">Register</button>
+            <button onclick="switchTab('clients')" id="tab-clients-btn" class="text-slate-400 pb-2 text-xs sm:text-sm md:text-base px-3 py-1.5 transition rounded-lg hover:bg-slate-800/40">Clients</button>
+            <button onclick="switchTab('suppliers')" id="tab-suppliers-btn" class="text-slate-400 pb-2 text-xs sm:text-sm md:text-base px-3 py-1.5 transition rounded-lg hover:bg-slate-800/40">Suppliers</button>
             <button onclick="switchTab('users')" id="tab-users-btn" class="text-slate-400 pb-2 text-xs sm:text-sm md:text-base px-3 py-1.5 transition rounded-lg hover:bg-slate-800/40">User Management</button>
-            <button onclick="switchTab('settings')" id="tab-settings-btn" class="text-slate-400 pb-2 text-xs sm:text-sm md:text-base px-3 py-1.5 transition rounded-lg hover:bg-slate-800/40">Master Settings</button>
+            <button onclick="switchTab('settings')" id="tab-settings-btn" class="text-slate-400 pb-2 text-xs sm:text-sm md:text-base px-3 py-1.5 transition rounded-lg hover:bg-slate-800/40">Other settings</button>
         </div>
 
-        <!-- Tab 1: Global Inventory Master View, Filtering & Excel Export -->
+        <!-- Tab 1: Inventory Overview (Sortable & Filterable Table) -->
         <section id="tab-inventory" class="bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-700 space-y-4 shadow-xl w-full max-w-5xl">
             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-                <h2 class="text-base sm:text-lg font-bold">Complete System Inventory & Audit Trail</h2>
+                <h2 class="text-base sm:text-lg font-bold">Complete System Inventory & Accountability Audit Log</h2>
                 <button onclick="exportTableToExcel('inventoryTable', 'Master_Audit_Report.xlsx')" class="bg-emerald-600 hover:bg-emerald-500 px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold w-full sm:w-auto transition">Export Report</button>
             </div>
             
             <!-- Sorting & Filtering Controls -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-slate-900/50 p-3 rounded-xl border border-slate-700">
-                <input type="text" id="inventorySearch" placeholder="🔍 Search by Code, Name, or Creator..." onkeyup="filterInventory()" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm focus:outline-none focus:border-red-500">
-                <select id="inventoryFilterStatus" onchange="filterInventory()" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm focus:outline-none focus:border-red-500">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-slate-900/50 p-3 rounded-xl border border-slate-700">
+                <input type="text" id="inventorySearch" placeholder="🔍 Search inventory..." onkeyup="filterAndSortInventory()" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm focus:outline-none focus:border-red-500">
+                <select id="inventoryFilterStatus" onchange="filterAndSortInventory()" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm focus:outline-none focus:border-red-500">
                     <option value="">Filter by Status / Location (All)</option>
                     <option value="In Stock">In Stock</option>
                     <option value="In Transit">In Transit</option>
                     <option value="Rented">Rented</option>
                     <option value="In Maintenance">In Maintenance</option>
+                </select>
+                <select id="inventorySortBy" onchange="filterAndSortInventory()" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm focus:outline-none focus:border-red-500">
+                    <option value="codeAsc">Sort: Code (A-Z)</option>
+                    <option value="codeDesc">Sort: Code (Z-A)</option>
+                    <option value="nameAsc">Sort: Name (A-Z)</option>
                 </select>
             </div>
 
@@ -54,7 +59,7 @@
                             <th class="p-3">Type / Category</th>
                             <th class="p-3">Status</th>
                             <th class="p-3">Location</th>
-                            <th class="p-3">Created By</th>
+                            <th class="p-3">Remark</th>
                             <th class="p-3">Master Actions</th>
                         </tr>
                     </thead>
@@ -63,9 +68,9 @@
             </div>
         </section>
 
-        <!-- Tab 2: Transit Logistics with Dynamic Fields & Base64 Shipping Doc Uploads -->
+        <!-- Tab 2: Logistic (Transit with Remark & Doc Upload) -->
         <section id="tab-transit" class="bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-700 space-y-6 shadow-xl hidden w-full max-w-5xl flex flex-col items-center">
-            <h2 class="text-base sm:text-lg font-bold text-center">Log Asset Transit Movement & Shipping Documentation</h2>
+            <h2 class="text-base sm:text-lg font-bold text-center">Log Asset Logistic Movement & Shipping Documentation</h2>
             <form id="transitForm" class="space-y-4 bg-slate-900/50 p-5 rounded-xl border border-slate-700 shadow-md w-full max-w-2xl">
                 <div>
                     <label class="block text-xs sm:text-sm font-medium mb-1">Select Asset / Item Code</label>
@@ -88,18 +93,18 @@
                     </div>
                 </div>
                 <div>
-                    <label class="block text-xs sm:text-sm font-medium mb-1">Custom Tracking Field (Optional)</label>
-                    <input type="text" id="transitCustomField" placeholder="e.g. Container No: C12345 / Seal No: S987" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm focus:outline-none focus:border-red-500">
+                    <label class="block text-xs sm:text-sm font-medium mb-1">Remark / Additional Info</label>
+                    <textarea id="transitRemark" placeholder="Enter logistics instructions or tracking notes..." rows="2" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm focus:outline-none focus:border-red-500"></textarea>
                 </div>
                 <div>
                     <label class="block text-xs sm:text-sm font-medium mb-1">Shipping Docs (BL, Customs Clearance, etc.)</label>
                     <input type="file" id="transitDocFile" class="w-full text-xs sm:text-sm text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs sm:file:text-sm file:font-semibold file:bg-red-600 file:text-white hover:file:bg-red-500 transition">
                 </div>
-                <button type="submit" class="w-full bg-red-600 hover:bg-red-500 text-white font-bold py-2.5 rounded-lg text-sm transition">Dispatch Asset & Upload Shipping Docs</button>
+                <button type="submit" class="w-full bg-red-600 hover:bg-red-500 text-white font-bold py-2.5 rounded-lg text-sm transition">Dispatch Asset & Upload Documents</button>
             </form>
         </section>
 
-        <!-- Tab 3: Register Asset with Dynamic Warehouse & Lifecycle Attachments -->
+        <!-- Tab 3: Register Asset with Remark Field -->
         <section id="tab-register" class="bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-700 space-y-4 shadow-xl hidden w-full max-w-5xl">
             <h2 class="text-base sm:text-lg font-bold text-center">Register New Equipment or Part</h2>
             <form id="registerForm" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -119,9 +124,9 @@
                     <input type="text" id="itemName" required class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm focus:outline-none focus:border-red-500">
                 </div>
                 <div>
-                    <label class="block text-xs sm:text-sm font-medium mb-1">Category (Linked to Master Settings)</label>
+                    <label class="block text-xs sm:text-sm font-medium mb-1">Category (Linked to Other Settings)</label>
                     <select id="itemCategory" required class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm focus:outline-none focus:border-red-500">
-                        <option value="">-- Select Master Category --</option>
+                        <option value="">-- Select Category --</option>
                     </select>
                 </div>
                 <div>
@@ -130,18 +135,22 @@
                         <option value="Own Warehouse">Own Warehouse</option>
                         <option value="Supplier Site">Supplier Site</option>
                         <option value="Client Site">Client Site</option>
-                        <option value="In Maintenance">In Maintenance (Replacement Tracked)</option>
+                        <option value="In Maintenance">In Maintenance</option>
                         <option value="Disposed">Disposed</option>
                     </select>
                 </div>
                 <div>
-                    <label class="block text-xs sm:text-sm font-medium mb-1">Assigned Warehouse (Linked to Master Settings)</label>
+                    <label class="block text-xs sm:text-sm font-medium mb-1">Assigned Warehouse (Linked to Other Settings)</label>
                     <select id="itemLocation" required class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm focus:outline-none focus:border-red-500">
-                        <option value="">-- Select Master Warehouse --</option>
+                        <option value="">-- Select Warehouse --</option>
                     </select>
                 </div>
+                <div class="sm:col-span-2">
+                    <label class="block text-xs sm:text-sm font-medium mb-1">Remark / Asset Notes</label>
+                    <textarea id="itemRemark" placeholder="Add custom remarks or operational instructions..." rows="2" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm focus:outline-none focus:border-red-500"></textarea>
+                </div>
                 <div class="sm:col-span-2 border-t border-slate-700 pt-4">
-                    <label class="block text-xs sm:text-sm font-medium mb-1">Lifecycle / Compliance Document (Product Cert, Replacement Form, Disposal Cert)</label>
+                    <label class="block text-xs sm:text-sm font-medium mb-1">Lifecycle / Compliance Document (Optional)</label>
                     <input type="file" id="initialDoc" class="w-full text-xs sm:text-sm text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs sm:file:text-sm file:font-semibold file:bg-red-600 file:text-white hover:file:bg-red-500 transition">
                 </div>
                 <div class="sm:col-span-2 flex justify-center">
@@ -150,93 +159,175 @@
             </form>
         </section>
 
-        <!-- Tab 4: Client Tab (Invoices, POs, DOs) -->
+        <!-- Tab 4: Clients (Section 1: Client Registration, Section 2: Client Documents - Both Filterable/Sortable) -->
         <section id="tab-clients" class="bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-700 space-y-6 shadow-xl hidden w-full max-w-5xl">
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-                <form id="clientDocForm" class="bg-slate-900/60 p-5 rounded-xl border border-slate-700 space-y-4 lg:col-span-1 shadow-md">
-                    <h2 class="text-base font-bold text-red-400 text-center">Upload Client Document</h2>
-                    <div>
-                        <label class="block text-xs font-medium mb-1">Client Name / Code</label>
-                        <input type="text" id="clientNameInput" placeholder="e.g. Petronas Carigali" required class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+                <!-- Section 1: Client Registration -->
+                <div class="bg-slate-900/60 p-5 rounded-xl border border-slate-700 space-y-4 shadow-md">
+                    <h2 class="text-base font-bold text-red-400 text-center">Section 1: Register Client Profile</h2>
+                    <form id="clientRegisterForm" class="space-y-3">
+                        <div>
+                            <label class="block text-xs font-medium mb-1">Client Company Name</label>
+                            <input type="text" id="regClientName" required placeholder="e.g. Petronas Carigali" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium mb-1">Contact Person & Email</label>
+                            <input type="text" id="regClientContact" placeholder="e.g. John Doe (john@petronas.com)" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm">
+                        </div>
+                        <button type="submit" class="w-full bg-red-600 hover:bg-red-500 text-white font-bold py-2 px-4 rounded-lg text-sm">Save Client Profile</button>
+                    </form>
+                    <div class="mt-4 space-y-2">
+                        <input type="text" id="clientSearch" placeholder="🔍 Search Clients..." onkeyup="filterClientsTable()" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-xs">
+                        <div class="overflow-x-auto rounded-xl border border-slate-700 max-h-48 overflow-y-auto">
+                            <table id="clientProfileTable" class="w-full text-left border-collapse min-w-[300px]">
+                                <thead>
+                                    <tr class="bg-slate-900/50 border-b border-slate-700 text-slate-400 text-xs">
+                                        <th class="p-2 cursor-pointer" onclick="sortClientsTable()">Client Name ↕</th>
+                                        <th class="p-2">Contact</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="clientProfileBody" class="divide-y divide-slate-700 text-xs"></tbody>
+                            </table>
+                        </div>
                     </div>
-                    <div>
-                        <label class="block text-xs font-medium mb-1">Document Type</label>
-                        <select id="clientDocType" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm">
-                            <option value="Client PO">Client Purchase Order (PO)</option>
-                            <option value="Client DO">Client Delivery Order (DO)</option>
-                            <option value="Client Invoice">Client Invoice (Inv)</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium mb-1">File Attachment (Base64)</label>
-                        <input type="file" id="clientFile" required class="w-full text-xs text-slate-400 file:mr-2 file:py-1.5 file:px-3 file:rounded file:border-0 file:bg-red-600 file:text-white">
-                    </div>
-                    <button type="submit" class="w-full bg-red-600 hover:bg-red-500 text-white font-bold py-2 px-4 rounded-lg text-sm">Save Client Doc</button>
-                </form>
-                <div class="lg:col-span-2 space-y-4 flex flex-col">
-                    <h2 class="text-base font-bold text-center lg:text-left">Client Document Registry</h2>
-                    <div class="overflow-x-auto rounded-xl border border-slate-700">
-                        <table class="w-full text-left border-collapse min-w-[400px]">
-                            <thead>
-                                <tr class="bg-slate-900/50 border-b border-slate-700 text-slate-400 text-xs">
-                                    <th class="p-3">Client Name</th>
-                                    <th class="p-3">Doc Type</th>
-                                    <th class="p-3">File Name</th>
-                                    <th class="p-3">Action</th>
-                                </tr>
-                            </thead>
-                            <tbody id="clientTableBody" class="divide-y divide-slate-700 text-xs"></tbody>
-                        </table>
+                </div>
+
+                <!-- Section 2: Client Documents (PO, Inv, DO, Date) -->
+                <div class="bg-slate-900/60 p-5 rounded-xl border border-slate-700 space-y-4 shadow-md">
+                    <h2 class="text-base font-bold text-red-400 text-center">Section 2: Client Commercial Documents</h2>
+                    <form id="clientDocForm" class="space-y-3">
+                        <div>
+                            <label class="block text-xs font-medium mb-1">Select Client</label>
+                            <select id="clientDocSelect" required class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm">
+                                <option value="">-- Choose Client --</option>
+                            </select>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-xs font-medium mb-1">Doc Type</label>
+                                <select id="clientDocType" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm">
+                                    <option value="PO">Purchase Order (PO)</option>
+                                    <option value="DO">Delivery Order (DO)</option>
+                                    <option value="Invoice">Invoice (Inv)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium mb-1">Document Date</label>
+                                <input type="date" id="clientDocDate" required class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium mb-1">File Attachment (Base64)</label>
+                            <input type="file" id="clientFile" required class="w-full text-xs text-slate-400 file:mr-2 file:py-1.5 file:px-3 file:rounded file:border-0 file:bg-red-600 file:text-white">
+                        </div>
+                        <button type="submit" class="w-full bg-red-600 hover:bg-red-500 text-white font-bold py-2 px-4 rounded-lg text-sm">Upload Document</button>
+                    </form>
+                    <div class="mt-4 space-y-2">
+                        <input type="text" id="clientDocSearch" placeholder="🔍 Search Client Docs..." onkeyup="filterClientDocsTable()" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-xs">
+                        <div class="overflow-x-auto rounded-xl border border-slate-700 max-h-48 overflow-y-auto">
+                            <table id="clientDocTable" class="w-full text-left border-collapse min-w-[300px]">
+                                <thead>
+                                    <tr class="bg-slate-900/50 border-b border-slate-700 text-slate-400 text-xs">
+                                        <th class="p-2 cursor-pointer" onclick="sortClientDocsTable()">Client ↕</th>
+                                        <th class="p-2">Type</th>
+                                        <th class="p-2">Date</th>
+                                        <th class="p-2">File</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="clientDocTableBody" class="divide-y divide-slate-700 text-xs"></tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </div>
         </section>
 
-        <!-- Tab 5: Supplier Tab (Supplier Inv, Our PO, SIRIM, Permit of Sale) -->
+        <!-- Tab 5: Suppliers (Section 1: Supplier Registration, Section 2: Supplier Documents - Both Filterable/Sortable) -->
         <section id="tab-suppliers" class="bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-700 space-y-6 shadow-xl hidden w-full max-w-5xl">
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-                <form id="supplierDocForm" class="bg-slate-900/60 p-5 rounded-xl border border-slate-700 space-y-4 lg:col-span-1 shadow-md">
-                    <h2 class="text-base font-bold text-red-400 text-center">Upload Supplier Document</h2>
-                    <div>
-                        <label class="block text-xs font-medium mb-1">Supplier Name</label>
-                        <input type="text" id="supplierNameInput" placeholder="e.g. Schlumberger Parts" required class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+                <!-- Section 1: Supplier Registration -->
+                <div class="bg-slate-900/60 p-5 rounded-xl border border-slate-700 space-y-4 shadow-md">
+                    <h2 class="text-base font-bold text-red-400 text-center">Section 1: Register Supplier Profile</h2>
+                    <form id="supplierRegisterForm" class="space-y-3">
+                        <div>
+                            <label class="block text-xs font-medium mb-1">Supplier Company Name</label>
+                            <input type="text" id="regSupplierName" required placeholder="e.g. Schlumberger Parts" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium mb-1">Contact Person & Email</label>
+                            <input type="text" id="regSupplierContact" placeholder="e.g. Jane Smith (jane@schlumberger.com)" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm">
+                        </div>
+                        <button type="submit" class="w-full bg-red-600 hover:bg-red-500 text-white font-bold py-2 px-4 rounded-lg text-sm">Save Supplier Profile</button>
+                    </form>
+                    <div class="mt-4 space-y-2">
+                        <input type="text" id="supplierSearch" placeholder="🔍 Search Suppliers..." onkeyup="filterSuppliersTable()" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-xs">
+                        <div class="overflow-x-auto rounded-xl border border-slate-700 max-h-48 overflow-y-auto">
+                            <table id="supplierProfileTable" class="w-full text-left border-collapse min-w-[300px]">
+                                <thead>
+                                    <tr class="bg-slate-900/50 border-b border-slate-700 text-slate-400 text-xs">
+                                        <th class="p-2 cursor-pointer" onclick="sortSuppliersTable()">Supplier Name ↕</th>
+                                        <th class="p-2">Contact</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="supplierProfileBody" class="divide-y divide-slate-700 text-xs"></tbody>
+                            </table>
+                        </div>
                     </div>
-                    <div>
-                        <label class="block text-xs font-medium mb-1">Document Type</label>
-                        <select id="supplierDocType" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm">
-                            <option value="Supplier Invoice">Supplier Invoice</option>
-                            <option value="Our PO">Our PO to Supplier</option>
-                            <option value="Supplier DO">Supplier Delivery Order (DO)</option>
-                            <option value="SIRIM Certificate">SIRIM Certificate</option>
-                            <option value="Permit of Sale">Permit of Sale</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium mb-1">File Attachment (Base64)</label>
-                        <input type="file" id="supplierFile" required class="w-full text-xs text-slate-400 file:mr-2 file:py-1.5 file:px-3 file:rounded file:border-0 file:bg-red-600 file:text-white">
-                    </div>
-                    <button type="submit" class="w-full bg-red-600 hover:bg-red-500 text-white font-bold py-2 px-4 rounded-lg text-sm">Save Supplier Doc</button>
-                </form>
-                <div class="lg:col-span-2 space-y-4 flex flex-col">
-                    <h2 class="text-base font-bold text-center lg:text-left">Supplier Document Registry</h2>
-                    <div class="overflow-x-auto rounded-xl border border-slate-700">
-                        <table class="w-full text-left border-collapse min-w-[400px]">
-                            <thead>
-                                <tr class="bg-slate-900/50 border-b border-slate-700 text-slate-400 text-xs">
-                                    <th class="p-3">Supplier Name</th>
-                                    <th class="p-3">Doc Type</th>
-                                    <th class="p-3">File Name</th>
-                                    <th class="p-3">Action</th>
-                                </tr>
-                            </thead>
-                            <tbody id="supplierTableBody" class="divide-y divide-slate-700 text-xs"></tbody>
-                        </table>
+                </div>
+
+                <!-- Section 2: Supplier Documents (Supplier Inv, Our PO, DO, SIRIM, Permit, Date) -->
+                <div class="bg-slate-900/60 p-5 rounded-xl border border-slate-700 space-y-4 shadow-md">
+                    <h2 class="text-base font-bold text-red-400 text-center">Section 2: Supplier Compliance Documents</h2>
+                    <form id="supplierDocForm" class="space-y-3">
+                        <div>
+                            <label class="block text-xs font-medium mb-1">Select Supplier</label>
+                            <select id="supplierDocSelect" required class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm">
+                                <option value="">-- Choose Supplier --</option>
+                            </select>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-xs font-medium mb-1">Doc Type</label>
+                                <select id="supplierDocType" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm">
+                                    <option value="Supplier Invoice">Supplier Invoice</option>
+                                    <option value="Our PO">Our PO to Supplier</option>
+                                    <option value="Supplier DO">Supplier DO</option>
+                                    <option value="SIRIM Certificate">SIRIM Certificate</option>
+                                    <option value="Permit of Sale">Permit of Sale</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium mb-1">Document Date</label>
+                                <input type="date" id="supplierDocDate" required class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium mb-1">File Attachment (Base64)</label>
+                            <input type="file" id="supplierFile" required class="w-full text-xs text-slate-400 file:mr-2 file:py-1.5 file:px-3 file:rounded file:border-0 file:bg-red-600 file:text-white">
+                        </div>
+                        <button type="submit" class="w-full bg-red-600 hover:bg-red-500 text-white font-bold py-2 px-4 rounded-lg text-sm">Upload Document</button>
+                    </form>
+                    <div class="mt-4 space-y-2">
+                        <input type="text" id="supplierDocSearch" placeholder="🔍 Search Supplier Docs..." onkeyup="filterSupplierDocsTable()" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-xs">
+                        <div class="overflow-x-auto rounded-xl border border-slate-700 max-h-48 overflow-y-auto">
+                            <table id="supplierDocTable" class="w-full text-left border-collapse min-w-[300px]">
+                                <thead>
+                                    <tr class="bg-slate-900/50 border-b border-slate-700 text-slate-400 text-xs">
+                                        <th class="p-2 cursor-pointer" onclick="sortSupplierDocsTable()">Supplier ↕</th>
+                                        <th class="p-2">Type</th>
+                                        <th class="p-2">Date</th>
+                                        <th class="p-2">File</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="supplierDocTableBody" class="divide-y divide-slate-700 text-xs"></tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </div>
         </section>
 
-        <!-- Tab 6: User Management -->
+        <!-- Tab 6: User Management (With Active / Inactive Read-Only Toggle) -->
         <section id="tab-users" class="bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-700 space-y-6 shadow-xl hidden w-full max-w-5xl">
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
                 <div class="bg-slate-900/60 p-5 rounded-xl border border-slate-700 space-y-4 lg:col-span-1 shadow-md">
@@ -262,13 +353,14 @@
                     </form>
                 </div>
                 <div class="lg:col-span-2 space-y-4 flex flex-col">
-                    <h2 class="text-base font-bold text-center lg:text-left">Active System Users Directory</h2>
+                    <h2 class="text-base font-bold text-center lg:text-left">Active System Users Directory (Toggle Read-Only Status)</h2>
                     <div class="overflow-x-auto rounded-xl border border-slate-700">
                         <table id="userTable" class="w-full text-left border-collapse min-w-[400px]">
                             <thead>
                                 <tr class="bg-slate-900/50 border-b border-slate-700 text-slate-400 text-xs">
                                     <th class="p-3">Email</th>
                                     <th class="p-3">Role</th>
+                                    <th class="p-3">Status / Read-Only Toggle</th>
                                     <th class="p-3">Action</th>
                                 </tr>
                             </thead>
@@ -279,28 +371,34 @@
             </div>
         </section>
 
-        <!-- Tab 7: Master Settings with Sample Image Upload (for 800+ Products support) -->
+        <!-- Tab 7: Other Settings (Section 1 Warehouse, Section 2 Categories - Editable names, Non-removable) -->
         <section id="tab-settings" class="bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-700 space-y-6 shadow-xl hidden w-full max-w-5xl flex flex-col items-center">
-            <h2 class="text-base sm:text-lg font-bold text-center">Global Master Settings Configuration & Sample Images</h2>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 w-full max-w-4xl">
-                <form id="warehouseForm" class="space-y-3 bg-slate-900/50 p-4 rounded-xl border border-slate-700 shadow-md">
-                    <h3 class="font-semibold text-sm text-cyan-400 text-center">Add Warehouse Location</h3>
-                    <input type="text" id="warehouseName" placeholder="e.g. Labuan Base" required class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm">
-                    <button type="submit" class="w-full bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-2 rounded-lg text-sm">Add Warehouse</button>
-                </form>
-                <form id="categoryForm" class="space-y-3 bg-slate-900/50 p-4 rounded-xl border border-slate-700 shadow-md">
-                    <h3 class="font-semibold text-sm text-amber-400 text-center">Add Category & Sample Image</h3>
-                    <input type="text" id="categoryName" placeholder="e.g. Drilling Bits (800+ Series)" required class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm">
-                    <div>
-                        <label class="block text-xs text-slate-400 mb-1">Sample Thumbnail Image (Base64)</label>
-                        <input type="file" id="categoryImageFile" class="w-full text-xs text-slate-400 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:bg-amber-600 file:text-white">
-                    </div>
-                    <button type="submit" class="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold py-2 rounded-lg text-sm">Add Category with Image</button>
-                </form>
-            </div>
-            <div id="settingsList" class="bg-slate-900/40 p-4 rounded-xl border border-slate-700 text-sm space-y-2 w-full max-w-4xl">
-                <h3 class="font-semibold text-slate-300 text-center">Configured System Parameters:</h3>
-                <div id="settingsContainer" class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-slate-400 text-xs">Loading parameters...</div>
+            <h2 class="text-base sm:text-lg font-bold text-center">Global Master Settings Configuration</h2>
+            
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full">
+                <!-- Section 1: Warehouse Settings -->
+                <div class="bg-slate-900/50 p-4 rounded-xl border border-slate-700 shadow-md space-y-3">
+                    <h3 class="font-semibold text-sm text-cyan-400 text-center">Section 1: Warehouse Settings</h3>
+                    <form id="warehouseForm" class="space-y-2">
+                        <input type="text" id="warehouseName" placeholder="e.g. Labuan Base" required class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm">
+                        <button type="submit" class="w-full bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-2 rounded-lg text-sm">Add Warehouse</button>
+                    </form>
+                    <div id="warehouseListContainer" class="space-y-2 max-h-48 overflow-y-auto text-xs text-slate-300">Loading warehouses...</div>
+                </div>
+
+                <!-- Section 2: Categories Setting -->
+                <div class="bg-slate-900/50 p-4 rounded-xl border border-slate-700 shadow-md space-y-3">
+                    <h3 class="font-semibold text-sm text-amber-400 text-center">Section 2: Categories Setting</h3>
+                    <form id="categoryForm" class="space-y-2">
+                        <input type="text" id="categoryName" placeholder="e.g. Drilling Bits (800+ Series)" required class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm">
+                        <div>
+                            <label class="block text-xs text-slate-400 mb-1">Sample Thumbnail Image (Base64)</label>
+                            <input type="file" id="categoryImageFile" class="w-full text-xs text-slate-400 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:bg-amber-600 file:text-white">
+                        </div>
+                        <button type="submit" class="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold py-2 rounded-lg text-sm">Add Category</button>
+                    </form>
+                    <div id="categoryListContainer" class="space-y-2 max-h-48 overflow-y-auto text-xs text-slate-300">Loading categories...</div>
+                </div>
             </div>
         </section>
     </main>
@@ -312,6 +410,14 @@
 
         let currentUserEmail = "";
         let globalInventoryData = [];
+        let clientProfilesData = [];
+        let clientDocsData = [];
+        let supplierProfilesData = [];
+        let supplierDocsData = [];
+        let clientSortAsc = true;
+        let clientDocSortAsc = true;
+        let supplierSortAsc = true;
+        let supplierDocSortAsc = true;
 
         onAuthStateChanged(auth, async (user) => {
             if (!user) { window.location.href = "index.html"; return; }
@@ -323,7 +429,9 @@
                 loadGlobalInventory();
                 loadUserDirectory();
                 loadSettings();
+                loadClientProfiles();
                 loadClientDocs();
+                loadSupplierProfiles();
                 loadSupplierDocs();
             }
         });
@@ -349,11 +457,9 @@
             reader.onerror = error => reject(error);
         });
 
-        // 1. Global Inventory Oversight, Filtering & Purge Override
+        // 1. Global Inventory Overview & Filter/Sort
         async function loadGlobalInventory() {
-            const tbody = document.getElementById("inventoryTableBody");
             const transitSelect = document.getElementById("transitItemSelect");
-            tbody.innerHTML = "";
             transitSelect.innerHTML = '<option value="">-- Choose Asset --</option>';
             globalInventoryData = [];
 
@@ -365,8 +471,31 @@
                 transitSelect.innerHTML += `<option value="${data.id}">${data.itemCode} - ${data.name}</option>`;
             });
 
-            renderInventoryTable(globalInventoryData);
+            filterAndSortInventory();
         }
+
+        window.filterAndSortInventory = () => {
+            const searchVal = document.getElementById("inventorySearch").value.toLowerCase();
+            const statusVal = document.getElementById("inventoryFilterStatus").value;
+            const sortVal = document.getElementById("inventorySortBy").value;
+
+            let filtered = globalInventoryData.filter(item => {
+                const matchesSearch = item.itemCode.toLowerCase().includes(searchVal) ||
+                                      item.name.toLowerCase().includes(searchVal) ||
+                                      (item.remark && item.remark.toLowerCase().includes(searchVal));
+                const matchesStatus = statusVal === "" || item.status.includes(statusVal) || item.currentLocation.includes(statusVal);
+                return matchesSearch && matchesStatus;
+            });
+
+            filtered.sort((a, b) => {
+                if (sortVal === 'codeAsc') return a.itemCode.localeCompare(b.itemCode);
+                if (sortVal === 'codeDesc') return b.itemCode.localeCompare(a.itemCode);
+                if (sortVal === 'nameAsc') return a.name.localeCompare(b.name);
+                return 0;
+            });
+
+            renderInventoryTable(filtered);
+        };
 
         function renderInventoryTable(dataArray) {
             const tbody = document.getElementById("inventoryTableBody");
@@ -384,7 +513,7 @@
                         <td class="p-3">${data.type} <br><span class="text-xs text-slate-400">${data.category}</span></td>
                         <td class="p-3"><span class="px-2 py-1 rounded bg-red-900 text-red-300 text-xs">${data.status}</span></td>
                         <td class="p-3">${data.currentLocation}</td>
-                        <td class="p-3 text-slate-400 break-all">${data.createdBy}</td>
+                        <td class="p-3 text-slate-300 text-xs">${data.remark || 'None'}</td>
                         <td class="p-3">
                             <button onclick="deleteItem('${data.id}')" class="bg-red-700/80 hover:bg-red-600 text-white px-2.5 py-1 rounded text-xs transition">Purge</button>
                         </td>
@@ -392,21 +521,6 @@
                 `;
             });
         }
-
-        window.filterInventory = () => {
-            const searchVal = document.getElementById("inventorySearch").value.toLowerCase();
-            const statusVal = document.getElementById("inventoryFilterStatus").value;
-
-            const filtered = globalInventoryData.filter(item => {
-                const matchesSearch = item.itemCode.toLowerCase().includes(searchVal) ||
-                                      item.name.toLowerCase().includes(searchVal) ||
-                                      item.createdBy.toLowerCase().includes(searchVal);
-                const matchesStatus = statusVal === "" || item.status.includes(statusVal) || item.currentLocation.includes(statusVal);
-                return matchesSearch && matchesStatus;
-            });
-
-            renderInventoryTable(filtered);
-        };
 
         window.deleteItem = async (itemId) => {
             if (confirm("Permanently purge this item from the system?")) {
@@ -420,13 +534,13 @@
             }
         };
 
-        // 2. Transit Dispatch with Custom Metadata & Base64 Shipping Document
+        // 2. Logistic Dispatch with Remark & Shipping Document
         document.getElementById("transitForm").addEventListener("submit", async (e) => {
             e.preventDefault();
             const itemId = document.getElementById("transitItemSelect").value;
             const mode = document.getElementById("transitMode").value;
             const destination = document.getElementById("transitDestination").value;
-            const customField = document.getElementById("transitCustomField").value;
+            const remark = document.getElementById("transitRemark").value;
             const fileInput = document.getElementById("transitDocFile");
 
             if (!itemId) { alert("Please select an asset."); return; }
@@ -450,7 +564,7 @@
                 const history = data.lifecycleHistory || [];
                 history.push({
                     status: `In Transit (${mode})`,
-                    location: `${destination} ${customField ? '(' + customField + ')' : ''}`,
+                    location: destination,
                     timestamp: new Date().toISOString(),
                     user: currentUserEmail
                 });
@@ -460,7 +574,8 @@
 
                 await updateDoc(itemRef, {
                     status: `In Transit (${mode})`,
-                    currentLocation: `${destination} ${customField ? '(' + customField + ')' : ''}`,
+                    currentLocation: destination,
+                    remark: remark ? `Transit: ${remark}` : data.remark,
                     lifecycleHistory: history,
                     documents: mergedDocs,
                     lastEditedBy: currentUserEmail,
@@ -476,7 +591,7 @@
             }
         });
 
-        // 3. Register Asset
+        // 3. Register Asset with Remark
         document.getElementById("registerForm").addEventListener("submit", async (e) => {
             e.preventDefault();
             const fileInput = document.getElementById("initialDoc");
@@ -501,6 +616,7 @@
                 category: document.getElementById("itemCategory").value,
                 status: document.getElementById("itemStatus").value,
                 currentLocation: document.getElementById("itemLocation").value,
+                remark: document.getElementById("itemRemark").value,
                 documents: documents,
                 lifecycleHistory: [{
                     status: document.getElementById("itemStatus").value,
@@ -525,25 +641,69 @@
             }
         });
 
-        // 4. Client Docs Handling
+        // 4. Clients Handling (Section 1 Profiles & Section 2 Docs - Filterable & Sortable)
+        document.getElementById("clientRegisterForm").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const clientName = document.getElementById("regClientName").value;
+            const contact = document.getElementById("regClientContact").value;
+            try {
+                await addDoc(collection(db, "client_profiles"), { clientName, contact, createdAt: new Date().toISOString() });
+                alert("Client profile saved!");
+                document.getElementById("clientRegisterForm").reset();
+                loadClientProfiles();
+            } catch (err) { alert("Error: " + err.message); }
+        });
+
+        async function loadClientProfiles() {
+            const select = document.getElementById("clientDocSelect");
+            select.innerHTML = '<option value="">-- Choose Client --</option>';
+            clientProfilesData = [];
+            const snap = await getDocs(collection(db, "client_profiles"));
+            snap.forEach(d => {
+                const data = d.data();
+                data.id = d.id;
+                clientProfilesData.push(data);
+                select.innerHTML += `<option value="${data.clientName}">${data.clientName}</option>`;
+            });
+            renderClientProfilesTable(clientProfilesData);
+        }
+
+        function renderClientProfilesTable(data) {
+            const tbody = document.getElementById("clientProfileBody");
+            tbody.innerHTML = "";
+            data.forEach(item => {
+                tbody.innerHTML += `<tr><td class="p-2 font-medium">${item.clientName}</td><td class="p-2 text-slate-400">${item.contact || 'N/A'}</td></tr>`;
+            });
+        }
+
+        window.filterClientsTable = () => {
+            const query = document.getElementById("clientSearch").value.toLowerCase();
+            const filtered = clientProfilesData.filter(c => c.clientName.toLowerCase().includes(query) || (c.contact && c.contact.toLowerCase().includes(query)));
+            renderClientProfilesTable(filtered);
+        };
+
+        window.sortClientsTable = () => {
+            clientSortAsc = !clientSortAsc;
+            clientProfilesData.sort((a, b) => clientSortAsc ? a.clientName.localeCompare(b.clientName) : b.clientName.localeCompare(a.clientName));
+            renderClientProfilesTable(clientProfilesData);
+        };
+
         document.getElementById("clientDocForm").addEventListener("submit", async (e) => {
             e.preventDefault();
-            const clientName = document.getElementById("clientNameInput").value;
+            const clientName = document.getElementById("clientDocSelect").value;
             const docType = document.getElementById("clientDocType").value;
+            const docDate = document.getElementById("clientDocDate").value;
             const fileInput = document.getElementById("clientFile");
 
             try {
-                let b64 = "";
-                let fileName = "";
+                let b64 = "", fileName = "";
                 if (fileInput.files.length > 0) {
                     fileName = fileInput.files[0].name;
                     b64 = await fileToBase64(fileInput.files[0]);
                 }
-
                 await addDoc(collection(db, "client_docs"), {
-                    clientName, docType, fileName, base64Data: b64, uploadedBy: currentUserEmail, createdAt: new Date().toISOString()
+                    clientName, docType, docDate, fileName, base64Data: b64, uploadedBy: currentUserEmail, createdAt: new Date().toISOString()
                 });
-
                 alert("Client document uploaded successfully!");
                 document.getElementById("clientDocForm").reset();
                 loadClientDocs();
@@ -551,49 +711,104 @@
         });
 
         async function loadClientDocs() {
-            const tbody = document.getElementById("clientTableBody");
-            tbody.innerHTML = "";
+            clientDocsData = [];
             const snap = await getDocs(collection(db, "client_docs"));
             snap.forEach(d => {
                 const data = d.data();
-                const id = d.id;
-                tbody.innerHTML += `
-                    <tr class="hover:bg-slate-700/50" id="client-row-${id}">
-                        <td class="p-3 font-medium">${data.clientName}</td>
-                        <td class="p-3 text-cyan-300">${data.docType}</td>
-                        <td class="p-3 truncate max-w-[150px]">${data.fileName || 'None'}</td>
-                        <td class="p-3"><button onclick="deleteClientDoc('${id}')" class="text-red-400 hover:text-red-300 text-xs">Delete</button></td>
-                    </tr>
-                `;
+                data.id = d.id;
+                clientDocsData.push(data);
+            });
+            renderClientDocsTable(clientDocsData);
+        }
+
+        function renderClientDocsTable(data) {
+            const tbody = document.getElementById("clientDocTableBody");
+            tbody.innerHTML = "";
+            data.forEach(item => {
+                tbody.innerHTML += `<tr>
+                    <td class="p-2 font-medium">${item.clientName}</td>
+                    <td class="p-2 text-cyan-300">${item.docType}</td>
+                    <td class="p-2 text-slate-300">${item.docDate}</td>
+                    <td class="p-2 truncate max-w-[100px]">${item.fileName || 'None'}</td>
+                </tr>`;
             });
         }
 
-        window.deleteClientDoc = async (id) => {
-            if (confirm("Delete this client document?")) {
-                await deleteDoc(doc(db, "client_docs", id));
-                loadClientDocs();
-            }
+        window.filterClientDocsTable = () => {
+            const query = document.getElementById("clientDocSearch").value.toLowerCase();
+            const filtered = clientDocsData.filter(d => d.clientName.toLowerCase().includes(query) || d.docType.toLowerCase().includes(query) || d.docDate.includes(query));
+            renderClientDocsTable(filtered);
         };
 
-        // 5. Supplier Docs Handling
+        window.sortClientDocsTable = () => {
+            clientDocSortAsc = !clientDocSortAsc;
+            clientDocsData.sort((a, b) => clientDocSortAsc ? a.clientName.localeCompare(b.clientName) : b.clientName.localeCompare(a.clientName));
+            renderClientDocsTable(clientDocsData);
+        };
+
+        // 5. Suppliers Handling (Section 1 Profiles & Section 2 Docs - Filterable & Sortable)
+        document.getElementById("supplierRegisterForm").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const supplierName = document.getElementById("regSupplierName").value;
+            const contact = document.getElementById("regSupplierContact").value;
+            try {
+                await addDoc(collection(db, "supplier_profiles"), { supplierName, contact, createdAt: new Date().toISOString() });
+                alert("Supplier profile saved!");
+                document.getElementById("supplierRegisterForm").reset();
+                loadSupplierProfiles();
+            } catch (err) { alert("Error: " + err.message); }
+        });
+
+        async function loadSupplierProfiles() {
+            const select = document.getElementById("supplierDocSelect");
+            select.innerHTML = '<option value="">-- Choose Supplier --</option>';
+            supplierProfilesData = [];
+            const snap = await getDocs(collection(db, "supplier_profiles"));
+            snap.forEach(d => {
+                const data = d.data();
+                data.id = d.id;
+                supplierProfilesData.push(data);
+                select.innerHTML += `<option value="${data.supplierName}">${data.supplierName}</option>`;
+            });
+            renderSupplierProfilesTable(supplierProfilesData);
+        }
+
+        function renderSupplierProfilesTable(data) {
+            const tbody = document.getElementById("supplierProfileBody");
+            tbody.innerHTML = "";
+            data.forEach(item => {
+                tbody.innerHTML += `<tr><td class="p-2 font-medium">${item.supplierName}</td><td class="p-2 text-slate-400">${item.contact || 'N/A'}</td></tr>`;
+            });
+        }
+
+        window.filterSuppliersTable = () => {
+            const query = document.getElementById("supplierSearch").value.toLowerCase();
+            const filtered = supplierProfilesData.filter(s => s.supplierName.toLowerCase().includes(query) || (s.contact && s.contact.toLowerCase().includes(query)));
+            renderSupplierProfilesTable(filtered);
+        };
+
+        window.sortSuppliersTable = () => {
+            supplierSortAsc = !supplierSortAsc;
+            supplierProfilesData.sort((a, b) => supplierSortAsc ? a.supplierName.localeCompare(b.supplierName) : b.supplierName.localeCompare(a.supplierName));
+            renderSupplierProfilesTable(supplierProfilesData);
+        };
+
         document.getElementById("supplierDocForm").addEventListener("submit", async (e) => {
             e.preventDefault();
-            const supplierName = document.getElementById("supplierNameInput").value;
+            const supplierName = document.getElementById("supplierDocSelect").value;
             const docType = document.getElementById("supplierDocType").value;
+            const docDate = document.getElementById("supplierDocDate").value;
             const fileInput = document.getElementById("supplierFile");
 
             try {
-                let b64 = "";
-                let fileName = "";
+                let b64 = "", fileName = "";
                 if (fileInput.files.length > 0) {
                     fileName = fileInput.files[0].name;
                     b64 = await fileToBase64(fileInput.files[0]);
                 }
-
                 await addDoc(collection(db, "supplier_docs"), {
-                    supplierName, docType, fileName, base64Data: b64, uploadedBy: currentUserEmail, createdAt: new Date().toISOString()
+                    supplierName, docType, docDate, fileName, base64Data: b64, uploadedBy: currentUserEmail, createdAt: new Date().toISOString()
                 });
-
                 alert("Supplier document uploaded successfully!");
                 document.getElementById("supplierDocForm").reset();
                 loadSupplierDocs();
@@ -601,31 +816,42 @@
         });
 
         async function loadSupplierDocs() {
-            const tbody = document.getElementById("supplierTableBody");
-            tbody.innerHTML = "";
+            supplierDocsData = [];
             const snap = await getDocs(collection(db, "supplier_docs"));
             snap.forEach(d => {
                 const data = d.data();
-                const id = d.id;
-                tbody.innerHTML += `
-                    <tr class="hover:bg-slate-700/50" id="sup-row-${id}">
-                        <td class="p-3 font-medium">${data.supplierName}</td>
-                        <td class="p-3 text-amber-300">${data.docType}</td>
-                        <td class="p-3 truncate max-w-[150px]">${data.fileName || 'None'}</td>
-                        <td class="p-3"><button onclick="deleteSupplierDoc('${id}')" class="text-red-400 hover:text-red-300 text-xs">Delete</button></td>
-                    </tr>
-                `;
+                data.id = d.id;
+                supplierDocsData.push(data);
+            });
+            renderSupplierDocsTable(supplierDocsData);
+        }
+
+        function renderSupplierDocsTable(data) {
+            const tbody = document.getElementById("supplierDocTableBody");
+            tbody.innerHTML = "";
+            data.forEach(item => {
+                tbody.innerHTML += `<tr>
+                    <td class="p-2 font-medium">${item.supplierName}</td>
+                    <td class="p-2 text-amber-300">${item.docType}</td>
+                    <td class="p-2 text-slate-300">${item.docDate}</td>
+                    <td class="p-2 truncate max-w-[100px]">${item.fileName || 'None'}</td>
+                </tr>`;
             });
         }
 
-        window.deleteSupplierDoc = async (id) => {
-            if (confirm("Delete this supplier document?")) {
-                await deleteDoc(doc(db, "supplier_docs", id));
-                loadSupplierDocs();
-            }
+        window.filterSupplierDocsTable = () => {
+            const query = document.getElementById("supplierDocSearch").value.toLowerCase();
+            const filtered = supplierDocsData.filter(d => d.supplierName.toLowerCase().includes(query) || d.docType.toLowerCase().includes(query) || d.docDate.includes(query));
+            renderSupplierDocsTable(filtered);
         };
 
-        // 6. User Directory Management
+        window.sortSupplierDocsTable = () => {
+            supplierDocSortAsc = !supplierDocSortAsc;
+            supplierDocsData.sort((a, b) => supplierDocSortAsc ? a.supplierName.localeCompare(b.supplierName) : b.supplierName.localeCompare(a.supplierName));
+            renderSupplierDocsTable(supplierDocsData);
+        };
+
+        // 6. User Management with Active/Inactive Read-Only Toggle
         async function loadUserDirectory() {
             const tbody = document.getElementById("userTableBody");
             tbody.innerHTML = "";
@@ -633,17 +859,31 @@
             querySnapshot.forEach((docSnap) => {
                 const data = docSnap.data();
                 const docId = docSnap.id;
+                const isInactive = data.status === "inactive";
                 tbody.innerHTML += `
                     <tr class="hover:bg-slate-700/50" id="user-row-${docId}">
                         <td class="p-3 break-all font-medium">${data.email}</td>
-                        <td class="p-3"><span class="px-2 py-1 rounded bg-slate-700 text-cyan-300 text-xs font-semibold uppercase">${data.role}</span></td>
+                        <td class="p-3"><span class="px-2 py-1 rounded bg-slate-700 text-cyan-300 text-xs uppercase">${data.role}</span></td>
                         <td class="p-3">
-                            ${data.uid !== auth.currentUser.uid ? `<button onclick="deleteUserRecord('${docId}')" class="bg-red-700/80 hover:bg-red-600 text-white px-2 py-0.5 rounded text-xs transition">Remove</button>` : '<span class="text-slate-500 text-xs">Session</span>'}
+                            <button onclick="toggleUserStatus('${docId}', '${data.status || 'active'}')" class="px-2 py-1 rounded text-xs font-semibold ${isInactive ? 'bg-amber-800 text-amber-200' : 'bg-emerald-800 text-emerald-200'}">
+                                ${isInactive ? 'Inactive (Read-Only)' : 'Active'}
+                            </button>
+                        </td>
+                        <td class="p-3">
+                            ${data.uid !== auth.currentUser.uid ? `<button onclick="deleteUserRecord('${docId}')" class="bg-red-700 hover:bg-red-600 text-white px-2 py-0.5 rounded text-xs">Remove</button>` : '<span class="text-slate-500 text-xs">Session</span>'}
                         </td>
                     </tr>
                 `;
             });
         }
+
+        window.toggleUserStatus = async (docId, currentStatus) => {
+            const newStatus = currentStatus === "inactive" ? "active" : "inactive";
+            try {
+                await updateDoc(doc(db, "users", docId), { status: newStatus });
+                loadUserDirectory();
+            } catch (err) { alert("Error updating status: " + err.message); }
+        };
 
         window.deleteUserRecord = async (docId) => {
             if (confirm("Revoke this user profile?")) {
@@ -669,7 +909,7 @@
             } catch (err) { alert("Error: " + err.message); }
         });
 
-        // 7. Master Settings with Image Thumbnail Upload Support
+        // 7. Other Settings: Section 1 Warehouse, Section 2 Categories (Editable names, Non-removable)
         document.getElementById("warehouseForm").addEventListener("submit", async (e) => {
             e.preventDefault();
             const name = document.getElementById("warehouseName").value;
@@ -688,23 +928,26 @@
                 imgB64 = await fileToBase64(imgFile.files[0]);
             }
             await addDoc(collection(db, "settings"), { type: "category", value: name, imageBase64: imgB64 });
-            alert("Category with sample image added!");
+            alert("Category added!");
             document.getElementById("categoryForm").reset();
             loadSettings();
         });
 
         async function loadSettings() {
-            const container = document.getElementById("settingsContainer");
+            const whContainer = document.getElementById("warehouseListContainer");
+            const catContainer = document.getElementById("categoryListContainer");
             const categorySelect = document.getElementById("itemCategory");
             const locationSelect = document.getElementById("itemLocation");
 
-            container.innerHTML = "";
-            if (categorySelect) categorySelect.innerHTML = '<option value="">-- Select Master Category --</option>';
-            if (locationSelect) locationSelect.innerHTML = '<option value="">-- Select Master Warehouse --</option>';
+            whContainer.innerHTML = "";
+            catContainer.innerHTML = "";
+            if (categorySelect) categorySelect.innerHTML = '<option value="">-- Select Category --</option>';
+            if (locationSelect) locationSelect.innerHTML = '<option value="">-- Select Warehouse --</option>';
 
             const snap = await getDocs(collection(db, "settings"));
             if (snap.empty) {
-                container.innerHTML = "<p class='col-span-2 text-center'>No custom parameters configured yet.</p>";
+                whContainer.innerHTML = "<p>No warehouses configured.</p>";
+                catContainer.innerHTML = "<p>No categories configured.</p>";
                 return;
             }
 
@@ -712,28 +955,34 @@
                 const data = d.data();
                 const settingId = d.id;
 
-                container.innerHTML += `
+                const itemHTML = `
                     <div class="flex items-center justify-between bg-slate-900 p-2 rounded border border-slate-700">
                         <div class="flex items-center gap-2">
-                            ${data.imageBase64 ? `<img src="${data.imageBase64}" class="w-8 h-8 object-cover rounded"/>` : ''}
-                            <span><b>${data.type.toUpperCase()}:</b> ${data.value}</span>
+                            ${data.imageBase64 ? `<img src="${data.imageBase64}" class="w-6 h-6 object-cover rounded"/>` : ''}
+                            <span id="label-${settingId}">${data.value}</span>
                         </div>
-                        <button onclick="deleteSetting('${settingId}')" class="text-red-400 hover:text-red-300 text-xs font-semibold">Delete</button>
+                        <button onclick="editSetting('${settingId}', '${data.value}')" class="text-cyan-400 hover:text-cyan-300 font-semibold text-xs bg-slate-800 px-2 py-1 rounded border border-slate-700">Edit Name</button>
                     </div>
                 `;
 
-                if (data.type === "category" && categorySelect) {
-                    categorySelect.innerHTML += `<option value="${data.value}">${data.value}</option>`;
-                } else if (data.type === "warehouse" && locationSelect) {
-                    locationSelect.innerHTML += `<option value="${data.value}">${data.value}</option>`;
+                if (data.type === "warehouse") {
+                    whContainer.innerHTML += itemHTML;
+                    if (locationSelect) locationSelect.innerHTML += `<option value="${data.value}">${data.value}</option>`;
+                } else if (data.type === "category") {
+                    catContainer.innerHTML += itemHTML;
+                    if (categorySelect) categorySelect.innerHTML += `<option value="${data.value}">${data.value}</option>`;
                 }
             });
         }
 
-        window.deleteSetting = async (settingId) => {
-            if (confirm("Remove this parameter?")) {
-                await deleteDoc(doc(db, "settings", settingId));
-                loadSettings();
+        window.editSetting = async (settingId, oldVal) => {
+            const newVal = prompt("Edit name for this setting:", oldVal);
+            if (newVal && newVal.trim() !== "" && newVal !== oldVal) {
+                try {
+                    await updateDoc(doc(db, "settings", settingId), { value: newVal.trim() });
+                    alert("Setting updated successfully!");
+                    loadSettings();
+                } catch (err) { alert("Error updating setting: " + err.message); }
             }
         };
 
