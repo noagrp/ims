@@ -77,9 +77,9 @@
             </form>
         </section>
 
-        <!-- Tab 3: Register Asset with Base64 Document Uploads -->
+        <!-- Tab 3: Register Asset with Dynamic Settings Dropdowns -->
         <section id="tab-register" class="bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-700 space-y-4 shadow-xl hidden w-full max-w-4xl mx-auto">
-            <h2 class="text-base sm:text-lg font-bold text-center">Register New Equipment or Part (Full Admin Power)</h2>
+            <h2 class="text-base sm:text-lg font-bold text-center">Register New Equipment or Part</h2>
             <form id="registerForm" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                     <label class="block text-xs sm:text-sm font-medium mb-1">Item Type</label>
@@ -97,8 +97,10 @@
                     <input type="text" id="itemName" required class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm focus:outline-none focus:border-red-500">
                 </div>
                 <div>
-                    <label class="block text-xs sm:text-sm font-medium mb-1">Category</label>
-                    <input type="text" id="itemCategory" placeholder="e.g. Drilling Tools" required class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm focus:outline-none focus:border-red-500">
+                    <label class="block text-xs sm:text-sm font-medium mb-1">Category (Linked to Master Settings)</label>
+                    <select id="itemCategory" required class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm focus:outline-none focus:border-red-500">
+                        <option value="">-- Select Master Category --</option>
+                    </select>
                 </div>
                 <div>
                     <label class="block text-xs sm:text-sm font-medium mb-1">Initial Status</label>
@@ -109,8 +111,10 @@
                     </select>
                 </div>
                 <div>
-                    <label class="block text-xs sm:text-sm font-medium mb-1">Current Location</label>
-                    <input type="text" id="itemLocation" placeholder="HQ Warehouse" required class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm focus:outline-none focus:border-red-500">
+                    <label class="block text-xs sm:text-sm font-medium mb-1">Current Location / Warehouse (Linked to Master Settings)</label>
+                    <select id="itemLocation" required class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm focus:outline-none focus:border-red-500">
+                        <option value="">-- Select Master Warehouse --</option>
+                    </select>
                 </div>
                 <div class="sm:col-span-2 border-t border-slate-700 pt-4">
                     <label class="block text-xs sm:text-sm font-medium mb-1">Initial Compliance Document (Optional)</label>
@@ -221,7 +225,7 @@
             document.getElementById(`tab-${tabName}-btn`).className = "text-red-400 font-semibold pb-2 border-b-2 border-red-400 text-sm sm:text-base whitespace-nowrap px-4 transition";
         };
 
-        // 1. Global Inventory Oversight, Audit Logs, & Master Delete Override
+        // 1. Global Inventory Oversight & Master Purge Override
         async function loadGlobalInventory() {
             const tbody = document.getElementById("inventoryTableBody");
             const transitSelect = document.getElementById("transitItemSelect");
@@ -265,7 +269,7 @@
             }
         };
 
-        // 2. Transit Logistics Dispatch (Sea, Land, Air) with Lifecycle History
+        // 2. Transit Logistics Dispatch (Sea, Land, Air)
         document.getElementById("transitForm").addEventListener("submit", async (e) => {
             e.preventDefault();
             const itemId = document.getElementById("transitItemSelect").value;
@@ -308,7 +312,7 @@
             }
         });
 
-        // 3. Register Asset with Base64 Document Uploading
+        // 3. Register Asset with Dynamic Settings Dropdowns
         const fileToBase64 = file => new Promise((resolve, reject) => {
             const reader = new FileReader();
             reader.readAsDataURL(file);
@@ -356,7 +360,7 @@
 
             try {
                 await addDoc(collection(db, "inventory"), newItem);
-                alert("Asset registered successfully with documents!");
+                alert("Asset registered successfully!");
                 document.getElementById("registerForm").reset();
                 loadGlobalInventory();
                 switchTab('inventory');
@@ -365,7 +369,7 @@
             }
         });
 
-        // 4. User Directory & Access Removal (Using precise docId)
+        // 4. User Directory
         async function loadUserDirectory() {
             const tbody = document.getElementById("userTableBody");
             tbody.innerHTML = "";
@@ -420,7 +424,7 @@
             }
         });
 
-        // 5. Master Settings Configuration
+        // 5. Master Settings & Dynamic Dropdown Population Logic
         document.getElementById("warehouseForm").addEventListener("submit", async (e) => {
             e.preventDefault();
             const name = document.getElementById("warehouseName").value;
@@ -441,17 +445,51 @@
 
         async function loadSettings() {
             const container = document.getElementById("settingsContainer");
+            const categorySelect = document.getElementById("itemCategory");
+            const locationSelect = document.getElementById("itemLocation");
+
             container.innerHTML = "";
+            if (categorySelect) categorySelect.innerHTML = '<option value="">-- Select Master Category --</option>';
+            if (locationSelect) locationSelect.innerHTML = '<option value="">-- Select Master Warehouse --</option>';
+
             const snap = await getDocs(collection(db, "settings"));
             if (snap.empty) {
                 container.innerHTML = "<p>No custom parameters added yet.</p>";
                 return;
             }
+
             snap.forEach(d => {
                 const data = d.data();
-                container.innerHTML += `<div class="flex justify-between items-center bg-slate-900 p-2 rounded mb-1 text-xs"><span><b>${data.type.toUpperCase()}:</b> ${data.value}</span></div>`;
+                const settingId = d.id;
+
+                // Render in Master Settings List view
+                container.innerHTML += `
+                    <div class="flex justify-between items-center bg-slate-900 p-2 rounded mb-1 text-xs">
+                        <span><b>${data.type.toUpperCase()}:</b> ${data.value}</span>
+                        <button onclick="deleteSetting('${settingId}')" class="text-red-400 hover:text-red-300 font-semibold">Delete</button>
+                    </div>
+                `;
+
+                // Populate Dropdowns dynamically
+                if (data.type === "category" && categorySelect) {
+                    categorySelect.innerHTML += `<option value="${data.value}">${data.value}</option>`;
+                } else if (data.type === "warehouse" && locationSelect) {
+                    locationSelect.innerHTML += `<option value="${data.value}">${data.value}</option>`;
+                }
             });
         }
+
+        window.deleteSetting = async (settingId) => {
+            if (confirm("Remove this master setting parameter?")) {
+                try {
+                    await deleteDoc(doc(db, "settings", settingId));
+                    loadSettings();
+                    alert("Parameter removed.");
+                } catch (err) {
+                    alert("Error: " + err.message);
+                }
+            }
+        };
 
         window.exportTableToExcel = (tableId, filename) => {
             const table = document.getElementById(tableId);
