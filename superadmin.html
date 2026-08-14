@@ -15,21 +15,36 @@
     </nav>
 
     <main class="flex-1 max-w-6xl w-full mx-auto p-3 sm:p-6 space-y-6 box-border flex flex-col items-center">
-        <!-- Master Navigation Tabs Refactored for Mobile Wrapping (No weird horizontal scroll) -->
+        <!-- Master Navigation Tabs Refactored for Mobile Wrapping -->
         <div class="flex flex-wrap justify-center gap-2 border-b border-slate-700 pb-3 w-full">
             <button onclick="switchTab('inventory')" id="tab-inventory-btn" class="text-red-400 font-semibold pb-2 border-b-2 border-red-400 text-xs sm:text-sm md:text-base px-3 py-1.5 transition rounded-lg bg-slate-800/80">Global Inventory</button>
             <button onclick="switchTab('transit')" id="tab-transit-btn" class="text-slate-400 pb-2 text-xs sm:text-sm md:text-base px-3 py-1.5 transition rounded-lg hover:bg-slate-800/40">Transit Logistics</button>
             <button onclick="switchTab('register')" id="tab-register-btn" class="text-slate-400 pb-2 text-xs sm:text-sm md:text-base px-3 py-1.5 transition rounded-lg hover:bg-slate-800/40">Register Asset</button>
+            <button onclick="switchTab('clients')" id="tab-clients-btn" class="text-slate-400 pb-2 text-xs sm:text-sm md:text-base px-3 py-1.5 transition rounded-lg hover:bg-slate-800/40">Client Docs</button>
+            <button onclick="switchTab('suppliers')" id="tab-suppliers-btn" class="text-slate-400 pb-2 text-xs sm:text-sm md:text-base px-3 py-1.5 transition rounded-lg hover:bg-slate-800/40">Supplier Docs</button>
             <button onclick="switchTab('users')" id="tab-users-btn" class="text-slate-400 pb-2 text-xs sm:text-sm md:text-base px-3 py-1.5 transition rounded-lg hover:bg-slate-800/40">User Management</button>
             <button onclick="switchTab('settings')" id="tab-settings-btn" class="text-slate-400 pb-2 text-xs sm:text-sm md:text-base px-3 py-1.5 transition rounded-lg hover:bg-slate-800/40">Master Settings</button>
         </div>
 
-        <!-- Tab 1: Global Inventory Master View, Audit & Purge Override (Consistent Max Width Container) -->
+        <!-- Tab 1: Global Inventory Master View, Filtering & Excel Export -->
         <section id="tab-inventory" class="bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-700 space-y-4 shadow-xl w-full max-w-5xl">
             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-                <h2 class="text-base sm:text-lg font-bold">Complete System Inventory & Accountability Audit Log</h2>
+                <h2 class="text-base sm:text-lg font-bold">Complete System Inventory & Audit Trail</h2>
                 <button onclick="exportTableToExcel('inventoryTable', 'Master_Audit_Report.xlsx')" class="bg-emerald-600 hover:bg-emerald-500 px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold w-full sm:w-auto transition">Export Report</button>
             </div>
+            
+            <!-- Sorting & Filtering Controls -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-slate-900/50 p-3 rounded-xl border border-slate-700">
+                <input type="text" id="inventorySearch" placeholder="🔍 Search by Code, Name, or Creator..." onkeyup="filterInventory()" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm focus:outline-none focus:border-red-500">
+                <select id="inventoryFilterStatus" onchange="filterInventory()" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm focus:outline-none focus:border-red-500">
+                    <option value="">Filter by Status / Location (All)</option>
+                    <option value="In Stock">In Stock</option>
+                    <option value="In Transit">In Transit</option>
+                    <option value="Rented">Rented</option>
+                    <option value="In Maintenance">In Maintenance</option>
+                </select>
+            </div>
+
             <div class="overflow-x-auto rounded-xl border border-slate-700">
                 <table id="inventoryTable" class="w-full text-left border-collapse min-w-[800px]">
                     <thead>
@@ -38,9 +53,8 @@
                             <th class="p-3">Name</th>
                             <th class="p-3">Type / Category</th>
                             <th class="p-3">Status</th>
-                            <th class="p-3">Location / Transit</th>
+                            <th class="p-3">Location</th>
                             <th class="p-3">Created By</th>
-                            <th class="p-3">Last Edited By</th>
                             <th class="p-3">Master Actions</th>
                         </tr>
                     </thead>
@@ -49,9 +63,9 @@
             </div>
         </section>
 
-        <!-- Tab 2: Transit Logistics (Sea, Land, Air - Consistent Max Width Container) -->
+        <!-- Tab 2: Transit Logistics with Dynamic Fields & Base64 Shipping Doc Uploads -->
         <section id="tab-transit" class="bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-700 space-y-6 shadow-xl hidden w-full max-w-5xl flex flex-col items-center">
-            <h2 class="text-base sm:text-lg font-bold text-center">Log Asset Transit Movement (Sea, Land, Air)</h2>
+            <h2 class="text-base sm:text-lg font-bold text-center">Log Asset Transit Movement & Shipping Documentation</h2>
             <form id="transitForm" class="space-y-4 bg-slate-900/50 p-5 rounded-xl border border-slate-700 shadow-md w-full max-w-2xl">
                 <div>
                     <label class="block text-xs sm:text-sm font-medium mb-1">Select Asset / Item Code</label>
@@ -73,11 +87,19 @@
                         <input type="text" id="transitDestination" placeholder="e.g. Vessel MV Nusantara / Truck AA1234" required class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm focus:outline-none focus:border-red-500">
                     </div>
                 </div>
-                <button type="submit" class="w-full bg-red-600 hover:bg-red-500 text-white font-bold py-2.5 rounded-lg text-sm transition">Dispatch Asset to Transit</button>
+                <div>
+                    <label class="block text-xs sm:text-sm font-medium mb-1">Custom Tracking Field (Optional)</label>
+                    <input type="text" id="transitCustomField" placeholder="e.g. Container No: C12345 / Seal No: S987" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm focus:outline-none focus:border-red-500">
+                </div>
+                <div>
+                    <label class="block text-xs sm:text-sm font-medium mb-1">Shipping Docs (BL, Customs Clearance, etc.)</label>
+                    <input type="file" id="transitDocFile" class="w-full text-xs sm:text-sm text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs sm:file:text-sm file:font-semibold file:bg-red-600 file:text-white hover:file:bg-red-500 transition">
+                </div>
+                <button type="submit" class="w-full bg-red-600 hover:bg-red-500 text-white font-bold py-2.5 rounded-lg text-sm transition">Dispatch Asset & Upload Shipping Docs</button>
             </form>
         </section>
 
-        <!-- Tab 3: Register Asset with Dynamic Settings Dropdowns (Consistent Max Width Container) -->
+        <!-- Tab 3: Register Asset with Dynamic Warehouse & Lifecycle Attachments -->
         <section id="tab-register" class="bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-700 space-y-4 shadow-xl hidden w-full max-w-5xl">
             <h2 class="text-base sm:text-lg font-bold text-center">Register New Equipment or Part</h2>
             <form id="registerForm" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -103,30 +125,118 @@
                     </select>
                 </div>
                 <div>
-                    <label class="block text-xs sm:text-sm font-medium mb-1">Initial Status</label>
+                    <label class="block text-xs sm:text-sm font-medium mb-1">Asset Status / Location Context</label>
                     <select id="itemStatus" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm focus:outline-none focus:border-red-500">
-                        <option value="In Stock">In Stock</option>
-                        <option value="Rented">Rented</option>
-                        <option value="In Maintenance">In Maintenance</option>
+                        <option value="Own Warehouse">Own Warehouse</option>
+                        <option value="Supplier Site">Supplier Site</option>
+                        <option value="Client Site">Client Site</option>
+                        <option value="In Maintenance">In Maintenance (Replacement Tracked)</option>
+                        <option value="Disposed">Disposed</option>
                     </select>
                 </div>
                 <div>
-                    <label class="block text-xs sm:text-sm font-medium mb-1">Current Location / Warehouse (Linked to Master Settings)</label>
+                    <label class="block text-xs sm:text-sm font-medium mb-1">Assigned Warehouse (Linked to Master Settings)</label>
                     <select id="itemLocation" required class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm focus:outline-none focus:border-red-500">
                         <option value="">-- Select Master Warehouse --</option>
                     </select>
                 </div>
                 <div class="sm:col-span-2 border-t border-slate-700 pt-4">
-                    <label class="block text-xs sm:text-sm font-medium mb-1">Initial Compliance Document (Optional)</label>
+                    <label class="block text-xs sm:text-sm font-medium mb-1">Lifecycle / Compliance Document (Product Cert, Replacement Form, Disposal Cert)</label>
                     <input type="file" id="initialDoc" class="w-full text-xs sm:text-sm text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs sm:file:text-sm file:font-semibold file:bg-red-600 file:text-white hover:file:bg-red-500 transition">
                 </div>
                 <div class="sm:col-span-2 flex justify-center">
-                    <button type="submit" class="w-full sm:w-auto bg-red-600 hover:bg-red-500 text-white font-bold py-2.5 px-6 rounded-lg text-sm transition">Save & Register Item</button>
+                    <button type="submit" class="w-full sm:w-auto bg-red-600 hover:bg-red-500 text-white font-bold py-2.5 px-6 rounded-lg text-sm transition">Save & Register Asset</button>
                 </div>
             </form>
         </section>
 
-        <!-- Tab 4: User & Role Management (Consistent Max Width Container) -->
+        <!-- Tab 4: Client Tab (Invoices, POs, DOs) -->
+        <section id="tab-clients" class="bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-700 space-y-6 shadow-xl hidden w-full max-w-5xl">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+                <form id="clientDocForm" class="bg-slate-900/60 p-5 rounded-xl border border-slate-700 space-y-4 lg:col-span-1 shadow-md">
+                    <h2 class="text-base font-bold text-red-400 text-center">Upload Client Document</h2>
+                    <div>
+                        <label class="block text-xs font-medium mb-1">Client Name / Code</label>
+                        <input type="text" id="clientNameInput" placeholder="e.g. Petronas Carigali" required class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium mb-1">Document Type</label>
+                        <select id="clientDocType" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm">
+                            <option value="Client PO">Client Purchase Order (PO)</option>
+                            <option value="Client DO">Client Delivery Order (DO)</option>
+                            <option value="Client Invoice">Client Invoice (Inv)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium mb-1">File Attachment (Base64)</label>
+                        <input type="file" id="clientFile" required class="w-full text-xs text-slate-400 file:mr-2 file:py-1.5 file:px-3 file:rounded file:border-0 file:bg-red-600 file:text-white">
+                    </div>
+                    <button type="submit" class="w-full bg-red-600 hover:bg-red-500 text-white font-bold py-2 px-4 rounded-lg text-sm">Save Client Doc</button>
+                </form>
+                <div class="lg:col-span-2 space-y-4 flex flex-col">
+                    <h2 class="text-base font-bold text-center lg:text-left">Client Document Registry</h2>
+                    <div class="overflow-x-auto rounded-xl border border-slate-700">
+                        <table class="w-full text-left border-collapse min-w-[400px]">
+                            <thead>
+                                <tr class="bg-slate-900/50 border-b border-slate-700 text-slate-400 text-xs">
+                                    <th class="p-3">Client Name</th>
+                                    <th class="p-3">Doc Type</th>
+                                    <th class="p-3">File Name</th>
+                                    <th class="p-3">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="clientTableBody" class="divide-y divide-slate-700 text-xs"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Tab 5: Supplier Tab (Supplier Inv, Our PO, SIRIM, Permit of Sale) -->
+        <section id="tab-suppliers" class="bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-700 space-y-6 shadow-xl hidden w-full max-w-5xl">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+                <form id="supplierDocForm" class="bg-slate-900/60 p-5 rounded-xl border border-slate-700 space-y-4 lg:col-span-1 shadow-md">
+                    <h2 class="text-base font-bold text-red-400 text-center">Upload Supplier Document</h2>
+                    <div>
+                        <label class="block text-xs font-medium mb-1">Supplier Name</label>
+                        <input type="text" id="supplierNameInput" placeholder="e.g. Schlumberger Parts" required class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium mb-1">Document Type</label>
+                        <select id="supplierDocType" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm">
+                            <option value="Supplier Invoice">Supplier Invoice</option>
+                            <option value="Our PO">Our PO to Supplier</option>
+                            <option value="Supplier DO">Supplier Delivery Order (DO)</option>
+                            <option value="SIRIM Certificate">SIRIM Certificate</option>
+                            <option value="Permit of Sale">Permit of Sale</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium mb-1">File Attachment (Base64)</label>
+                        <input type="file" id="supplierFile" required class="w-full text-xs text-slate-400 file:mr-2 file:py-1.5 file:px-3 file:rounded file:border-0 file:bg-red-600 file:text-white">
+                    </div>
+                    <button type="submit" class="w-full bg-red-600 hover:bg-red-500 text-white font-bold py-2 px-4 rounded-lg text-sm">Save Supplier Doc</button>
+                </form>
+                <div class="lg:col-span-2 space-y-4 flex flex-col">
+                    <h2 class="text-base font-bold text-center lg:text-left">Supplier Document Registry</h2>
+                    <div class="overflow-x-auto rounded-xl border border-slate-700">
+                        <table class="w-full text-left border-collapse min-w-[400px]">
+                            <thead>
+                                <tr class="bg-slate-900/50 border-b border-slate-700 text-slate-400 text-xs">
+                                    <th class="p-3">Supplier Name</th>
+                                    <th class="p-3">Doc Type</th>
+                                    <th class="p-3">File Name</th>
+                                    <th class="p-3">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="supplierTableBody" class="divide-y divide-slate-700 text-xs"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Tab 6: User Management -->
         <section id="tab-users" class="bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-700 space-y-6 shadow-xl hidden w-full max-w-5xl">
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
                 <div class="bg-slate-900/60 p-5 rounded-xl border border-slate-700 space-y-4 lg:col-span-1 shadow-md">
@@ -134,21 +244,21 @@
                     <form id="createUserForm" class="space-y-3">
                         <div>
                             <label class="block text-xs font-medium mb-1">Email Address</label>
-                            <input type="email" id="newUserEmail" required class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm focus:outline-none focus:border-red-500">
+                            <input type="email" id="newUserEmail" required class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm">
                         </div>
                         <div>
                             <label class="block text-xs font-medium mb-1">Password</label>
-                            <input type="password" id="newUserPassword" required class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm focus:outline-none focus:border-red-500">
+                            <input type="password" id="newUserPassword" required class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm">
                         </div>
                         <div>
                             <label class="block text-xs font-medium mb-1">Assign System Role</label>
-                            <select id="newUserRole" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm focus:outline-none focus:border-red-500">
+                            <select id="newUserRole" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm">
                                 <option value="admin">Admin</option>
                                 <option value="manager">Manager</option>
                                 <option value="superadmin">Superadmin</option>
                             </select>
                         </div>
-                        <button type="submit" class="w-full bg-red-600 hover:bg-red-500 text-white font-bold py-2 px-4 rounded-lg text-sm transition">Create User Account</button>
+                        <button type="submit" class="w-full bg-red-600 hover:bg-red-500 text-white font-bold py-2 px-4 rounded-lg text-sm">Create Account</button>
                     </form>
                 </div>
                 <div class="lg:col-span-2 space-y-4 flex flex-col">
@@ -156,37 +266,41 @@
                     <div class="overflow-x-auto rounded-xl border border-slate-700">
                         <table id="userTable" class="w-full text-left border-collapse min-w-[400px]">
                             <thead>
-                                <tr class="bg-slate-900/50 border-b border-slate-700 text-slate-400 text-xs sm:text-sm">
+                                <tr class="bg-slate-900/50 border-b border-slate-700 text-slate-400 text-xs">
                                     <th class="p-3">Email</th>
                                     <th class="p-3">Role</th>
                                     <th class="p-3">Action</th>
                                 </tr>
                             </thead>
-                            <tbody id="userTableBody" class="divide-y divide-slate-700 text-xs sm:text-sm"></tbody>
+                            <tbody id="userTableBody" class="divide-y divide-slate-700 text-xs"></tbody>
                         </table>
                     </div>
                 </div>
             </div>
         </section>
 
-        <!-- Tab 5: Master Settings (Consistent Max Width Container) -->
+        <!-- Tab 7: Master Settings with Sample Image Upload (for 800+ Products support) -->
         <section id="tab-settings" class="bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-700 space-y-6 shadow-xl hidden w-full max-w-5xl flex flex-col items-center">
-            <h2 class="text-base sm:text-lg font-bold text-center">Global Master Settings Configuration</h2>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 w-full max-w-3xl">
+            <h2 class="text-base sm:text-lg font-bold text-center">Global Master Settings Configuration & Sample Images</h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 w-full max-w-4xl">
                 <form id="warehouseForm" class="space-y-3 bg-slate-900/50 p-4 rounded-xl border border-slate-700 shadow-md">
                     <h3 class="font-semibold text-sm text-cyan-400 text-center">Add Warehouse Location</h3>
-                    <input type="text" id="warehouseName" placeholder="e.g. Labuan Base" required class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm focus:outline-none focus:border-cyan-500">
-                    <button type="submit" class="w-full bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-2 rounded-lg text-sm transition">Add Warehouse</button>
+                    <input type="text" id="warehouseName" placeholder="e.g. Labuan Base" required class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm">
+                    <button type="submit" class="w-full bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-2 rounded-lg text-sm">Add Warehouse</button>
                 </form>
                 <form id="categoryForm" class="space-y-3 bg-slate-900/50 p-4 rounded-xl border border-slate-700 shadow-md">
-                    <h3 class="font-semibold text-sm text-amber-400 text-center">Add Equipment Category</h3>
-                    <input type="text" id="categoryName" placeholder="e.g. Drilling Tools" required class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm focus:outline-none focus:border-amber-500">
-                    <button type="submit" class="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold py-2 rounded-lg text-sm transition">Add Category</button>
+                    <h3 class="font-semibold text-sm text-amber-400 text-center">Add Category & Sample Image</h3>
+                    <input type="text" id="categoryName" placeholder="e.g. Drilling Bits (800+ Series)" required class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm">
+                    <div>
+                        <label class="block text-xs text-slate-400 mb-1">Sample Thumbnail Image (Base64)</label>
+                        <input type="file" id="categoryImageFile" class="w-full text-xs text-slate-400 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:bg-amber-600 file:text-white">
+                    </div>
+                    <button type="submit" class="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold py-2 rounded-lg text-sm">Add Category with Image</button>
                 </form>
             </div>
-            <div id="settingsList" class="bg-slate-900/40 p-4 rounded-xl border border-slate-700 text-sm space-y-2 w-full max-w-3xl">
+            <div id="settingsList" class="bg-slate-900/40 p-4 rounded-xl border border-slate-700 text-sm space-y-2 w-full max-w-4xl">
                 <h3 class="font-semibold text-slate-300 text-center">Configured System Parameters:</h3>
-                <div id="settingsContainer" class="text-slate-400 text-xs text-center">Loading parameters...</div>
+                <div id="settingsContainer" class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-slate-400 text-xs">Loading parameters...</div>
             </div>
         </section>
     </main>
@@ -197,6 +311,7 @@
         import { collection, addDoc, getDocs, doc, getDoc, setDoc, deleteDoc, updateDoc } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
         let currentUserEmail = "";
+        let globalInventoryData = [];
 
         onAuthStateChanged(auth, async (user) => {
             if (!user) { window.location.href = "index.html"; return; }
@@ -208,6 +323,8 @@
                 loadGlobalInventory();
                 loadUserDirectory();
                 loadSettings();
+                loadClientDocs();
+                loadSupplierDocs();
             }
         });
 
@@ -216,7 +333,7 @@
         });
 
         window.switchTab = (tabName) => {
-            ['inventory', 'transit', 'register', 'users', 'settings'].forEach(tab => {
+            ['inventory', 'transit', 'register', 'clients', 'suppliers', 'users', 'settings'].forEach(tab => {
                 document.getElementById(`tab-${tab}`).classList.add("hidden");
                 document.getElementById(`tab-${tab}-btn`).className = "text-slate-400 pb-2 text-xs sm:text-sm md:text-base px-3 py-1.5 transition rounded-lg hover:bg-slate-800/40";
             });
@@ -225,42 +342,76 @@
             document.getElementById(`tab-${tabName}-btn`).className = "text-red-400 font-semibold pb-2 border-b-2 border-red-400 text-xs sm:text-sm md:text-base px-3 py-1.5 transition rounded-lg bg-slate-800/80";
         };
 
-        // 1. Global Inventory Oversight & Master Purge Override
+        const fileToBase64 = file => new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = error => reject(error);
+        });
+
+        // 1. Global Inventory Oversight, Filtering & Purge Override
         async function loadGlobalInventory() {
             const tbody = document.getElementById("inventoryTableBody");
             const transitSelect = document.getElementById("transitItemSelect");
             tbody.innerHTML = "";
             transitSelect.innerHTML = '<option value="">-- Choose Asset --</option>';
+            globalInventoryData = [];
 
             const querySnapshot = await getDocs(collection(db, "inventory"));
             querySnapshot.forEach((docSnap) => {
                 const data = docSnap.data();
-                const id = docSnap.id;
+                data.id = docSnap.id;
+                globalInventoryData.push(data);
+                transitSelect.innerHTML += `<option value="${data.id}">${data.itemCode} - ${data.name}</option>`;
+            });
 
+            renderInventoryTable(globalInventoryData);
+        }
+
+        function renderInventoryTable(dataArray) {
+            const tbody = document.getElementById("inventoryTableBody");
+            tbody.innerHTML = "";
+            if (dataArray.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" class="p-4 text-center text-slate-500">No inventory records found.</td></tr>`;
+                return;
+            }
+
+            dataArray.forEach((data) => {
                 tbody.innerHTML += `
-                    <tr class="hover:bg-slate-700/50" id="row-${id}">
+                    <tr class="hover:bg-slate-700/50" id="row-${data.id}">
                         <td class="p-3 font-mono break-all">${data.itemCode}</td>
                         <td class="p-3">${data.name}</td>
                         <td class="p-3">${data.type} <br><span class="text-xs text-slate-400">${data.category}</span></td>
                         <td class="p-3"><span class="px-2 py-1 rounded bg-red-900 text-red-300 text-xs">${data.status}</span></td>
                         <td class="p-3">${data.currentLocation}</td>
                         <td class="p-3 text-slate-400 break-all">${data.createdBy}</td>
-                        <td class="p-3 text-slate-400 break-all">${data.lastEditedBy || 'None'}</td>
                         <td class="p-3">
-                            <button onclick="deleteItem('${id}')" class="bg-red-700/80 hover:bg-red-600 text-white px-2.5 py-1 rounded text-xs transition">Master Purge</button>
+                            <button onclick="deleteItem('${data.id}')" class="bg-red-700/80 hover:bg-red-600 text-white px-2.5 py-1 rounded text-xs transition">Purge</button>
                         </td>
                     </tr>
                 `;
-
-                transitSelect.innerHTML += `<option value="${id}">${data.itemCode} - ${data.name}</option>`;
             });
         }
+
+        window.filterInventory = () => {
+            const searchVal = document.getElementById("inventorySearch").value.toLowerCase();
+            const statusVal = document.getElementById("inventoryFilterStatus").value;
+
+            const filtered = globalInventoryData.filter(item => {
+                const matchesSearch = item.itemCode.toLowerCase().includes(searchVal) ||
+                                      item.name.toLowerCase().includes(searchVal) ||
+                                      item.createdBy.toLowerCase().includes(searchVal);
+                const matchesStatus = statusVal === "" || item.status.includes(statusVal) || item.currentLocation.includes(statusVal);
+                return matchesSearch && matchesStatus;
+            });
+
+            renderInventoryTable(filtered);
+        };
 
         window.deleteItem = async (itemId) => {
             if (confirm("Permanently purge this item from the system?")) {
                 try {
                     await deleteDoc(doc(db, "inventory", itemId));
-                    document.getElementById(`row-${itemId}`).remove();
                     alert("Item purged successfully.");
                     loadGlobalInventory();
                 } catch (err) {
@@ -269,70 +420,75 @@
             }
         };
 
-        // 2. Transit Logistics Dispatch (Sea, Land, Air)
+        // 2. Transit Dispatch with Custom Metadata & Base64 Shipping Document
         document.getElementById("transitForm").addEventListener("submit", async (e) => {
             e.preventDefault();
             const itemId = document.getElementById("transitItemSelect").value;
             const mode = document.getElementById("transitMode").value;
             const destination = document.getElementById("transitDestination").value;
+            const customField = document.getElementById("transitCustomField").value;
+            const fileInput = document.getElementById("transitDocFile");
 
-            if (!itemId) {
-                alert("Please select an asset to dispatch.");
-                return;
-            }
+            if (!itemId) { alert("Please select an asset."); return; }
 
             try {
+                let transitDocs = [];
+                if (fileInput.files.length > 0) {
+                    const b64 = await fileToBase64(fileInput.files[0]);
+                    transitDocs.push({
+                        docName: fileInput.files[0].name,
+                        base64Data: b64,
+                        uploadedAt: new Date().toISOString()
+                    });
+                }
+
                 const itemRef = doc(db, "inventory", itemId);
                 const itemSnap = await getDoc(itemRef);
                 if (!itemSnap.exists()) return;
 
                 const data = itemSnap.data();
-                const updatedHistory = data.lifecycleHistory || [];
-                updatedHistory.push({
+                const history = data.lifecycleHistory || [];
+                history.push({
                     status: `In Transit (${mode})`,
-                    location: destination,
+                    location: `${destination} ${customField ? '(' + customField + ')' : ''}`,
                     timestamp: new Date().toISOString(),
                     user: currentUserEmail
                 });
 
+                const existingDocs = data.documents || [];
+                const mergedDocs = [...existingDocs, ...transitDocs];
+
                 await updateDoc(itemRef, {
                     status: `In Transit (${mode})`,
-                    currentLocation: destination,
-                    lifecycleHistory: updatedHistory,
+                    currentLocation: `${destination} ${customField ? '(' + customField + ')' : ''}`,
+                    lifecycleHistory: history,
+                    documents: mergedDocs,
                     lastEditedBy: currentUserEmail,
                     lastEditedAt: new Date().toISOString()
                 });
 
-                alert(`Asset successfully dispatched via ${mode}!`);
+                alert(`Asset dispatched via ${mode} with documentation!`);
                 document.getElementById("transitForm").reset();
                 loadGlobalInventory();
                 switchTab('inventory');
             } catch (err) {
-                alert("Transit Error: " + err.message);
+                alert("Error: " + err.message);
             }
         });
 
-        // 3. Register Asset with Dynamic Settings Dropdowns
-        const fileToBase64 = file => new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.readAsDataURL(file);
-            reader.onload = () => resolve(reader.result);
-            reader.onerror = error => reject(error);
-        });
-
+        // 3. Register Asset
         document.getElementById("registerForm").addEventListener("submit", async (e) => {
             e.preventDefault();
             const fileInput = document.getElementById("initialDoc");
             let documents = [];
 
             if (fileInput.files.length > 0) {
-                const file = fileInput.files[0];
-                const base64Data = await fileToBase64(file);
+                const b64 = await fileToBase64(fileInput.files[0]);
                 documents.push({
                     docId: "doc_" + Date.now(),
-                    title: "Initial Doc",
-                    fileName: file.name,
-                    base64Data: base64Data,
+                    title: "Lifecycle Document",
+                    fileName: fileInput.files[0].name,
+                    base64Data: b64,
                     uploadedAt: new Date().toISOString(),
                     uploadedBy: currentUserEmail
                 });
@@ -369,7 +525,107 @@
             }
         });
 
-        // 4. User Directory
+        // 4. Client Docs Handling
+        document.getElementById("clientDocForm").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const clientName = document.getElementById("clientNameInput").value;
+            const docType = document.getElementById("clientDocType").value;
+            const fileInput = document.getElementById("clientFile");
+
+            try {
+                let b64 = "";
+                let fileName = "";
+                if (fileInput.files.length > 0) {
+                    fileName = fileInput.files[0].name;
+                    b64 = await fileToBase64(fileInput.files[0]);
+                }
+
+                await addDoc(collection(db, "client_docs"), {
+                    clientName, docType, fileName, base64Data: b64, uploadedBy: currentUserEmail, createdAt: new Date().toISOString()
+                });
+
+                alert("Client document uploaded successfully!");
+                document.getElementById("clientDocForm").reset();
+                loadClientDocs();
+            } catch (err) { alert("Error: " + err.message); }
+        });
+
+        async function loadClientDocs() {
+            const tbody = document.getElementById("clientTableBody");
+            tbody.innerHTML = "";
+            const snap = await getDocs(collection(db, "client_docs"));
+            snap.forEach(d => {
+                const data = d.data();
+                const id = d.id;
+                tbody.innerHTML += `
+                    <tr class="hover:bg-slate-700/50" id="client-row-${id}">
+                        <td class="p-3 font-medium">${data.clientName}</td>
+                        <td class="p-3 text-cyan-300">${data.docType}</td>
+                        <td class="p-3 truncate max-w-[150px]">${data.fileName || 'None'}</td>
+                        <td class="p-3"><button onclick="deleteClientDoc('${id}')" class="text-red-400 hover:text-red-300 text-xs">Delete</button></td>
+                    </tr>
+                `;
+            });
+        }
+
+        window.deleteClientDoc = async (id) => {
+            if (confirm("Delete this client document?")) {
+                await deleteDoc(doc(db, "client_docs", id));
+                loadClientDocs();
+            }
+        };
+
+        // 5. Supplier Docs Handling
+        document.getElementById("supplierDocForm").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const supplierName = document.getElementById("supplierNameInput").value;
+            const docType = document.getElementById("supplierDocType").value;
+            const fileInput = document.getElementById("supplierFile");
+
+            try {
+                let b64 = "";
+                let fileName = "";
+                if (fileInput.files.length > 0) {
+                    fileName = fileInput.files[0].name;
+                    b64 = await fileToBase64(fileInput.files[0]);
+                }
+
+                await addDoc(collection(db, "supplier_docs"), {
+                    supplierName, docType, fileName, base64Data: b64, uploadedBy: currentUserEmail, createdAt: new Date().toISOString()
+                });
+
+                alert("Supplier document uploaded successfully!");
+                document.getElementById("supplierDocForm").reset();
+                loadSupplierDocs();
+            } catch (err) { alert("Error: " + err.message); }
+        });
+
+        async function loadSupplierDocs() {
+            const tbody = document.getElementById("supplierTableBody");
+            tbody.innerHTML = "";
+            const snap = await getDocs(collection(db, "supplier_docs"));
+            snap.forEach(d => {
+                const data = d.data();
+                const id = d.id;
+                tbody.innerHTML += `
+                    <tr class="hover:bg-slate-700/50" id="sup-row-${id}">
+                        <td class="p-3 font-medium">${data.supplierName}</td>
+                        <td class="p-3 text-amber-300">${data.docType}</td>
+                        <td class="p-3 truncate max-w-[150px]">${data.fileName || 'None'}</td>
+                        <td class="p-3"><button onclick="deleteSupplierDoc('${id}')" class="text-red-400 hover:text-red-300 text-xs">Delete</button></td>
+                    </tr>
+                `;
+            });
+        }
+
+        window.deleteSupplierDoc = async (id) => {
+            if (confirm("Delete this supplier document?")) {
+                await deleteDoc(doc(db, "supplier_docs", id));
+                loadSupplierDocs();
+            }
+        };
+
+        // 6. User Directory Management
         async function loadUserDirectory() {
             const tbody = document.getElementById("userTableBody");
             tbody.innerHTML = "";
@@ -382,7 +638,7 @@
                         <td class="p-3 break-all font-medium">${data.email}</td>
                         <td class="p-3"><span class="px-2 py-1 rounded bg-slate-700 text-cyan-300 text-xs font-semibold uppercase">${data.role}</span></td>
                         <td class="p-3">
-                            ${data.uid !== auth.currentUser.uid ? `<button onclick="deleteUserRecord('${docId}')" class="bg-red-700/80 hover:bg-red-600 text-white px-2.5 py-1 rounded text-xs transition">Remove Access</button>` : '<span class="text-slate-500 text-xs">Current Session</span>'}
+                            ${data.uid !== auth.currentUser.uid ? `<button onclick="deleteUserRecord('${docId}')" class="bg-red-700/80 hover:bg-red-600 text-white px-2 py-0.5 rounded text-xs transition">Remove</button>` : '<span class="text-slate-500 text-xs">Session</span>'}
                         </td>
                     </tr>
                 `;
@@ -390,14 +646,9 @@
         }
 
         window.deleteUserRecord = async (docId) => {
-            if (confirm("Revoke this user's profile record?")) {
-                try {
-                    await deleteDoc(doc(db, "users", docId));
-                    document.getElementById(`user-row-${docId}`).remove();
-                    alert("User access removed.");
-                } catch (err) {
-                    alert("Error: " + err.message);
-                }
+            if (confirm("Revoke this user profile?")) {
+                await deleteDoc(doc(db, "users", docId));
+                document.getElementById(`user-row-${docId}`).remove();
             }
         };
 
@@ -410,21 +661,15 @@
             try {
                 const userCred = await createUserWithEmailAndPassword(auth, email, password);
                 await setDoc(doc(db, "users", userCred.user.uid), {
-                    uid: userCred.user.uid,
-                    email: email,
-                    role: role,
-                    status: "active",
-                    createdAt: new Date().toISOString()
+                    uid: userCred.user.uid, email, role, status: "active", createdAt: new Date().toISOString()
                 });
-                alert(`${role.toUpperCase()} account created successfully!`);
+                alert("Account provisioned successfully!");
                 document.getElementById("createUserForm").reset();
                 loadUserDirectory();
-            } catch (err) {
-                alert("Error: " + err.message);
-            }
+            } catch (err) { alert("Error: " + err.message); }
         });
 
-        // 5. Master Settings & Dynamic Dropdown Population Logic
+        // 7. Master Settings with Image Thumbnail Upload Support
         document.getElementById("warehouseForm").addEventListener("submit", async (e) => {
             e.preventDefault();
             const name = document.getElementById("warehouseName").value;
@@ -437,9 +682,14 @@
         document.getElementById("categoryForm").addEventListener("submit", async (e) => {
             e.preventDefault();
             const name = document.getElementById("categoryName").value;
-            await addDoc(collection(db, "settings"), { type: "category", value: name });
-            alert("Category added!");
-            document.getElementById("categoryName").value = "";
+            const imgFile = document.getElementById("categoryImageFile");
+            let imgB64 = "";
+            if (imgFile.files.length > 0) {
+                imgB64 = await fileToBase64(imgFile.files[0]);
+            }
+            await addDoc(collection(db, "settings"), { type: "category", value: name, imageBase64: imgB64 });
+            alert("Category with sample image added!");
+            document.getElementById("categoryForm").reset();
             loadSettings();
         });
 
@@ -454,7 +704,7 @@
 
             const snap = await getDocs(collection(db, "settings"));
             if (snap.empty) {
-                container.innerHTML = "<p>No custom parameters added yet.</p>";
+                container.innerHTML = "<p class='col-span-2 text-center'>No custom parameters configured yet.</p>";
                 return;
             }
 
@@ -462,15 +712,16 @@
                 const data = d.data();
                 const settingId = d.id;
 
-                // Render in Master Settings List view
                 container.innerHTML += `
-                    <div class="flex justify-between items-center bg-slate-900 p-2 rounded mb-1 text-xs">
-                        <span><b>${data.type.toUpperCase()}:</b> ${data.value}</span>
-                        <button onclick="deleteSetting('${settingId}')" class="text-red-400 hover:text-red-300 font-semibold">Delete</button>
+                    <div class="flex items-center justify-between bg-slate-900 p-2 rounded border border-slate-700">
+                        <div class="flex items-center gap-2">
+                            ${data.imageBase64 ? `<img src="${data.imageBase64}" class="w-8 h-8 object-cover rounded"/>` : ''}
+                            <span><b>${data.type.toUpperCase()}:</b> ${data.value}</span>
+                        </div>
+                        <button onclick="deleteSetting('${settingId}')" class="text-red-400 hover:text-red-300 text-xs font-semibold">Delete</button>
                     </div>
                 `;
 
-                // Populate Dropdowns dynamically
                 if (data.type === "category" && categorySelect) {
                     categorySelect.innerHTML += `<option value="${data.value}">${data.value}</option>`;
                 } else if (data.type === "warehouse" && locationSelect) {
@@ -480,14 +731,9 @@
         }
 
         window.deleteSetting = async (settingId) => {
-            if (confirm("Remove this master setting parameter?")) {
-                try {
-                    await deleteDoc(doc(db, "settings", settingId));
-                    loadSettings();
-                    alert("Parameter removed.");
-                } catch (err) {
-                    alert("Error: " + err.message);
-                }
+            if (confirm("Remove this parameter?")) {
+                await deleteDoc(doc(db, "settings", settingId));
+                loadSettings();
             }
         };
 
