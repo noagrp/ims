@@ -121,7 +121,7 @@
                     <input type="text" id="itemCode" required class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm focus:outline-none focus:border-red-500">
                 </div>
                 <div>
-                    <label class="block text-xs sm:text-sm font-medium mb-1">Item Name</label>
+                    <label class="block text-xs sm:text-sm font-medium mb-1">Item Name (Temp or Final)</label>
                     <input type="text" id="itemName" required class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm focus:outline-none focus:border-red-500">
                 </div>
                 <div>
@@ -161,9 +161,9 @@
 
             <!-- Lifecycle Followup / Edit Section -->
             <div class="bg-slate-900/60 p-5 rounded-xl border border-slate-700 space-y-4">
-                <h3 class="text-base font-bold text-red-400 text-center">Lifecycle Followup, Edit & Status Updates</h3>
+                <h3 class="text-base font-bold text-red-400 text-center">Lifecycle Followup, Edit Name & Status Updates</h3>
                 <div>
-                    <label class="block text-xs font-medium mb-1">Select Asset to Follow Up / Update Status</label>
+                    <label class="block text-xs font-medium mb-1">Select Asset to Follow Up / Update Name & Status</label>
                     <select id="followupAssetSelect" onchange="populateFollowupForm()" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm">
                         <option value="">-- Choose Registered Asset --</option>
                     </select>
@@ -171,7 +171,11 @@
                 
                 <form id="followupForm" class="space-y-4 hidden border-t border-slate-700 pt-4">
                     <input type="hidden" id="editAssetId">
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                        <div>
+                            <label class="block text-xs font-medium mb-1">Edit Item Name (Finalize Name)</label>
+                            <input type="text" id="editItemName" required class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm">
+                        </div>
                         <div>
                             <label class="block text-xs font-medium mb-1">Update Status</label>
                             <select id="editItemStatus" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm">
@@ -189,7 +193,7 @@
                         </div>
                         <div>
                             <label class="block text-xs font-medium mb-1">Append Remark / Status Note</label>
-                            <input type="text" id="editItemRemark" placeholder="e.g. On the way back from client site" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm">
+                            <input type="text" id="editItemRemark" placeholder="e.g. Updated final name from temp" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm">
                         </div>
                     </div>
                     <div>
@@ -197,7 +201,7 @@
                         <input type="file" id="followupFile" class="w-full text-xs text-slate-400 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:bg-red-600 file:text-white">
                     </div>
                     <div class="flex justify-end gap-2">
-                        <button type="submit" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 px-6 rounded-lg text-sm transition">Save Followup & Status Update</button>
+                        <button type="submit" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 px-6 rounded-lg text-sm transition">Save Followup & Update Name</button>
                     </div>
                 </form>
             </div>
@@ -429,7 +433,7 @@
             </div>
         </section>
 
-        <!-- Tab 7: Other Settings (Section 1 Warehouse, Section 2 Categories - Editable names, Non-removable) -->
+        <!-- Tab 7: Other Settings (Warehouse and Categories Configuration) -->
         <section id="tab-settings" class="bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-700 space-y-6 shadow-xl hidden w-full max-w-5xl flex flex-col items-center">
             <h2 class="text-base sm:text-lg font-bold text-center">Global Master Settings Configuration</h2>
             
@@ -599,7 +603,7 @@
                 tbody.innerHTML += `
                     <tr class="hover:bg-slate-700/50" id="row-${data.id}">
                         <td class="p-3 font-mono break-all">${data.itemCode}</td>
-                        <td class="p-3">${data.name}</td>
+                        <td class="p-3 font-medium">${data.name}</td>
                         <td class="p-3">${data.type} <br><span class="text-xs text-slate-400">${data.category}</span></td>
                         <td class="p-3"><span class="px-2 py-1 rounded bg-red-900 text-red-300 text-xs">${data.status}</span></td>
                         <td class="p-3">${data.currentLocation}</td>
@@ -764,6 +768,7 @@
             if (itemSnap.exists()) {
                 const data = itemSnap.data();
                 document.getElementById("editAssetId").value = assetId;
+                document.getElementById("editItemName").value = data.name || "";
                 document.getElementById("editItemStatus").value = data.status || "Own Warehouse";
                 document.getElementById("editItemLocation").value = data.currentLocation || "";
                 document.getElementById("editItemRemark").value = "";
@@ -771,10 +776,11 @@
             }
         };
 
-        // Handle Lifecycle Followup Submission
+        // Handle Lifecycle Followup & Name Edit Submission
         document.getElementById("followupForm").addEventListener("submit", async (e) => {
             e.preventDefault();
             const assetId = document.getElementById("editAssetId").value;
+            const itemName = document.getElementById("editItemName").value;
             const status = document.getElementById("editItemStatus").value;
             const location = document.getElementById("editItemLocation").value;
             const remark = document.getElementById("editItemRemark").value;
@@ -807,13 +813,14 @@
                     location: location,
                     timestamp: new Date().toISOString(),
                     user: currentUserEmail,
-                    note: remark || 'Lifecycle status update'
+                    note: remark || 'Lifecycle status/name update'
                 });
 
                 const existingDocs = data.documents || [];
                 const mergedDocs = [...existingDocs, ...newDocs];
 
                 await updateDoc(itemRef, {
+                    name: itemName,
                     status: status,
                     currentLocation: location,
                     remark: remark ? `Followup: ${remark}` : data.remark,
@@ -823,7 +830,7 @@
                     lastEditedAt: new Date().toISOString()
                 });
 
-                alert("Asset lifecycle updated successfully!");
+                alert("Asset name and lifecycle updated successfully!");
                 document.getElementById("followupForm").reset();
                 document.getElementById("followupForm").classList.add("hidden");
                 document.getElementById("followupAssetSelect").value = "";
@@ -1085,7 +1092,7 @@
             } catch (err) { alert("Error: " + err.message); }
         });
 
-        // 7. Other Settings: Warehouses and Categories Configuration
+        // 7. Other Settings: Warehouse and Categories Configuration
         document.getElementById("warehouseForm").addEventListener("submit", async (e) => {
             e.preventDefault();
             const name = document.getElementById("warehouseName").value;
