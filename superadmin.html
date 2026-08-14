@@ -19,7 +19,7 @@
         <div class="flex flex-wrap justify-center gap-2 border-b border-slate-700 pb-3 w-full">
             <button onclick="switchTab('inventory')" id="tab-inventory-btn" class="text-red-400 font-semibold pb-2 border-b-2 border-red-400 text-xs sm:text-sm md:text-base px-3 py-1.5 transition rounded-lg bg-slate-800/80">Inventory Overview</button>
             <button onclick="switchTab('transit')" id="tab-transit-btn" class="text-slate-400 pb-2 text-xs sm:text-sm md:text-base px-3 py-1.5 transition rounded-lg hover:bg-slate-800/40">Logistic</button>
-            <button onclick="switchTab('register')" id="tab-register-btn" class="text-slate-400 pb-2 text-xs sm:text-sm md:text-base px-3 py-1.5 transition rounded-lg hover:bg-slate-800/40">Register</button>
+            <button onclick="switchTab('register')" id="tab-register-btn" class="text-slate-400 pb-2 text-xs sm:text-sm md:text-base px-3 py-1.5 transition rounded-lg hover:bg-slate-800/40">Register & Lifecycle Followup</button>
             <button onclick="switchTab('clients')" id="tab-clients-btn" class="text-slate-400 pb-2 text-xs sm:text-sm md:text-base px-3 py-1.5 transition rounded-lg hover:bg-slate-800/40">Clients</button>
             <button onclick="switchTab('suppliers')" id="tab-suppliers-btn" class="text-slate-400 pb-2 text-xs sm:text-sm md:text-base px-3 py-1.5 transition rounded-lg hover:bg-slate-800/40">Suppliers</button>
             <button onclick="switchTab('users')" id="tab-users-btn" class="text-slate-400 pb-2 text-xs sm:text-sm md:text-base px-3 py-1.5 transition rounded-lg hover:bg-slate-800/40">User Management</button>
@@ -105,10 +105,10 @@
             </form>
         </section>
 
-        <!-- Tab 3: Register Asset with Remark Field -->
-        <section id="tab-register" class="bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-700 space-y-4 shadow-xl hidden w-full max-w-5xl">
+        <!-- Tab 3: Register Asset & Lifecycle Followup Management -->
+        <section id="tab-register" class="bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-700 space-y-6 shadow-xl hidden w-full max-w-5xl">
             <h2 class="text-base sm:text-lg font-bold text-center">Register New Equipment or Part</h2>
-            <form id="registerForm" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <form id="registerForm" class="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-slate-900/50 p-5 rounded-xl border border-slate-700">
                 <div>
                     <label class="block text-xs sm:text-sm font-medium mb-1">Item Type</label>
                     <select id="itemType" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm focus:outline-none focus:border-red-500">
@@ -158,13 +158,56 @@
                     <button type="submit" class="w-full sm:w-auto bg-red-600 hover:bg-red-500 text-white font-bold py-2.5 px-6 rounded-lg text-sm transition">Save & Register Asset</button>
                 </div>
             </form>
+
+            <!-- Lifecycle Followup / Edit Section -->
+            <div class="bg-slate-900/60 p-5 rounded-xl border border-slate-700 space-y-4">
+                <h3 class="text-base font-bold text-red-400 text-center">Lifecycle Followup, Edit & Status Updates</h3>
+                <div>
+                    <label class="block text-xs font-medium mb-1">Select Asset to Follow Up / Update Status</label>
+                    <select id="followupAssetSelect" onchange="populateFollowupForm()" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm">
+                        <option value="">-- Choose Registered Asset --</option>
+                    </select>
+                </div>
+                
+                <form id="followupForm" class="space-y-4 hidden border-t border-slate-700 pt-4">
+                    <input type="hidden" id="editAssetId">
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div>
+                            <label class="block text-xs font-medium mb-1">Update Status</label>
+                            <select id="editItemStatus" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm">
+                                <option value="Own Warehouse">Own Warehouse</option>
+                                <option value="Supplier Site">Supplier Site</option>
+                                <option value="Client Site">Client Site</option>
+                                <option value="In Transit (Returning)">In Transit (Returning)</option>
+                                <option value="In Maintenance">In Maintenance</option>
+                                <option value="Disposed">Disposed</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium mb-1">Update Current Location / Destination</label>
+                            <input type="text" id="editItemLocation" required class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium mb-1">Append Remark / Status Note</label>
+                            <input type="text" id="editItemRemark" placeholder="e.g. On the way back from client site" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium mb-1">Add Followup Document (Inspection Report, Return Slip, etc.)</label>
+                        <input type="file" id="followupFile" class="w-full text-xs text-slate-400 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:bg-red-600 file:text-white">
+                    </div>
+                    <div class="flex justify-end gap-2">
+                        <button type="submit" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 px-6 rounded-lg text-sm transition">Save Followup & Status Update</button>
+                    </div>
+                </form>
+            </div>
         </section>
 
         <!-- Tab 4: Clients (Section 1 Full Width Above, Section 2 Full Width Below with Asset Code Linking) -->
         <section id="tab-clients" class="bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-700 space-y-6 shadow-xl hidden w-full max-w-5xl">
             <!-- Client Registration (Full Width) -->
             <div class="bg-slate-900/60 p-5 rounded-xl border border-slate-700 space-y-4 shadow-md w-full">
-                <h2 class="text-base font-bold text-red-400 text-center">Section 1: Register Client Profile</h2>
+                <h2 class="text-base font-bold text-red-400 text-center">Register Client Profile</h2>
                 <form id="clientRegisterForm" class="space-y-3">
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
@@ -196,7 +239,7 @@
 
             <!-- Documentation with Asset Code Linking (Full Width Below) -->
             <div class="bg-slate-900/60 p-5 rounded-xl border border-slate-700 space-y-4 shadow-md w-full">
-                <h2 class="text-base font-bold text-red-400 text-center">Section 2: Client Commercial Documents (Relational Asset Link)</h2>
+                <h2 class="text-base font-bold text-red-400 text-center">Client Commercial Documents</h2>
                 <form id="clientDocForm" class="space-y-3">
                     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                         <div>
@@ -254,7 +297,7 @@
         <section id="tab-suppliers" class="bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-700 space-y-6 shadow-xl hidden w-full max-w-5xl">
             <!-- Supplier Registration (Full Width) -->
             <div class="bg-slate-900/60 p-5 rounded-xl border border-slate-700 space-y-4 shadow-md w-full">
-                <h2 class="text-base font-bold text-red-400 text-center">Section 1: Register Supplier Profile</h2>
+                <h2 class="text-base font-bold text-red-400 text-center">Register Supplier Profile</h2>
                 <form id="supplierRegisterForm" class="space-y-3">
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
@@ -286,7 +329,7 @@
 
             <!-- Documentation with Asset Code Linking (Full Width Below) -->
             <div class="bg-slate-900/60 p-5 rounded-xl border border-slate-700 space-y-4 shadow-md w-full">
-                <h2 class="text-base font-bold text-red-400 text-center">Section 2: Supplier Compliance Documents (Relational Asset Link)</h2>
+                <h2 class="text-base font-bold text-red-400 text-center">Supplier Compliance Documents</h2>
                 <form id="supplierDocForm" class="space-y-3">
                     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                         <div>
@@ -393,7 +436,7 @@
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full">
                 <!-- Warehouses -->
                 <div class="bg-slate-900/50 p-4 rounded-xl border border-slate-700 shadow-md space-y-3">
-                    <h3 class="font-semibold text-sm text-cyan-400 text-center">Section 1: Warehouse Settings</h3>
+                    <h3 class="font-semibold text-sm text-cyan-400 text-center">Warehouse Settings</h3>
                     <form id="warehouseForm" class="space-y-2">
                         <input type="text" id="warehouseName" placeholder="e.g. Labuan Base" required class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm">
                         <button type="submit" class="w-full bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-2 rounded-lg text-sm">Add Warehouse</button>
@@ -403,7 +446,7 @@
 
                 <!-- Categories -->
                 <div class="bg-slate-900/50 p-4 rounded-xl border border-slate-700 shadow-md space-y-3">
-                    <h3 class="font-semibold text-sm text-amber-400 text-center">Section 2: Categories Setting</h3>
+                    <h3 class="font-semibold text-sm text-amber-400 text-center">Categories Setting</h3>
                     <form id="categoryForm" class="space-y-2">
                         <input type="text" id="categoryName" placeholder="e.g. Drilling Bits (800+ Series)" required class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm">
                         <div>
@@ -472,18 +515,23 @@
             reader.onerror = error => reject(error);
         });
 
-        // Populate Asset Code Link Dropdowns across Client and Supplier doc forms
+        // Populate Asset Code Link Dropdowns across Client, Supplier, and Followup forms
         function populateAssetCodeDropdowns() {
             const clientAssetSelect = document.getElementById("clientDocAssetCode");
             const supplierAssetSelect = document.getElementById("supplierDocAssetCode");
+            const followupSelect = document.getElementById("followupAssetSelect");
             
             let optionsHTML = '<option value="">-- None / General Doc --</option>';
+            let followupOptionsHTML = '<option value="">-- Choose Registered Asset --</option>';
+
             globalInventoryData.forEach(item => {
                 optionsHTML += `<option value="${item.itemCode}">${item.itemCode} - ${item.name}</option>`;
+                followupOptionsHTML += `<option value="${item.id}">${item.itemCode} - ${item.name} (${item.status})</option>`;
             });
 
             if (clientAssetSelect) clientAssetSelect.innerHTML = optionsHTML;
             if (supplierAssetSelect) supplierAssetSelect.innerHTML = optionsHTML;
+            if (followupSelect) followupSelect.innerHTML = followupOptionsHTML;
         }
 
         // 1. Global Inventory Overview & Filter/Sort
@@ -536,7 +584,6 @@
             }
 
             dataArray.forEach((data) => {
-                // Find linked client/supplier docs for this specific item code
                 const linkedClientDocs = clientDocsData.filter(d => d.linkedAssetCode === data.itemCode);
                 const linkedSupplierDocs = supplierDocsData.filter(d => d.linkedAssetCode === data.itemCode);
                 
@@ -654,7 +701,7 @@
             }
         });
 
-        // 3. Register Asset with Remark
+        // 3. Register Asset with Remark & Lifecycle Followup Management
         document.getElementById("registerForm").addEventListener("submit", async (e) => {
             e.preventDefault();
             const fileInput = document.getElementById("initialDoc");
@@ -699,6 +746,88 @@
                 document.getElementById("registerForm").reset();
                 loadGlobalInventory();
                 switchTab('inventory');
+            } catch (err) {
+                alert("Error: " + err.message);
+            }
+        });
+
+        // Populate Followup Form when an asset is selected
+        window.populateFollowupForm = async () => {
+            const assetId = document.getElementById("followupAssetSelect").value;
+            const followupForm = document.getElementById("followupForm");
+            if (!assetId) {
+                followupForm.classList.add("hidden");
+                return;
+            }
+
+            const itemSnap = await getDoc(doc(db, "inventory", assetId));
+            if (itemSnap.exists()) {
+                const data = itemSnap.data();
+                document.getElementById("editAssetId").value = assetId;
+                document.getElementById("editItemStatus").value = data.status || "Own Warehouse";
+                document.getElementById("editItemLocation").value = data.currentLocation || "";
+                document.getElementById("editItemRemark").value = "";
+                followupForm.classList.remove("hidden");
+            }
+        };
+
+        // Handle Lifecycle Followup Submission
+        document.getElementById("followupForm").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const assetId = document.getElementById("editAssetId").value;
+            const status = document.getElementById("editItemStatus").value;
+            const location = document.getElementById("editItemLocation").value;
+            const remark = document.getElementById("editItemRemark").value;
+            const fileInput = document.getElementById("followupFile");
+
+            if (!assetId) return;
+
+            try {
+                let newDocs = [];
+                if (fileInput.files.length > 0) {
+                    const b64 = await fileToBase64(fileInput.files[0]);
+                    newDocs.push({
+                        docId: "doc_" + Date.now(),
+                        title: "Followup Document",
+                        fileName: fileInput.files[0].name,
+                        base64Data: b64,
+                        uploadedAt: new Date().toISOString(),
+                        uploadedBy: currentUserEmail
+                    });
+                }
+
+                const itemRef = doc(db, "inventory", assetId);
+                const itemSnap = await getDoc(itemRef);
+                if (!itemSnap.exists()) return;
+
+                const data = itemSnap.data();
+                const history = data.lifecycleHistory || [];
+                history.push({
+                    status: status,
+                    location: location,
+                    timestamp: new Date().toISOString(),
+                    user: currentUserEmail,
+                    note: remark || 'Lifecycle status update'
+                });
+
+                const existingDocs = data.documents || [];
+                const mergedDocs = [...existingDocs, ...newDocs];
+
+                await updateDoc(itemRef, {
+                    status: status,
+                    currentLocation: location,
+                    remark: remark ? `Followup: ${remark}` : data.remark,
+                    lifecycleHistory: history,
+                    documents: mergedDocs,
+                    lastEditedBy: currentUserEmail,
+                    lastEditedAt: new Date().toISOString()
+                });
+
+                alert("Asset lifecycle updated successfully!");
+                document.getElementById("followupForm").reset();
+                document.getElementById("followupForm").classList.add("hidden");
+                document.getElementById("followupAssetSelect").value = "";
+                loadGlobalInventory();
             } catch (err) {
                 alert("Error: " + err.message);
             }
@@ -956,7 +1085,7 @@
             } catch (err) { alert("Error: " + err.message); }
         });
 
-        // 7. Other Settings: Section 1 Warehouse, Section 2 Categories (Editable names, Non-removable)
+        // 7. Other Settings: Warehouses and Categories Configuration
         document.getElementById("warehouseForm").addEventListener("submit", async (e) => {
             e.preventDefault();
             const name = document.getElementById("warehouseName").value;
