@@ -14,18 +14,18 @@
         <button id="logoutBtn" class="bg-red-600 hover:bg-red-500 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium w-full sm:w-auto transition">Logout</button>
     </nav>
 
-    <main class="flex-1 max-w-7xl w-full mx-auto p-3 sm:p-6 space-y-6 box-border flex flex-col items-center">
-        <!-- Master Navigation Tabs Centered -->
-        <div class="flex justify-center space-x-2 sm:space-x-4 border-b border-slate-700 pb-2 w-full overflow-x-auto">
-            <button onclick="switchTab('inventory')" id="tab-inventory-btn" class="text-red-400 font-semibold pb-2 border-b-2 border-red-400 text-sm sm:text-base whitespace-nowrap px-4 transition">Global Inventory & Audit</button>
-            <button onclick="switchTab('transit')" id="tab-transit-btn" class="text-slate-400 pb-2 text-sm sm:text-base whitespace-nowrap px-4 transition">Transit Logistics (Sea/Land/Air)</button>
-            <button onclick="switchTab('register')" id="tab-register-btn" class="text-slate-400 pb-2 text-sm sm:text-base whitespace-nowrap px-4 transition">Register Asset & Docs</button>
-            <button onclick="switchTab('users')" id="tab-users-btn" class="text-slate-400 pb-2 text-sm sm:text-base whitespace-nowrap px-4 transition">User Management</button>
-            <button onclick="switchTab('settings')" id="tab-settings-btn" class="text-slate-400 pb-2 text-sm sm:text-base whitespace-nowrap px-4 transition">Master Settings</button>
+    <main class="flex-1 max-w-6xl w-full mx-auto p-3 sm:p-6 space-y-6 box-border flex flex-col items-center">
+        <!-- Master Navigation Tabs Refactored for Mobile Wrapping (No weird horizontal scroll) -->
+        <div class="flex flex-wrap justify-center gap-2 border-b border-slate-700 pb-3 w-full">
+            <button onclick="switchTab('inventory')" id="tab-inventory-btn" class="text-red-400 font-semibold pb-2 border-b-2 border-red-400 text-xs sm:text-sm md:text-base px-3 py-1.5 transition rounded-lg bg-slate-800/80">Global Inventory</button>
+            <button onclick="switchTab('transit')" id="tab-transit-btn" class="text-slate-400 pb-2 text-xs sm:text-sm md:text-base px-3 py-1.5 transition rounded-lg hover:bg-slate-800/40">Transit Logistics</button>
+            <button onclick="switchTab('register')" id="tab-register-btn" class="text-slate-400 pb-2 text-xs sm:text-sm md:text-base px-3 py-1.5 transition rounded-lg hover:bg-slate-800/40">Register Asset</button>
+            <button onclick="switchTab('users')" id="tab-users-btn" class="text-slate-400 pb-2 text-xs sm:text-sm md:text-base px-3 py-1.5 transition rounded-lg hover:bg-slate-800/40">User Management</button>
+            <button onclick="switchTab('settings')" id="tab-settings-btn" class="text-slate-400 pb-2 text-xs sm:text-sm md:text-base px-3 py-1.5 transition rounded-lg hover:bg-slate-800/40">Master Settings</button>
         </div>
 
-        <!-- Tab 1: Global Inventory Master View, Audit & Purge Override -->
-        <section id="tab-inventory" class="bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-700 space-y-4 shadow-xl w-full">
+        <!-- Tab 1: Global Inventory Master View, Audit & Purge Override (Consistent Max Width Container) -->
+        <section id="tab-inventory" class="bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-700 space-y-4 shadow-xl w-full max-w-5xl">
             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                 <h2 class="text-base sm:text-lg font-bold">Complete System Inventory & Accountability Audit Log</h2>
                 <button onclick="exportTableToExcel('inventoryTable', 'Master_Audit_Report.xlsx')" class="bg-emerald-600 hover:bg-emerald-500 px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold w-full sm:w-auto transition">Export Report</button>
@@ -49,10 +49,10 @@
             </div>
         </section>
 
-        <!-- Tab 2: Transit Logistics (Sea, Land, Air) -->
-        <section id="tab-transit" class="bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-700 space-y-6 shadow-xl hidden w-full max-w-3xl mx-auto flex flex-col items-center">
+        <!-- Tab 2: Transit Logistics (Sea, Land, Air - Consistent Max Width Container) -->
+        <section id="tab-transit" class="bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-700 space-y-6 shadow-xl hidden w-full max-w-5xl flex flex-col items-center">
             <h2 class="text-base sm:text-lg font-bold text-center">Log Asset Transit Movement (Sea, Land, Air)</h2>
-            <form id="transitForm" class="space-y-4 bg-slate-900/50 p-5 rounded-xl border border-slate-700 shadow-md w-full">
+            <form id="transitForm" class="space-y-4 bg-slate-900/50 p-5 rounded-xl border border-slate-700 shadow-md w-full max-w-2xl">
                 <div>
                     <label class="block text-xs sm:text-sm font-medium mb-1">Select Asset / Item Code</label>
                     <select id="transitItemSelect" required class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm focus:outline-none focus:border-red-500">
@@ -77,8 +77,8 @@
             </form>
         </section>
 
-        <!-- Tab 3: Register Asset with Dynamic Settings Dropdowns -->
-        <section id="tab-register" class="bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-700 space-y-4 shadow-xl hidden w-full max-w-4xl mx-auto">
+        <!-- Tab 3: Register Asset with Dynamic Settings Dropdowns (Consistent Max Width Container) -->
+        <section id="tab-register" class="bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-700 space-y-4 shadow-xl hidden w-full max-w-5xl">
             <h2 class="text-base sm:text-lg font-bold text-center">Register New Equipment or Part</h2>
             <form id="registerForm" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
@@ -126,8 +126,8 @@
             </form>
         </section>
 
-        <!-- Tab 4: User & Role Management -->
-        <section id="tab-users" class="bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-700 space-y-6 shadow-xl hidden w-full max-w-5xl mx-auto">
+        <!-- Tab 4: User & Role Management (Consistent Max Width Container) -->
+        <section id="tab-users" class="bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-700 space-y-6 shadow-xl hidden w-full max-w-5xl">
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
                 <div class="bg-slate-900/60 p-5 rounded-xl border border-slate-700 space-y-4 lg:col-span-1 shadow-md">
                     <h2 class="text-base font-bold text-red-400 text-center">Provision Any Staff Account</h2>
@@ -169,10 +169,10 @@
             </div>
         </section>
 
-        <!-- Tab 5: Master Settings -->
-        <section id="tab-settings" class="bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-700 space-y-6 shadow-xl hidden w-full max-w-3xl mx-auto flex flex-col items-center">
+        <!-- Tab 5: Master Settings (Consistent Max Width Container) -->
+        <section id="tab-settings" class="bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-700 space-y-6 shadow-xl hidden w-full max-w-5xl flex flex-col items-center">
             <h2 class="text-base sm:text-lg font-bold text-center">Global Master Settings Configuration</h2>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 w-full">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 w-full max-w-3xl">
                 <form id="warehouseForm" class="space-y-3 bg-slate-900/50 p-4 rounded-xl border border-slate-700 shadow-md">
                     <h3 class="font-semibold text-sm text-cyan-400 text-center">Add Warehouse Location</h3>
                     <input type="text" id="warehouseName" placeholder="e.g. Labuan Base" required class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm focus:outline-none focus:border-cyan-500">
@@ -184,7 +184,7 @@
                     <button type="submit" class="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold py-2 rounded-lg text-sm transition">Add Category</button>
                 </form>
             </div>
-            <div id="settingsList" class="bg-slate-900/40 p-4 rounded-xl border border-slate-700 text-sm space-y-2 w-full">
+            <div id="settingsList" class="bg-slate-900/40 p-4 rounded-xl border border-slate-700 text-sm space-y-2 w-full max-w-3xl">
                 <h3 class="font-semibold text-slate-300 text-center">Configured System Parameters:</h3>
                 <div id="settingsContainer" class="text-slate-400 text-xs text-center">Loading parameters...</div>
             </div>
@@ -218,11 +218,11 @@
         window.switchTab = (tabName) => {
             ['inventory', 'transit', 'register', 'users', 'settings'].forEach(tab => {
                 document.getElementById(`tab-${tab}`).classList.add("hidden");
-                document.getElementById(`tab-${tab}-btn`).className = "text-slate-400 pb-2 text-sm sm:text-base whitespace-nowrap px-4 transition";
+                document.getElementById(`tab-${tab}-btn`).className = "text-slate-400 pb-2 text-xs sm:text-sm md:text-base px-3 py-1.5 transition rounded-lg hover:bg-slate-800/40";
             });
 
             document.getElementById(`tab-${tabName}`).classList.remove("hidden");
-            document.getElementById(`tab-${tabName}-btn`).className = "text-red-400 font-semibold pb-2 border-b-2 border-red-400 text-sm sm:text-base whitespace-nowrap px-4 transition";
+            document.getElementById(`tab-${tabName}-btn`).className = "text-red-400 font-semibold pb-2 border-b-2 border-red-400 text-xs sm:text-sm md:text-base px-3 py-1.5 transition rounded-lg bg-slate-800/80";
         };
 
         // 1. Global Inventory Oversight & Master Purge Override
