@@ -9,24 +9,24 @@
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col">
 
-    <nav class="bg-slate-800 border-b border-slate-700 px-4 sm:px-6 py-4 flex flex-col sm:flex-row justify-between items-center gap-3">
+    <nav class="bg-slate-800 border-b border-slate-700 px-4 sm:px-6 py-4 flex flex-col sm:flex-row justify-between items-center gap-3 shadow-md">
         <h1 class="text-lg sm:text-xl font-bold text-red-400">Superadmin Master Command Center</h1>
-        <button id="logoutBtn" class="bg-red-600 hover:bg-red-500 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium w-full sm:w-auto">Logout</button>
+        <button id="logoutBtn" class="bg-red-600 hover:bg-red-500 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium w-full sm:w-auto transition">Logout</button>
     </nav>
 
-    <main class="flex-1 max-w-7xl w-full mx-auto p-3 sm:p-6 space-y-6 box-border">
-        <!-- Master Navigation Tabs -->
-        <div class="flex space-x-2 sm:space-x-4 border-b border-slate-700 pb-2 overflow-x-auto">
-            <button onclick="switchTab('inventory')" id="tab-inventory-btn" class="text-red-400 font-semibold pb-2 border-b-2 border-red-400 text-sm sm:text-base whitespace-nowrap px-2">Global Inventory</button>
-            <button onclick="switchTab('users')" id="tab-users-btn" class="text-slate-400 pb-2 text-sm sm:text-base whitespace-nowrap px-2">User & Role Management</button>
-            <button onclick="switchTab('settings')" id="tab-settings-btn" class="text-slate-400 pb-2 text-sm sm:text-base whitespace-nowrap px-2">Master Settings (Warehouses/Categories)</button>
+    <main class="flex-1 max-w-7xl w-full mx-auto p-3 sm:p-6 space-y-6 box-border flex flex-col items-center">
+        <!-- Master Navigation Tabs Centered -->
+        <div class="flex justify-center space-x-2 sm:space-x-4 border-b border-slate-700 pb-2 w-full overflow-x-auto">
+            <button onclick="switchTab('inventory')" id="tab-inventory-btn" class="text-red-400 font-semibold pb-2 border-b-2 border-red-400 text-sm sm:text-base whitespace-nowrap px-4 transition">Global Inventory</button>
+            <button onclick="switchTab('users')" id="tab-users-btn" class="text-slate-400 pb-2 text-sm sm:text-base whitespace-nowrap px-4 transition">User & Role Management</button>
+            <button onclick="switchTab('settings')" id="tab-settings-btn" class="text-slate-400 pb-2 text-sm sm:text-base whitespace-nowrap px-4 transition">Master Settings</button>
         </div>
 
         <!-- Tab 1: Global Inventory Master View -->
-        <section id="tab-inventory" class="bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-700 space-y-4 shadow-xl">
+        <section id="tab-inventory" class="bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-700 space-y-4 shadow-xl w-full">
             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                 <h2 class="text-base sm:text-lg font-bold">All System Inventory & Master Records</h2>
-                <button onclick="exportTableToExcel('inventoryTable', 'Master_Inventory_Report.xlsx')" class="bg-emerald-600 hover:bg-emerald-500 px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold w-full sm:w-auto">Export Inventory</button>
+                <button onclick="exportTableToExcel('inventoryTable', 'Master_Inventory_Report.xlsx')" class="bg-emerald-600 hover:bg-emerald-500 px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold w-full sm:w-auto transition">Export Inventory</button>
             </div>
             <div class="overflow-x-auto rounded-xl border border-slate-700">
                 <table id="inventoryTable" class="w-full text-left border-collapse min-w-[700px]">
@@ -46,36 +46,36 @@
             </div>
         </section>
 
-        <!-- Tab 2: User & Role Management -->
-        <section id="tab-users" class="bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-700 space-y-6 shadow-xl hidden">
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Tab 2: User & Role Management (Centered Grid Layout) -->
+        <section id="tab-users" class="bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-700 space-y-6 shadow-xl hidden w-full max-w-5xl mx-auto">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
                 <!-- Provision Form Card -->
-                <div class="bg-slate-900/60 p-4 rounded-xl border border-slate-700 space-y-4 lg:col-span-1">
-                    <h2 class="text-base font-bold text-red-400">Provision Staff / Manager</h2>
+                <div class="bg-slate-900/60 p-5 rounded-xl border border-slate-700 space-y-4 lg:col-span-1 shadow-md">
+                    <h2 class="text-base font-bold text-red-400 text-center">Provision Staff / Manager</h2>
                     <form id="createUserForm" class="space-y-3">
                         <div>
                             <label class="block text-xs font-medium mb-1">Email Address</label>
-                            <input type="email" id="newUserEmail" required class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm">
+                            <input type="email" id="newUserEmail" required class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm focus:outline-none focus:border-red-500">
                         </div>
                         <div>
                             <label class="block text-xs font-medium mb-1">Password</label>
-                            <input type="password" id="newUserPassword" required class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm">
+                            <input type="password" id="newUserPassword" required class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm focus:outline-none focus:border-red-500">
                         </div>
                         <div>
                             <label class="block text-xs font-medium mb-1">Assign System Role</label>
-                            <select id="newUserRole" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm">
+                            <select id="newUserRole" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm focus:outline-none focus:border-red-500">
                                 <option value="admin">Admin</option>
                                 <option value="manager">Manager</option>
                                 <option value="superadmin">Superadmin</option>
                             </select>
                         </div>
-                        <button type="submit" class="w-full bg-red-600 hover:bg-red-500 text-white font-bold py-2 px-4 rounded-lg text-sm">Create User Account</button>
+                        <button type="submit" class="w-full bg-red-600 hover:bg-red-500 text-white font-bold py-2 px-4 rounded-lg text-sm transition">Create User Account</button>
                     </form>
                 </div>
 
                 <!-- User Directory Table -->
-                <div class="lg:col-span-2 space-y-4">
-                    <h2 class="text-base font-bold">Active System Users Directory</h2>
+                <div class="lg:col-span-2 space-y-4 flex flex-col">
+                    <h2 class="text-base font-bold text-center lg:text-left">Active System Users Directory</h2>
                     <div class="overflow-x-auto rounded-xl border border-slate-700">
                         <table id="userTable" class="w-full text-left border-collapse min-w-[400px]">
                             <thead>
@@ -92,27 +92,27 @@
             </div>
         </section>
 
-        <!-- Tab 3: Master Settings (Warehouses & Categories) -->
-        <section id="tab-settings" class="bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-700 space-y-6 shadow-xl hidden max-w-2xl">
-            <h2 class="text-base sm:text-lg font-bold">Global Master Settings Configuration</h2>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+        <!-- Tab 3: Master Settings (Warehouses & Categories - Perfectly Centered Grid) -->
+        <section id="tab-settings" class="bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-700 space-y-6 shadow-xl hidden w-full max-w-3xl mx-auto flex flex-col items-center">
+            <h2 class="text-base sm:text-lg font-bold text-center">Global Master Settings Configuration</h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 w-full">
                 <!-- Warehouses Form -->
-                <form id="warehouseForm" class="space-y-3 bg-slate-900/50 p-4 rounded-xl border border-slate-700">
-                    <h3 class="font-semibold text-sm text-cyan-400">Add Warehouse Location</h3>
-                    <input type="text" id="warehouseName" placeholder="e.g. Labuan Base" required class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm">
-                    <button type="submit" class="w-full bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-2 rounded-lg text-sm">Add Warehouse</button>
+                <form id="warehouseForm" class="space-y-3 bg-slate-900/50 p-4 rounded-xl border border-slate-700 shadow-md">
+                    <h3 class="font-semibold text-sm text-cyan-400 text-center">Add Warehouse Location</h3>
+                    <input type="text" id="warehouseName" placeholder="e.g. Labuan Base" required class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm focus:outline-none focus:border-cyan-500">
+                    <button type="submit" class="w-full bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-2 rounded-lg text-sm transition">Add Warehouse</button>
                 </form>
 
                 <!-- Categories Form -->
-                <form id="categoryForm" class="space-y-3 bg-slate-900/50 p-4 rounded-xl border border-slate-700">
-                    <h3 class="font-semibold text-sm text-amber-400">Add Equipment Category</h3>
-                    <input type="text" id="categoryName" placeholder="e.g. Drilling Tools" required class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm">
-                    <button type="submit" class="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold py-2 rounded-lg text-sm">Add Category</button>
+                <form id="categoryForm" class="space-y-3 bg-slate-900/50 p-4 rounded-xl border border-slate-700 shadow-md">
+                    <h3 class="font-semibold text-sm text-amber-400 text-center">Add Equipment Category</h3>
+                    <input type="text" id="categoryName" placeholder="e.g. Drilling Tools" required class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm focus:outline-none focus:border-amber-500">
+                    <button type="submit" class="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold py-2 rounded-lg text-sm transition">Add Category</button>
                 </form>
             </div>
-            <div id="settingsList" class="bg-slate-900/40 p-4 rounded-xl border border-slate-700 text-sm space-y-2">
-                <h3 class="font-semibold text-slate-300">Configured System Parameters:</h3>
-                <div id="settingsContainer" class="text-slate-400 text-xs">Loading parameters...</div>
+            <div id="settingsList" class="bg-slate-900/40 p-4 rounded-xl border border-slate-700 text-sm space-y-2 w-full">
+                <h3 class="font-semibold text-slate-300 text-center">Configured System Parameters:</h3>
+                <div id="settingsContainer" class="text-slate-400 text-xs text-center">Loading parameters...</div>
             </div>
         </section>
     </main>
@@ -141,11 +141,11 @@
         window.switchTab = (tabName) => {
             ['inventory', 'users', 'settings'].forEach(tab => {
                 document.getElementById(`tab-${tab}`).classList.add("hidden");
-                document.getElementById(`tab-${tab}-btn`).className = "text-slate-400 pb-2 text-sm sm:text-base whitespace-nowrap px-2";
+                document.getElementById(`tab-${tab}-btn`).className = "text-slate-400 pb-2 text-sm sm:text-base whitespace-nowrap px-4 transition";
             });
 
             document.getElementById(`tab-${tabName}`).classList.remove("hidden");
-            document.getElementById(`tab-${tabName}-btn`).className = "text-red-400 font-semibold pb-2 border-b-2 border-red-400 text-sm sm:text-base whitespace-nowrap px-2";
+            document.getElementById(`tab-${tabName}-btn`).className = "text-red-400 font-semibold pb-2 border-b-2 border-red-400 text-sm sm:text-base whitespace-nowrap px-4 transition";
         };
 
         // 1. Global Inventory Oversight & Deletion Override
@@ -165,7 +165,7 @@
                         <td class="p-3">${data.currentLocation}</td>
                         <td class="p-3 text-slate-400 break-all">${data.createdBy}</td>
                         <td class="p-3">
-                            <button onclick="deleteItem('${id}')" class="bg-red-700/80 hover:bg-red-600 text-white px-2 py-1 rounded text-xs">Master Delete</button>
+                            <button onclick="deleteItem('${id}')" class="bg-red-700/80 hover:bg-red-600 text-white px-2.5 py-1 rounded text-xs transition">Master Delete</button>
                         </td>
                     </tr>
                 `;
@@ -197,7 +197,7 @@
                         <td class="p-3 break-all font-medium">${data.email}</td>
                         <td class="p-3"><span class="px-2 py-1 rounded bg-slate-700 text-cyan-300 text-xs font-semibold uppercase">${data.role}</span></td>
                         <td class="p-3">
-                            ${data.uid !== auth.currentUser.uid ? `<button onclick="deleteUserRecord('${userId}')" class="bg-red-700/80 hover:bg-red-600 text-white px-2 py-1 rounded text-xs">Remove Access</button>` : '<span class="text-slate-500 text-xs">Current Session</span>'}
+                            ${data.uid !== auth.currentUser.uid ? `<button onclick="deleteUserRecord('${userId}')" class="bg-red-700/80 hover:bg-red-600 text-white px-2.5 py-1 rounded text-xs transition">Remove Access</button>` : '<span class="text-slate-500 text-xs">Current Session</span>'}
                         </td>
                     </tr>
                 `;
@@ -268,7 +268,7 @@
             }
             snap.forEach(d => {
                 const data = d.data();
-                container.innerHTML += `<div class="flex justify-between items-center bg-slate-900 p-2 rounded mb-1"><span><b>${data.type.toUpperCase()}:</b> ${data.value}</span></div>`;
+                container.innerHTML += `<div class="flex justify-between items-center bg-slate-900 p-2 rounded mb-1 text-xs"><span><b>${data.type.toUpperCase()}:</b> ${data.value}</span></div>`;
             });
         }
 
