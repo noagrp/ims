@@ -54,12 +54,12 @@
                 <table id="inventoryTable" class="w-full text-left border-collapse min-w-[800px]">
                     <thead>
                         <tr class="bg-slate-900/50 border-b border-slate-700 text-slate-400 text-xs sm:text-sm">
-                            <th class="p-3 cursor-pointer" onclick="toggleTableSort('inventoryTable', 0)">Code / SN ↕</th>
-                            <th class="p-3 cursor-pointer" onclick="toggleTableSort('inventoryTable', 1)">Name ↕</th>
-                            <th class="p-3">Type / Category</th>
-                            <th class="p-3">Status</th>
-                            <th class="p-3">Location</th>
-                            <th class="p-3">Remark</th>
+                            <th class="p-3 cursor-pointer select-none" onclick="toggleTableSort('inventoryTable', 0)">Code / SN ↕</th>
+                            <th class="p-3 cursor-pointer select-none" onclick="toggleTableSort('inventoryTable', 1)">Name ↕</th>
+                            <th class="p-3 cursor-pointer select-none" onclick="toggleTableSort('inventoryTable', 2)">Type / Category ↕</th>
+                            <th class="p-3 cursor-pointer select-none" onclick="toggleTableSort('inventoryTable', 3)">Status ↕</th>
+                            <th class="p-3 cursor-pointer select-none" onclick="toggleTableSort('inventoryTable', 4)">Location ↕</th>
+                            <th class="p-3 cursor-pointer select-none" onclick="toggleTableSort('inventoryTable', 5)">Remark ↕</th>
                             <th class="p-3">Master Actions</th>
                         </tr>
                     </thead>
@@ -183,8 +183,8 @@
                         <table id="clientProfileTable" class="w-full text-left border-collapse min-w-[300px]">
                             <thead>
                                 <tr class="bg-slate-900/50 border-b border-slate-700 text-slate-400 text-xs">
-                                    <th class="p-2 cursor-pointer" onclick="sortClientProfilesTable()">Client Name ↕</th>
-                                    <th class="p-2">Contact</th>
+                                    <th class="p-2 cursor-pointer select-none" onclick="toggleTableSort('clientProfileTable', 0)">Client Name ↕</th>
+                                    <th class="p-2 cursor-pointer select-none" onclick="toggleTableSort('clientProfileTable', 1)">Contact ↕</th>
                                 </tr>
                             </thead>
                             <tbody id="clientProfileBody" class="divide-y divide-slate-700 text-xs"></tbody>
@@ -229,10 +229,10 @@
                         <table id="clientDocTable" class="w-full text-left border-collapse min-w-[300px]">
                             <thead>
                                 <tr class="bg-slate-900/50 border-b border-slate-700 text-slate-400 text-xs">
-                                    <th class="p-2 cursor-pointer" onclick="sortClientDocsTable()">Client ↕</th>
-                                    <th class="p-2 cursor-pointer" onclick="sortClientDocsTableType()">Type ↕</th>
-                                    <th class="p-2">Date</th>
-                                    <th class="p-2">File</th>
+                                    <th class="p-2 cursor-pointer select-none" onclick="toggleTableSort('clientDocTable', 0)">Client ↕</th>
+                                    <th class="p-2 cursor-pointer select-none" onclick="toggleTableSort('clientDocTable', 1)">Type ↕</th>
+                                    <th class="p-2 cursor-pointer select-none" onclick="toggleTableSort('clientDocTable', 2)">Date ↕</th>
+                                    <th class="p-2 select-none">File</th>
                                 </tr>
                             </thead>
                             <tbody id="clientDocTableBody" class="divide-y divide-slate-700 text-xs"></tbody>
@@ -266,8 +266,8 @@
                         <table id="supplierProfileTable" class="w-full text-left border-collapse min-w-[300px]">
                             <thead>
                                 <tr class="bg-slate-900/50 border-b border-slate-700 text-slate-400 text-xs">
-                                    <th class="p-2 cursor-pointer" onclick="sortSupplierProfilesTable()">Supplier Name ↕</th>
-                                    <th class="p-2">Contact</th>
+                                    <th class="p-2 cursor-pointer select-none" onclick="toggleTableSort('supplierProfileTable', 0)">Supplier Name ↕</th>
+                                    <th class="p-2 cursor-pointer select-none" onclick="toggleTableSort('supplierProfileTable', 1)">Contact ↕</th>
                                 </tr>
                             </thead>
                             <tbody id="supplierProfileBody" class="divide-y divide-slate-700 text-xs"></tbody>
@@ -314,10 +314,10 @@
                         <table id="supplierDocTable" class="w-full text-left border-collapse min-w-[300px]">
                             <thead>
                                 <tr class="bg-slate-900/50 border-b border-slate-700 text-slate-400 text-xs">
-                                    <th class="p-2 cursor-pointer" onclick="sortSupplierDocsTable()">Supplier ↕</th>
-                                    <th class="p-2 cursor-pointer" onclick="sortSupplierDocsTableType()">Type ↕</th>
-                                    <th class="p-2">Date</th>
-                                    <th class="p-2">File</th>
+                                    <th class="p-2 cursor-pointer select-none" onclick="toggleTableSort('supplierDocTable', 0)">Supplier ↕</th>
+                                    <th class="p-2 cursor-pointer select-none" onclick="toggleTableSort('supplierDocTable', 1)">Type ↕</th>
+                                    <th class="p-2 cursor-pointer select-none" onclick="toggleTableSort('supplierDocTable', 2)">Date ↕</th>
+                                    <th class="p-2 select-none">File</th>
                                 </tr>
                             </thead>
                             <tbody id="supplierDocTableBody" class="divide-y divide-slate-700 text-xs"></tbody>
@@ -358,8 +358,8 @@
                         <table id="userTable" class="w-full text-left border-collapse min-w-[400px]">
                             <thead>
                                 <tr class="bg-slate-900/50 border-b border-slate-700 text-slate-400 text-xs">
-                                    <th class="p-3">Email</th>
-                                    <th class="p-3">Role</th>
+                                    <th class="p-3 cursor-pointer select-none" onclick="toggleTableSort('userTable', 0)">Email ↕</th>
+                                    <th class="p-3 cursor-pointer select-none" onclick="toggleTableSort('userTable', 1)">Role ↕</th>
                                     <th class="p-3">Status / Read-Only Toggle</th>
                                     <th class="p-3">Action</th>
                                 </tr>
@@ -535,8 +535,8 @@
             const asc = tableSortDirections[colIndex];
 
             rowsArray.sort((rowA, rowB) => {
-                const cellA = rowA.cells[colIndex].textContent.trim();
-                const cellB = rowB.cells[colIndex].textContent.trim();
+                const cellA = rowA.cells[colIndex] ? rowA.cells[colIndex].textContent.trim() : "";
+                const cellB = rowB.cells[colIndex] ? rowB.cells[colIndex].textContent.trim() : "";
                 return asc ? cellA.localeCompare(cellB) : cellB.localeCompare(cellA);
             });
 
@@ -761,18 +761,6 @@
             renderClientDocsTable(filtered);
         };
 
-        window.sortClientDocsTable = () => {
-            clientDocSortAsc = !clientDocSortAsc;
-            clientDocsData.sort((a, b) => clientDocSortAsc ? a.clientName.localeCompare(b.clientName) : b.clientName.localeCompare(a.clientName));
-            renderClientDocsTable(clientDocsData);
-        };
-
-        window.sortClientDocsTableType = () => {
-            clientDocTypeSortAsc = !clientDocTypeSortAsc;
-            clientDocsData.sort((a, b) => clientDocTypeSortAsc ? a.docType.localeCompare(b.docType) : b.docType.localeCompare(a.docType));
-            renderClientDocsTable(clientDocsData);
-        };
-
         // 5. Suppliers Handling (Section 1 Profiles & Section 2 Docs - Filterable & Sortable)
         document.getElementById("supplierRegisterForm").addEventListener("submit", async (e) => {
             e.preventDefault();
@@ -812,12 +800,6 @@
             const query = document.getElementById("supplierSearch").value.toLowerCase();
             const filtered = supplierProfilesData.filter(s => s.supplierName.toLowerCase().includes(query) || (s.contact && s.contact.toLowerCase().includes(query)));
             renderSupplierProfilesTable(filtered);
-        };
-
-        window.sortSupplierProfilesTable = () => {
-            supplierSortAsc = !supplierSortAsc;
-            supplierProfilesData.sort((a, b) => supplierSortAsc ? a.supplierName.localeCompare(b.supplierName) : b.supplierName.localeCompare(a.supplierName));
-            renderSupplierProfilesTable(supplierProfilesData);
         };
 
         document.getElementById("supplierDocForm").addEventListener("submit", async (e) => {
@@ -870,18 +852,6 @@
             const query = document.getElementById("supplierDocSearch").value.toLowerCase();
             const filtered = supplierDocsData.filter(d => d.supplierName.toLowerCase().includes(query) || d.docType.toLowerCase().includes(query) || d.docDate.includes(query));
             renderSupplierDocsTable(filtered);
-        };
-
-        window.sortSupplierDocsTable = () => {
-            supplierDocSortAsc = !supplierDocSortAsc;
-            supplierDocsData.sort((a, b) => supplierDocSortAsc ? a.supplierName.localeCompare(b.supplierName) : b.supplierName.localeCompare(a.supplierName));
-            renderSupplierDocsTable(supplierDocsData);
-        };
-
-        window.sortSupplierDocsTableType = () => {
-            supplierDocTypeSortAsc = !supplierDocTypeSortAsc;
-            supplierDocsData.sort((a, b) => supplierDocTypeSortAsc ? a.docType.localeCompare(b.docType) : b.docType.localeCompare(a.docType));
-            renderSupplierDocsTable(supplierDocsData);
         };
 
         // 6. User Management with Active/Inactive Read-Only Toggle
