@@ -17,30 +17,31 @@
     <main class="flex-1 max-w-7xl w-full mx-auto p-3 sm:p-6 space-y-6 box-border flex flex-col items-center">
         <!-- Master Navigation Tabs Centered -->
         <div class="flex justify-center space-x-2 sm:space-x-4 border-b border-slate-700 pb-2 w-full overflow-x-auto">
-            <button onclick="switchTab('inventory')" id="tab-inventory-btn" class="text-red-400 font-semibold pb-2 border-b-2 border-red-400 text-sm sm:text-base whitespace-nowrap px-4 transition">Global Inventory Ledger</button>
-            <button onclick="switchTab('register')" id="tab-register-btn" class="text-slate-400 pb-2 text-sm sm:text-base whitespace-nowrap px-4 transition">Register Asset (Admin Power)</button>
-            <button onclick="switchTab('users')" id="tab-users-btn" class="text-slate-400 pb-2 text-sm sm:text-base whitespace-nowrap px-4 transition">User & Role Management</button>
+            <button onclick="switchTab('inventory')" id="tab-inventory-btn" class="text-red-400 font-semibold pb-2 border-b-2 border-red-400 text-sm sm:text-base whitespace-nowrap px-4 transition">Global Inventory & Audit</button>
+            <button onclick="switchTab('transit')" id="tab-transit-btn" class="text-slate-400 pb-2 text-sm sm:text-base whitespace-nowrap px-4 transition">Transit Logistics (Sea/Land/Air)</button>
+            <button onclick="switchTab('register')" id="tab-register-btn" class="text-slate-400 pb-2 text-sm sm:text-base whitespace-nowrap px-4 transition">Register Asset & Docs</button>
+            <button onclick="switchTab('users')" id="tab-users-btn" class="text-slate-400 pb-2 text-sm sm:text-base whitespace-nowrap px-4 transition">User Management</button>
             <button onclick="switchTab('settings')" id="tab-settings-btn" class="text-slate-400 pb-2 text-sm sm:text-base whitespace-nowrap px-4 transition">Master Settings</button>
         </div>
 
-        <!-- Tab 1: Global Inventory Master View & Override Deletion -->
+        <!-- Tab 1: Global Inventory Master View, Audit & Purge Override -->
         <section id="tab-inventory" class="bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-700 space-y-4 shadow-xl w-full">
             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-                <h2 class="text-base sm:text-lg font-bold">Complete System Inventory & Master Override Log</h2>
-                <button onclick="exportTableToExcel('inventoryTable', 'Master_Inventory_Report.xlsx')" class="bg-emerald-600 hover:bg-emerald-500 px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold w-full sm:w-auto transition">Export Inventory</button>
+                <h2 class="text-base sm:text-lg font-bold">Complete System Inventory & Accountability Audit Log</h2>
+                <button onclick="exportTableToExcel('inventoryTable', 'Master_Audit_Report.xlsx')" class="bg-emerald-600 hover:bg-emerald-500 px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold w-full sm:w-auto transition">Export Report</button>
             </div>
             <div class="overflow-x-auto rounded-xl border border-slate-700">
-                <table id="inventoryTable" class="w-full text-left border-collapse min-w-[700px]">
+                <table id="inventoryTable" class="w-full text-left border-collapse min-w-[800px]">
                     <thead>
                         <tr class="bg-slate-900/50 border-b border-slate-700 text-slate-400 text-xs sm:text-sm">
                             <th class="p-3">Code / SN</th>
                             <th class="p-3">Name</th>
-                            <th class="p-3">Type</th>
-                            <th class="p-3">Category</th>
+                            <th class="p-3">Type / Category</th>
                             <th class="p-3">Status</th>
-                            <th class="p-3">Location</th>
+                            <th class="p-3">Location / Transit</th>
                             <th class="p-3">Created By</th>
-                            <th class="p-3">Actions</th>
+                            <th class="p-3">Last Edited By</th>
+                            <th class="p-3">Master Actions</th>
                         </tr>
                     </thead>
                     <tbody id="inventoryTableBody" class="divide-y divide-slate-700 text-xs sm:text-sm"></tbody>
@@ -48,9 +49,37 @@
             </div>
         </section>
 
-        <!-- Tab 2: Register Asset (Inheriting Admin Workbench Capabilities) -->
+        <!-- Tab 2: Transit Logistics (Sea, Land, Air) -->
+        <section id="tab-transit" class="bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-700 space-y-6 shadow-xl hidden w-full max-w-3xl mx-auto flex flex-col items-center">
+            <h2 class="text-base sm:text-lg font-bold text-center">Log Asset Transit Movement (Sea, Land, Air)</h2>
+            <form id="transitForm" class="space-y-4 bg-slate-900/50 p-5 rounded-xl border border-slate-700 shadow-md w-full">
+                <div>
+                    <label class="block text-xs sm:text-sm font-medium mb-1">Select Asset / Item Code</label>
+                    <select id="transitItemSelect" required class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm focus:outline-none focus:border-red-500">
+                        <option value="">-- Choose Asset --</option>
+                    </select>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs sm:text-sm font-medium mb-1">Transit Mode</label>
+                        <select id="transitMode" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm focus:outline-none focus:border-red-500">
+                            <option value="Sea Freight">🚢 Sea Freight</option>
+                            <option value="Land Transport">🚚 Land Transport</option>
+                            <option value="Air Freight">✈️ Air Freight</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs sm:text-sm font-medium mb-1">Destination / Carrier Detail</label>
+                        <input type="text" id="transitDestination" placeholder="e.g. Vessel MV Nusantara / Truck AA1234" required class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm focus:outline-none focus:border-red-500">
+                    </div>
+                </div>
+                <button type="submit" class="w-full bg-red-600 hover:bg-red-500 text-white font-bold py-2.5 rounded-lg text-sm transition">Dispatch Asset to Transit</button>
+            </form>
+        </section>
+
+        <!-- Tab 3: Register Asset with Base64 Document Uploads -->
         <section id="tab-register" class="bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-700 space-y-4 shadow-xl hidden w-full max-w-4xl mx-auto">
-            <h2 class="text-base sm:text-lg font-bold text-center">Register New Equipment or Part (Admin Power)</h2>
+            <h2 class="text-base sm:text-lg font-bold text-center">Register New Equipment or Part (Full Admin Power)</h2>
             <form id="registerForm" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                     <label class="block text-xs sm:text-sm font-medium mb-1">Item Type</label>
@@ -83,22 +112,19 @@
                     <label class="block text-xs sm:text-sm font-medium mb-1">Current Location</label>
                     <input type="text" id="itemLocation" placeholder="HQ Warehouse" required class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm focus:outline-none focus:border-red-500">
                 </div>
-                
                 <div class="sm:col-span-2 border-t border-slate-700 pt-4">
-                    <label class="block text-xs sm:text-sm font-medium mb-1">Initial Document (Optional)</label>
+                    <label class="block text-xs sm:text-sm font-medium mb-1">Initial Compliance Document (Optional)</label>
                     <input type="file" id="initialDoc" class="w-full text-xs sm:text-sm text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs sm:file:text-sm file:font-semibold file:bg-red-600 file:text-white hover:file:bg-red-500 transition">
                 </div>
-
                 <div class="sm:col-span-2 flex justify-center">
                     <button type="submit" class="w-full sm:w-auto bg-red-600 hover:bg-red-500 text-white font-bold py-2.5 px-6 rounded-lg text-sm transition">Save & Register Item</button>
                 </div>
             </form>
         </section>
 
-        <!-- Tab 3: User & Role Management (Centered Grid Layout) -->
+        <!-- Tab 4: User & Role Management -->
         <section id="tab-users" class="bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-700 space-y-6 shadow-xl hidden w-full max-w-5xl mx-auto">
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-                <!-- Provision Form Card -->
                 <div class="bg-slate-900/60 p-5 rounded-xl border border-slate-700 space-y-4 lg:col-span-1 shadow-md">
                     <h2 class="text-base font-bold text-red-400 text-center">Provision Any Staff Account</h2>
                     <form id="createUserForm" class="space-y-3">
@@ -121,8 +147,6 @@
                         <button type="submit" class="w-full bg-red-600 hover:bg-red-500 text-white font-bold py-2 px-4 rounded-lg text-sm transition">Create User Account</button>
                     </form>
                 </div>
-
-                <!-- User Directory Table -->
                 <div class="lg:col-span-2 space-y-4 flex flex-col">
                     <h2 class="text-base font-bold text-center lg:text-left">Active System Users Directory</h2>
                     <div class="overflow-x-auto rounded-xl border border-slate-700">
@@ -141,18 +165,15 @@
             </div>
         </section>
 
-        <!-- Tab 4: Master Settings (Warehouses & Categories - Centered Grid) -->
+        <!-- Tab 5: Master Settings -->
         <section id="tab-settings" class="bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-700 space-y-6 shadow-xl hidden w-full max-w-3xl mx-auto flex flex-col items-center">
             <h2 class="text-base sm:text-lg font-bold text-center">Global Master Settings Configuration</h2>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 w-full">
-                <!-- Warehouses Form -->
                 <form id="warehouseForm" class="space-y-3 bg-slate-900/50 p-4 rounded-xl border border-slate-700 shadow-md">
                     <h3 class="font-semibold text-sm text-cyan-400 text-center">Add Warehouse Location</h3>
                     <input type="text" id="warehouseName" placeholder="e.g. Labuan Base" required class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm focus:outline-none focus:border-cyan-500">
                     <button type="submit" class="w-full bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-2 rounded-lg text-sm transition">Add Warehouse</button>
                 </form>
-
-                <!-- Categories Form -->
                 <form id="categoryForm" class="space-y-3 bg-slate-900/50 p-4 rounded-xl border border-slate-700 shadow-md">
                     <h3 class="font-semibold text-sm text-amber-400 text-center">Add Equipment Category</h3>
                     <input type="text" id="categoryName" placeholder="e.g. Drilling Tools" required class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm focus:outline-none focus:border-amber-500">
@@ -169,7 +190,7 @@
     <script type="module">
         import { auth, db } from "./firebase-config.js";
         import { onAuthStateChanged, signOut, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
-        import { collection, addDoc, getDocs, doc, getDoc, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+        import { collection, addDoc, getDocs, doc, getDoc, setDoc, deleteDoc, updateDoc } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
         let currentUserEmail = "";
 
@@ -191,7 +212,7 @@
         });
 
         window.switchTab = (tabName) => {
-            ['inventory', 'register', 'users', 'settings'].forEach(tab => {
+            ['inventory', 'transit', 'register', 'users', 'settings'].forEach(tab => {
                 document.getElementById(`tab-${tab}`).classList.add("hidden");
                 document.getElementById(`tab-${tab}-btn`).className = "text-slate-400 pb-2 text-sm sm:text-base whitespace-nowrap px-4 transition";
             });
@@ -200,44 +221,94 @@
             document.getElementById(`tab-${tabName}-btn`).className = "text-red-400 font-semibold pb-2 border-b-2 border-red-400 text-sm sm:text-base whitespace-nowrap px-4 transition";
         };
 
-        // 1. Global Inventory Oversight & Master Deletion Override
+        // 1. Global Inventory Oversight, Audit Logs, & Master Delete Override
         async function loadGlobalInventory() {
             const tbody = document.getElementById("inventoryTableBody");
+            const transitSelect = document.getElementById("transitItemSelect");
             tbody.innerHTML = "";
+            transitSelect.innerHTML = '<option value="">-- Choose Asset --</option>';
+
             const querySnapshot = await getDocs(collection(db, "inventory"));
             querySnapshot.forEach((docSnap) => {
                 const data = docSnap.data();
                 const id = docSnap.id;
+
                 tbody.innerHTML += `
                     <tr class="hover:bg-slate-700/50" id="row-${id}">
                         <td class="p-3 font-mono break-all">${data.itemCode}</td>
                         <td class="p-3">${data.name}</td>
-                        <td class="p-3">${data.type}</td>
-                        <td class="p-3">${data.category}</td>
+                        <td class="p-3">${data.type} <br><span class="text-xs text-slate-400">${data.category}</span></td>
                         <td class="p-3"><span class="px-2 py-1 rounded bg-red-900 text-red-300 text-xs">${data.status}</span></td>
                         <td class="p-3">${data.currentLocation}</td>
                         <td class="p-3 text-slate-400 break-all">${data.createdBy}</td>
+                        <td class="p-3 text-slate-400 break-all">${data.lastEditedBy || 'None'}</td>
                         <td class="p-3">
-                            <button onclick="deleteItem('${id}')" class="bg-red-700/80 hover:bg-red-600 text-white px-2.5 py-1 rounded text-xs transition">Master Delete</button>
+                            <button onclick="deleteItem('${id}')" class="bg-red-700/80 hover:bg-red-600 text-white px-2.5 py-1 rounded text-xs transition">Master Purge</button>
                         </td>
                     </tr>
                 `;
+
+                transitSelect.innerHTML += `<option value="${id}">${data.itemCode} - ${data.name}</option>`;
             });
         }
 
         window.deleteItem = async (itemId) => {
-            if (confirm("Are you sure you want to permanently purge this item from the system?")) {
+            if (confirm("Permanently purge this item from the system?")) {
                 try {
                     await deleteDoc(doc(db, "inventory", itemId));
                     document.getElementById(`row-${itemId}`).remove();
-                    alert("Item deleted successfully.");
+                    alert("Item purged successfully.");
+                    loadGlobalInventory();
                 } catch (err) {
-                    alert("Error deleting item: " + err.message);
+                    alert("Error: " + err.message);
                 }
             }
         };
 
-        // 2. Asset Registration Logic (Admin Capability)
+        // 2. Transit Logistics Dispatch (Sea, Land, Air) with Lifecycle History
+        document.getElementById("transitForm").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const itemId = document.getElementById("transitItemSelect").value;
+            const mode = document.getElementById("transitMode").value;
+            const destination = document.getElementById("transitDestination").value;
+
+            if (!itemId) {
+                alert("Please select an asset to dispatch.");
+                return;
+            }
+
+            try {
+                const itemRef = doc(db, "inventory", itemId);
+                const itemSnap = await getDoc(itemRef);
+                if (!itemSnap.exists()) return;
+
+                const data = itemSnap.data();
+                const updatedHistory = data.lifecycleHistory || [];
+                updatedHistory.push({
+                    status: `In Transit (${mode})`,
+                    location: destination,
+                    timestamp: new Date().toISOString(),
+                    user: currentUserEmail
+                });
+
+                await updateDoc(itemRef, {
+                    status: `In Transit (${mode})`,
+                    currentLocation: destination,
+                    lifecycleHistory: updatedHistory,
+                    lastEditedBy: currentUserEmail,
+                    lastEditedAt: new Date().toISOString()
+                });
+
+                alert(`Asset successfully dispatched via ${mode}!`);
+                document.getElementById("transitForm").reset();
+                loadGlobalInventory();
+                switchTab('inventory');
+            } catch (err) {
+                alert("Transit Error: " + err.message);
+            }
+        });
+
+        // 3. Register Asset with Base64 Document Uploading
         const fileToBase64 = file => new Promise((resolve, reject) => {
             const reader = new FileReader();
             reader.readAsDataURL(file);
@@ -285,7 +356,7 @@
 
             try {
                 await addDoc(collection(db, "inventory"), newItem);
-                alert("Asset registered successfully!");
+                alert("Asset registered successfully with documents!");
                 document.getElementById("registerForm").reset();
                 loadGlobalInventory();
                 switchTab('inventory');
@@ -294,7 +365,7 @@
             }
         });
 
-        // 3. User & Role Management Directory (Full Access Control)
+        // 4. User Directory & Access Removal (Using precise docId)
         async function loadUserDirectory() {
             const tbody = document.getElementById("userTableBody");
             tbody.innerHTML = "";
@@ -319,7 +390,7 @@
                 try {
                     await deleteDoc(doc(db, "users", docId));
                     document.getElementById(`user-row-${docId}`).remove();
-                    alert("User access record removed.");
+                    alert("User access removed.");
                 } catch (err) {
                     alert("Error: " + err.message);
                 }
@@ -349,7 +420,7 @@
             }
         });
 
-        // 4. Master Settings Configuration (Warehouses & Categories)
+        // 5. Master Settings Configuration
         document.getElementById("warehouseForm").addEventListener("submit", async (e) => {
             e.preventDefault();
             const name = document.getElementById("warehouseName").value;
