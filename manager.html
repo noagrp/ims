@@ -15,7 +15,7 @@
     </nav>
 
     <main class="flex-1 max-w-6xl w-full mx-auto p-3 sm:p-6 space-y-6 box-border flex flex-col items-center">
-        <!-- Master Navigation Tabs (Restricted for Manager) -->
+        <!-- Master Navigation Tabs -->
         <div class="flex flex-wrap justify-center gap-2 border-b border-slate-700 pb-3 w-full">
             <button onclick="switchTab('inventory')" id="tab-inventory-btn" class="text-cyan-400 font-semibold pb-2 border-b-2 border-cyan-400 text-xs sm:text-sm md:text-base px-3 py-1.5 transition rounded-lg bg-slate-800/80">Inventory Overview</button>
             <button onclick="switchTab('transit')" id="tab-transit-btn" class="text-slate-400 pb-2 text-xs sm:text-sm md:text-base px-3 py-1.5 transition rounded-lg hover:bg-slate-800/40">Logistic</button>
@@ -382,11 +382,11 @@
             </div>
         </section>
 
-        <!-- Tab 6: Master Settings (Warehouses & Categories) -->
+        <!-- Tab 6: Master Settings (Superadmin Design Layout) -->
         <section id="tab-settings" class="bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-700 space-y-6 shadow-xl hidden w-full max-w-5xl">
             <h2 class="text-base sm:text-lg font-bold text-center">Master Settings (Warehouses & Categories)</h2>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <!-- Warehouses Card -->
+                <!-- Warehouse Management Card -->
                 <div class="bg-slate-900/60 p-5 rounded-xl border border-slate-700 space-y-4">
                     <h3 class="text-sm font-bold text-cyan-400">Add New Warehouse Location</h3>
                     <form id="warehouseSettingForm" class="space-y-3">
@@ -399,11 +399,15 @@
                     </div>
                 </div>
 
-                <!-- Categories Card -->
+                <!-- Category Management Card -->
                 <div class="bg-slate-900/60 p-5 rounded-xl border border-slate-700 space-y-4">
                     <h3 class="text-sm font-bold text-cyan-400">Add New Equipment Category</h3>
                     <form id="categorySettingForm" class="space-y-3">
                         <input type="text" id="newCategoryValue" required placeholder="e.g. Subsea Valves" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm">
+                        <div>
+                            <label class="block text-xs font-medium mb-1">Optional Thumbnail Image</label>
+                            <input type="file" id="newCategoryThumbnail" class="w-full text-xs text-slate-400 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:bg-cyan-600 file:text-white">
+                        </div>
                         <button type="submit" class="w-full bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-2 rounded-lg text-sm transition">Add Category</button>
                     </form>
                     <div class="mt-4 space-y-2">
@@ -1092,7 +1096,7 @@
             renderSupplierDocsTable(filtered);
         };
 
-        // Master Settings handlers for Manager (Add & View only)
+        // Master Settings handlers for Manager (Add & View only matching Superadmin design)
         document.getElementById("warehouseSettingForm").addEventListener("submit", async (e) => {
             e.preventDefault();
             const value = document.getElementById("newWarehouseValue").value.trim();
@@ -1108,9 +1112,22 @@
         document.getElementById("categorySettingForm").addEventListener("submit", async (e) => {
             e.preventDefault();
             const value = document.getElementById("newCategoryValue").value.trim();
+            const thumbInput = document.getElementById("newCategoryThumbnail");
             if (!value) return;
+
             try {
-                await addDoc(collection(db, "settings"), { type: "category", value, addedBy: currentUserEmail, createdAt: new Date().toISOString() });
+                let thumbnailBase64 = "";
+                if (thumbInput.files.length > 0) {
+                    thumbnailBase64 = await fileToBase64(thumbInput.files[0]);
+                }
+
+                await addDoc(collection(db, "settings"), {
+                    type: "category",
+                    value: value,
+                    thumbnail: thumbnailBase64,
+                    addedBy: currentUserEmail,
+                    createdAt: new Date().toISOString()
+                });
                 alert("Category added successfully!");
                 document.getElementById("categorySettingForm").reset();
                 await loadSettings();
@@ -1133,21 +1150,35 @@
                 if (data.type === "warehouse") {
                     warehousesData.push(data.value);
                     if (warehouseListContainer) {
-                        warehouseListContainer.innerHTML += `<div class="p-2 bg-slate-800 rounded border border-slate-700 font-medium text-slate-200">${data.value}</div>`;
+                        warehouseListContainer.innerHTML += `
+                            <div class="flex items-center justify-between p-2 bg-slate-800 rounded border border-slate-700">
+                                <span class="font-medium text-slate-200">${data.value}</span>
+                                <span class="text-[10px] text-slate-400">Added by: ${data.addedBy || 'Admin'}</span>
+                            </div>
+                        `;
                     }
                 } else if (data.type === "category") {
                     if (categorySelect) categorySelect.innerHTML += `<option value="${data.value}">${data.value}</option>`;
                     if (categoryListContainer) {
-                        categoryListContainer.innerHTML += `<div class="p-2 bg-slate-800 rounded border border-slate-700 font-medium text-slate-200">${data.value}</div>`;
+                        const thumbImg = data.thumbnail ? `<img src="${data.thumbnail}" class="w-8 h-8 object-cover rounded border border-slate-700">` : `<div class="w-8 h-8 bg-slate-800 rounded flex items-center justify-center text-[10px] text-slate-500">No img</div>`;
+                        categoryListContainer.innerHTML += `
+                            <div class="flex items-center justify-between p-2 bg-slate-800 rounded border border-slate-700">
+                                <div class="flex items-center gap-3">
+                                    ${thumbImg}
+                                    <span class="font-medium text-slate-200">${data.value}</span>
+                                </div>
+                                <span class="text-[10px] text-slate-400">Added by: ${data.addedBy || 'Admin'}</span>
+                            </div>
+                        `;
                     }
                 }
             });
 
             if (warehouseListContainer && warehouseListContainer.innerHTML === "") {
-                warehouseListContainer.innerHTML = `<div class="text-slate-500">No warehouses configured.</div>`;
+                warehouseListContainer.innerHTML = `<div class="text-slate-500 p-2">No warehouses configured.</div>`;
             }
             if (categoryListContainer && categoryListContainer.innerHTML === "") {
-                categoryListContainer.innerHTML = `<div class="text-slate-500">No categories configured.</div>`;
+                categoryListContainer.innerHTML = `<div class="text-slate-500 p-2">No categories configured.</div>`;
             }
 
             handleRegistrationStatusChange();
