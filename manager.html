@@ -10,7 +10,7 @@
 <body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col">
 
     <nav class="bg-slate-800 border-b border-slate-700 px-4 sm:px-6 py-4 flex flex-col sm:flex-row justify-between items-center gap-3 shadow-md">
-        <h1 class="text-lg sm:text-xl font-bold text-amber-400">IMS System - Manager Portal</h1>
+        <h1 class="text-lg sm:text-xl font-bold text-amber-400">IMS System - Manager</h1>
         <button id="logoutBtn" class="bg-red-600 hover:bg-red-500 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium w-full sm:w-auto transition">Logout</button>
     </nav>
 
@@ -22,7 +22,7 @@
             <button onclick="switchTab('register')" id="tab-register-btn" class="text-slate-400 pb-2 text-xs sm:text-sm md:text-base px-3 py-1.5 transition rounded-lg hover:bg-slate-800/40">Register & Lifecycle Followup</button>
             <button onclick="switchTab('clients')" id="tab-clients-btn" class="text-slate-400 pb-2 text-xs sm:text-sm md:text-base px-3 py-1.5 transition rounded-lg hover:bg-slate-800/40">Clients</button>
             <button onclick="switchTab('suppliers')" id="tab-suppliers-btn" class="text-slate-400 pb-2 text-xs sm:text-sm md:text-base px-3 py-1.5 transition rounded-lg hover:bg-slate-800/40">Suppliers</button>
-            <button onclick="switchTab('settings')" id="tab-settings-btn" class="text-slate-400 pb-2 text-xs sm:text-sm md:text-base px-3 py-1.5 transition rounded-lg hover:bg-slate-800/40">Settings (Warehouse & Category)</button>
+            <button onclick="switchTab('settings')" id="tab-settings-btn" class="text-slate-400 pb-2 text-xs sm:text-sm md:text-base px-3 py-1.5 transition rounded-lg hover:bg-slate-800/40">Other settings</button>
         </div>
 
         <!-- Tab 1: Inventory Overview -->
@@ -123,7 +123,7 @@
                     <input type="text" id="itemName" required class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm focus:outline-none focus:border-amber-500">
                 </div>
                 <div>
-                    <label class="block text-xs sm:text-sm font-medium mb-1">Category</label>
+                    <label class="block text-xs sm:text-sm font-medium mb-1">Category (Linked to Other Settings)</label>
                     <select id="itemCategory" required class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm focus:outline-none focus:border-amber-500">
                         <option value="">-- Select Category --</option>
                     </select>
@@ -139,7 +139,7 @@
                     </select>
                 </div>
                 <div>
-                    <label class="block text-xs sm:text-sm font-medium mb-1">Assigned Warehouse</label>
+                    <label class="block text-xs sm:text-sm font-medium mb-1">Assigned Warehouse (Linked to Other Settings)</label>
                     <select id="itemLocation" required class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm focus:outline-none focus:border-amber-500">
                         <option value="">-- Select Warehouse --</option>
                     </select>
@@ -382,41 +382,33 @@
             </div>
         </section>
 
-        <!-- Tab 6: Settings (Warehouse & Categories - View & Add) -->
-        <section id="tab-settings" class="bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-700 space-y-6 shadow-xl hidden w-full max-w-5xl">
-            <h2 class="text-base sm:text-lg font-bold text-center">Settings Management (Warehouses & Categories)</h2>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 bg-slate-900/50 p-5 rounded-xl border border-slate-700">
-                <!-- Add Warehouse / Category Form -->
-                <form id="settingForm" class="space-y-4">
-                    <h3 class="text-sm font-bold text-amber-400">Add New Setting Configuration</h3>
-                    <div>
-                        <label class="block text-xs font-medium mb-1">Setting Type</label>
-                        <select id="settingType" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm">
-                            <option value="warehouse">Warehouse Location</option>
-                            <option value="category">Item Category</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium mb-1">Value / Name</label>
-                        <input type="text" id="settingValue" required placeholder="e.g. Warehouse B / Offshore Equipment" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm">
-                    </div>
-                    <button type="submit" class="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold py-2 rounded-lg text-sm transition">Add Configuration</button>
-                </form>
+        <!-- Tab 6: Other Settings (Warehouse settings on top, Categories below - View & Add only) -->
+        <section id="tab-settings" class="bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-700 space-y-6 shadow-xl hidden w-full max-w-5xl flex flex-col items-center">
+            <h2 class="text-base sm:text-lg font-bold text-center">Global Master Settings Configuration</h2>
+            
+            <div class="flex flex-col gap-6 w-full">
+                <!-- Warehouses -->
+                <div class="bg-slate-900/50 p-4 sm:p-6 rounded-xl border border-slate-700 shadow-md space-y-3 w-full">
+                    <h3 class="font-semibold text-sm sm:text-base text-cyan-400 text-center">Warehouse Settings</h3>
+                    <form id="warehouseForm" class="space-y-2">
+                        <input type="text" id="warehouseName" placeholder="e.g. Labuan Base" required class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm">
+                        <button type="submit" class="w-full bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-2 rounded-lg text-sm">Add Warehouse</button>
+                    </form>
+                    <div id="warehouseListContainer" class="space-y-2 max-h-48 overflow-y-auto text-xs text-slate-300">Loading warehouses...</div>
+                </div>
 
-                <!-- Active Settings Viewer -->
-                <div class="space-y-3">
-                    <h3 class="text-sm font-bold text-amber-400">Active Settings Configuration List</h3>
-                    <div class="overflow-x-auto rounded-xl border border-slate-700 max-h-60 overflow-y-auto">
-                        <table id="settingsTable" class="w-full text-left border-collapse text-xs">
-                            <thead>
-                                <tr class="bg-slate-900/50 border-b border-slate-700 text-slate-400">
-                                    <th class="p-2">Type</th>
-                                    <th class="p-2">Value</th>
-                                </tr>
-                            </thead>
-                            <tbody id="settingsTableBody" class="divide-y divide-slate-700"></tbody>
-                        </table>
-                    </div>
+                <!-- Categories -->
+                <div class="bg-slate-900/50 p-4 sm:p-6 rounded-xl border border-slate-700 shadow-md space-y-3 w-full">
+                    <h3 class="font-semibold text-sm sm:text-base text-amber-400 text-center">Categories Setting</h3>
+                    <form id="categoryForm" class="space-y-2">
+                        <input type="text" id="categoryName" placeholder="e.g. Drilling Bits (800+ Series)" required class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm">
+                        <div>
+                            <label class="block text-xs text-slate-400 mb-1">Sample Thumbnail Image (Base64)</label>
+                            <input type="file" id="categoryImageFile" class="w-full text-xs text-slate-400 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:bg-amber-600 file:text-white">
+                        </div>
+                        <button type="submit" class="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold py-2 rounded-lg text-sm">Add Category</button>
+                    </form>
+                    <div id="categoryListContainer" class="space-y-2 max-h-48 overflow-y-auto text-xs text-slate-300">Loading categories...</div>
                 </div>
             </div>
         </section>
@@ -1057,47 +1049,64 @@
             renderSupplierDocsTable(filtered);
         };
 
-        // Settings Handling (View & Add Warehouses and Categories matching Superadmin layout)
-        document.getElementById("settingForm").addEventListener("submit", async (e) => {
+        document.getElementById("warehouseForm").addEventListener("submit", async (e) => {
             e.preventDefault();
-            const type = document.getElementById("settingType").value;
-            const value = document.getElementById("settingValue").value;
+            const name = document.getElementById("warehouseName").value;
+            await addDoc(collection(db, "settings"), { type: "warehouse", value: name, createdBy: currentUserEmail });
+            alert("Warehouse added!");
+            document.getElementById("warehouseName").value = "";
+            loadSettings();
+        });
 
-            try {
-                await addDoc(collection(db, "settings"), { type, value, createdBy: currentUserEmail, createdAt: new Date().toISOString() });
-                alert("Setting configuration added successfully!");
-                document.getElementById("settingForm").reset();
-                loadSettings();
-            } catch (err) {
-                alert("Error: " + err.message);
+        document.getElementById("categoryForm").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const name = document.getElementById("categoryName").value;
+            const imgFile = document.getElementById("categoryImageFile");
+            let imgB64 = "";
+            if (imgFile.files.length > 0) {
+                imgB64 = await fileToBase64(imgFile.files[0]);
             }
+            await addDoc(collection(db, "settings"), { type: "category", value: name, imageBase64: imgB64, createdBy: currentUserEmail });
+            alert("Category added!");
+            document.getElementById("categoryForm").reset();
+            loadSettings();
         });
 
         async function loadSettings() {
+            const whContainer = document.getElementById("warehouseListContainer");
+            const catContainer = document.getElementById("categoryListContainer");
             const categorySelect = document.getElementById("itemCategory");
             const locationSelect = document.getElementById("itemLocation");
-            const settingsBody = document.getElementById("settingsTableBody");
 
+            if (whContainer) whContainer.innerHTML = "";
+            if (catContainer) catContainer.innerHTML = "";
             if (categorySelect) categorySelect.innerHTML = '<option value="">-- Select Category --</option>';
             if (locationSelect) locationSelect.innerHTML = '<option value="">-- Select Warehouse --</option>';
-            if (settingsBody) settingsBody.innerHTML = "";
 
             const snap = await getDocs(collection(db, "settings"));
+            if (snap.empty) {
+                if (whContainer) whContainer.innerHTML = "<p>No warehouses configured.</p>";
+                if (catContainer) catContainer.innerHTML = "<p>No categories configured.</p>";
+                return;
+            }
+
             snap.forEach(d => {
                 const data = d.data();
+                const itemHTML = `
+                    <div class="flex items-center justify-between bg-slate-900 p-2 rounded border border-slate-700">
+                        <div class="flex items-center gap-2">
+                            ${data.imageBase64 ? `<img src="${data.imageBase64}" class="w-6 h-6 object-cover rounded"/>` : ''}
+                            <span>${data.value}</span>
+                        </div>
+                    </div>
+                `;
+
                 if (data.type === "warehouse") {
+                    if (whContainer) whContainer.innerHTML += itemHTML;
                     if (locationSelect) locationSelect.innerHTML += `<option value="${data.value}">${data.value}</option>`;
                 } else if (data.type === "category") {
+                    if (catContainer) catContainer.innerHTML += itemHTML;
                     if (categorySelect) categorySelect.innerHTML += `<option value="${data.value}">${data.value}</option>`;
-                }
-
-                if (settingsBody) {
-                    settingsBody.innerHTML += `
-                        <tr class="hover:bg-slate-700/50">
-                            <td class="p-2 capitalize text-amber-300 font-medium">${data.type}</td>
-                            <td class="p-2">${data.value}</td>
-                        </tr>
-                    `;
                 }
             });
         }
