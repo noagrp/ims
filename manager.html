@@ -15,13 +15,14 @@
     </nav>
 
     <main class="flex-1 max-w-6xl w-full mx-auto p-3 sm:p-6 space-y-6 box-border flex flex-col items-center">
-        <!-- Master Navigation Tabs (Restricted for Managers: No User Management or Global Settings) -->
+        <!-- Master Navigation Tabs -->
         <div class="flex flex-wrap justify-center gap-2 border-b border-slate-700 pb-3 w-full">
             <button onclick="switchTab('inventory')" id="tab-inventory-btn" class="text-amber-400 font-semibold pb-2 border-b-2 border-amber-400 text-xs sm:text-sm md:text-base px-3 py-1.5 transition rounded-lg bg-slate-800/80">Inventory Overview</button>
             <button onclick="switchTab('transit')" id="tab-transit-btn" class="text-slate-400 pb-2 text-xs sm:text-sm md:text-base px-3 py-1.5 transition rounded-lg hover:bg-slate-800/40">Logistic</button>
             <button onclick="switchTab('register')" id="tab-register-btn" class="text-slate-400 pb-2 text-xs sm:text-sm md:text-base px-3 py-1.5 transition rounded-lg hover:bg-slate-800/40">Register & Lifecycle Followup</button>
             <button onclick="switchTab('clients')" id="tab-clients-btn" class="text-slate-400 pb-2 text-xs sm:text-sm md:text-base px-3 py-1.5 transition rounded-lg hover:bg-slate-800/40">Clients</button>
             <button onclick="switchTab('suppliers')" id="tab-suppliers-btn" class="text-slate-400 pb-2 text-xs sm:text-sm md:text-base px-3 py-1.5 transition rounded-lg hover:bg-slate-800/40">Suppliers</button>
+            <button onclick="switchTab('settings')" id="tab-settings-btn" class="text-slate-400 pb-2 text-xs sm:text-sm md:text-base px-3 py-1.5 transition rounded-lg hover:bg-slate-800/40">Settings (Warehouse & Category)</button>
         </div>
 
         <!-- Tab 1: Inventory Overview -->
@@ -380,6 +381,25 @@
                 </div>
             </div>
         </section>
+
+        <!-- Tab 6: Settings (Warehouse & Categories - Read-Only View) -->
+        <section id="tab-settings" class="bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-700 space-y-6 shadow-xl hidden w-full max-w-5xl">
+            <h2 class="text-base sm:text-lg font-bold text-center">Settings Viewer (Warehouses & Categories)</h2>
+            <div class="bg-slate-900/50 p-5 rounded-xl border border-slate-700 space-y-3">
+                <h3 class="text-sm font-bold text-amber-400">Active Settings Configuration List (Read-Only)</h3>
+                <div class="overflow-x-auto rounded-xl border border-slate-700 max-h-96 overflow-y-auto">
+                    <table id="settingsTable" class="w-full text-left border-collapse text-xs">
+                        <thead>
+                            <tr class="bg-slate-900/50 border-b border-slate-700 text-slate-400">
+                                <th class="p-3">Type</th>
+                                <th class="p-3">Value</th>
+                            </tr>
+                        </thead>
+                        <tbody id="settingsTableBody" class="divide-y divide-slate-700"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
     </main>
 
     <!-- Asset History & Document Modal -->
@@ -441,7 +461,7 @@
         });
 
         window.switchTab = (tabName) => {
-            ['inventory', 'transit', 'register', 'clients', 'suppliers'].forEach(tab => {
+            ['inventory', 'transit', 'register', 'clients', 'suppliers', 'settings'].forEach(tab => {
                 const tabEl = document.getElementById(`tab-${tab}`);
                 const btnEl = document.getElementById(`tab-${tab}-btn`);
                 if (tabEl) tabEl.classList.add("hidden");
@@ -1020,9 +1040,11 @@
         async function loadSettings() {
             const categorySelect = document.getElementById("itemCategory");
             const locationSelect = document.getElementById("itemLocation");
+            const settingsBody = document.getElementById("settingsTableBody");
 
             if (categorySelect) categorySelect.innerHTML = '<option value="">-- Select Category --</option>';
             if (locationSelect) locationSelect.innerHTML = '<option value="">-- Select Warehouse --</option>';
+            if (settingsBody) settingsBody.innerHTML = "";
 
             const snap = await getDocs(collection(db, "settings"));
             snap.forEach(d => {
@@ -1031,6 +1053,15 @@
                     if (locationSelect) locationSelect.innerHTML += `<option value="${data.value}">${data.value}</option>`;
                 } else if (data.type === "category") {
                     if (categorySelect) categorySelect.innerHTML += `<option value="${data.value}">${data.value}</option>`;
+                }
+
+                if (settingsBody) {
+                    settingsBody.innerHTML += `
+                        <tr class="hover:bg-slate-700/50">
+                            <td class="p-3 capitalize text-amber-300 font-medium">${data.type}</td>
+                            <td class="p-3">${data.value}</td>
+                        </tr>
+                    `;
                 }
             });
         }
