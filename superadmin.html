@@ -130,8 +130,8 @@
                     </select>
                 </div>
                 <div>
-                    <label class="block text-xs sm:text-sm font-medium mb-1">Asset Status / Location Context</label>
-                    <select id="itemStatus" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm focus:outline-none focus:border-red-500">
+                    <label class="block text-xs sm:text-sm font-medium mb-1">Asset Status</label>
+                    <select id="itemStatus" onchange="handleRegistrationStatusChange()" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm focus:outline-none focus:border-red-500">
                         <option value="Own Warehouse">Own Warehouse</option>
                         <option value="Supplier Site">Supplier Site</option>
                         <option value="Client Site">Client Site</option>
@@ -139,8 +139,8 @@
                         <option value="Disposed">Disposed</option>
                     </select>
                 </div>
-                <div>
-                    <label class="block text-xs sm:text-sm font-medium mb-1">Assigned Warehouse (Linked to Other Settings)</label>
+                <div id="registerLocationContainer">
+                    <label class="block text-xs sm:text-sm font-medium mb-1">Assigned Warehouse</label>
                     <select id="itemLocation" required class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm focus:outline-none focus:border-red-500">
                         <option value="">-- Select Warehouse --</option>
                     </select>
@@ -176,7 +176,7 @@
                         </div>
                         <div>
                             <label class="block text-xs font-medium mb-1">Update Status</label>
-                            <select id="editItemStatus" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm">
+                            <select id="editItemStatus" onchange="handleFollowupStatusChange()" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm">
                                 <option value="Own Warehouse">Own Warehouse</option>
                                 <option value="Supplier Site">Supplier Site</option>
                                 <option value="Client Site">Client Site</option>
@@ -185,7 +185,7 @@
                                 <option value="Disposed">Disposed</option>
                             </select>
                         </div>
-                        <div>
+                        <div id="editLocationContainer">
                             <label class="block text-xs font-medium mb-1">Update Current Location / Destination</label>
                             <input type="text" id="editItemLocation" required class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm">
                         </div>
@@ -427,7 +427,7 @@
             </div>
         </section>
 
-        <!-- Tab 7: Other Settings (Warehouse settings on top, Categories below) -->
+        <!-- Tab 7: Other Settings -->
         <section id="tab-settings" class="bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-700 space-y-6 shadow-xl hidden w-full max-w-5xl flex flex-col items-center">
             <h2 class="text-base sm:text-lg font-bold text-center">Global Master Settings Configuration</h2>
             
@@ -496,10 +496,8 @@
         let clientDocsData = [];
         let supplierProfilesData = [];
         let supplierDocsData = [];
-        let clientSortAsc = true;
-        let clientDocSortAsc = true;
-        let supplierSortAsc = true;
-        let supplierDocSortAsc = true;
+        let warehousesData = [];
+        let tableSortDirections = {};
 
         onAuthStateChanged(auth, async (user) => {
             if (!user) { window.location.href = "index.html"; return; }
@@ -508,12 +506,12 @@
                 window.location.href = "index.html";
             } else {
                 currentUserEmail = userSnap.data().email;
+                await loadSettings();
+                await loadClientProfiles();
+                await loadSupplierProfiles();
                 loadGlobalInventory();
                 loadUserDirectory();
-                loadSettings();
-                loadClientProfiles();
                 loadClientDocs();
-                loadSupplierProfiles();
                 loadSupplierDocs();
             }
         });
@@ -538,6 +536,46 @@
             reader.onload = () => resolve(reader.result);
             reader.onerror = error => reject(error);
         });
+
+        window.handleRegistrationStatusChange = () => {
+            const status = document.getElementById("itemStatus").value;
+            const container = document.getElementById("registerLocationContainer");
+            if (!container) return;
+
+            if (status === "Client Site") {
+                let options = '<option value="">-- Select Client --</option>';
+                clientProfilesData.forEach(c => options += `<option value="Client: ${c.clientName}">${c.clientName}</option>`);
+                container.innerHTML = `<label class="block text-xs sm:text-sm font-medium mb-1">Select Client Site</label><select id="itemLocation" required class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm focus:outline-none focus:border-red-500">${options}</select>`;
+            } else if (status === "Supplier Site") {
+                let options = '<option value="">-- Select Supplier --</option>';
+                supplierProfilesData.forEach(s => options += `<option value="Supplier: ${s.supplierName}">${s.supplierName}</option>`);
+                container.innerHTML = `<label class="block text-xs sm:text-sm font-medium mb-1">Select Supplier Site</label><select id="itemLocation" required class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm focus:outline-none focus:border-red-500">${options}</select>`;
+            } else {
+                let options = '<option value="">-- Select Warehouse --</option>';
+                warehousesData.forEach(w => options += `<option value="${w}">${w}</option>`);
+                container.innerHTML = `<label class="block text-xs sm:text-sm font-medium mb-1">Assigned Warehouse</label><select id="itemLocation" required class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm focus:outline-none focus:border-red-500">${options}</select>`;
+            }
+        };
+
+        window.handleFollowupStatusChange = () => {
+            const status = document.getElementById("editItemStatus").value;
+            const container = document.getElementById("editLocationContainer");
+            if (!container) return;
+
+            if (status === "Client Site") {
+                let options = '<option value="">-- Select Client --</option>';
+                clientProfilesData.forEach(c => options += `<option value="Client: ${c.clientName}">${c.clientName}</option>`);
+                container.innerHTML = `<label class="block text-xs font-medium mb-1">Update Client Location</label><select id="editItemLocation" required class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm">${options}</select>`;
+            } else if (status === "Supplier Site") {
+                let options = '<option value="">-- Select Supplier --</option>';
+                supplierProfilesData.forEach(s => options += `<option value="Supplier: ${s.supplierName}">${s.supplierName}</option>`);
+                container.innerHTML = `<label class="block text-xs font-medium mb-1">Update Supplier Location</label><select id="editItemLocation" required class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm">${options}</select>`;
+            } else {
+                let options = '<option value="">-- Select Warehouse --</option>';
+                warehousesData.forEach(w => options += `<option value="${w}">${w}</option>`);
+                container.innerHTML = `<label class="block text-xs font-medium mb-1">Update Warehouse Location</label><select id="editItemLocation" required class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm">${options}</select>`;
+            }
+        };
 
         function populateAssetCodeDropdowns() {
             const clientAssetSelect = document.getElementById("clientDocAssetCode");
@@ -581,8 +619,8 @@
 
             let filtered = globalInventoryData.filter(item => {
                 const matchesSearch = item.itemCode.toLowerCase().includes(searchVal) ||
-                                      item.name.toLowerCase().includes(searchVal) ||
-                                      (item.remark && item.remark.toLowerCase().includes(searchVal));
+                                    item.name.toLowerCase().includes(searchVal) ||
+                                    (item.remark && item.remark.toLowerCase().includes(searchVal));
                 const matchesStatus = statusVal === "" || item.status.includes(statusVal) || item.currentLocation.includes(statusVal);
                 return matchesSearch && matchesStatus;
             });
@@ -636,7 +674,6 @@
             });
         }
 
-        // Open History & Document Modal
         window.openHistoryModal = async (itemId) => {
             const modal = document.getElementById("historyModal");
             const titleEl = document.getElementById("modalAssetTitle");
@@ -649,7 +686,6 @@
             const data = itemSnap.data();
             titleEl.textContent = `Asset: ${data.itemCode} - ${data.name}`;
 
-            // Render Lifecycle History
             historyContainer.innerHTML = "";
             if (data.lifecycleHistory && data.lifecycleHistory.length > 0) {
                 data.lifecycleHistory.forEach((h, idx) => {
@@ -665,7 +701,6 @@
                 historyContainer.innerHTML = `<p class="text-slate-500">No historical logs recorded.</p>`;
             }
 
-            // Render Uploaded Documents (Transit, Registration, Followups)
             docsContainer.innerHTML = "";
             if (data.documents && data.documents.length > 0) {
                 data.documents.forEach((docItem, idx) => {
@@ -695,7 +730,6 @@
             modal.classList.add("hidden");
         };
 
-        let tableSortDirections = {};
         window.toggleTableSort = (tableId, colIndex) => {
             const table = document.getElementById(tableId);
             const tbody = table.querySelector("tbody");
@@ -824,6 +858,7 @@
                 await addDoc(collection(db, "inventory"), newItem);
                 alert("Asset registered successfully!");
                 document.getElementById("registerForm").reset();
+                handleRegistrationStatusChange();
                 loadGlobalInventory();
                 switchTab('inventory');
             } catch (err) {
@@ -845,6 +880,7 @@
                 document.getElementById("editAssetId").value = assetId;
                 document.getElementById("editItemName").value = data.name || "";
                 document.getElementById("editItemStatus").value = data.status || "Own Warehouse";
+                handleFollowupStatusChange();
                 document.getElementById("editItemLocation").value = data.currentLocation || "";
                 document.getElementById("editItemRemark").value = "";
                 followupForm.classList.remove("hidden");
@@ -922,26 +958,29 @@
                 await addDoc(collection(db, "client_profiles"), { clientName, contact, createdAt: new Date().toISOString() });
                 alert("Client profile saved!");
                 document.getElementById("clientRegisterForm").reset();
-                loadClientProfiles();
+                await loadClientProfiles();
+                handleRegistrationStatusChange();
+                handleFollowupStatusChange();
             } catch (err) { alert("Error: " + err.message); }
         });
 
         async function loadClientProfiles() {
             const select = document.getElementById("clientDocSelect");
-            select.innerHTML = '<option value="">-- Choose Client --</option>';
+            if (select) select.innerHTML = '<option value="">-- Choose Client --</option>';
             clientProfilesData = [];
             const snap = await getDocs(collection(db, "client_profiles"));
             snap.forEach(d => {
                 const data = d.data();
                 data.id = d.id;
                 clientProfilesData.push(data);
-                select.innerHTML += `<option value="${data.clientName}">${data.clientName}</option>`;
+                if (select) select.innerHTML += `<option value="${data.clientName}">${data.clientName}</option>`;
             });
             renderClientProfilesTable(clientProfilesData);
         }
 
         function renderClientProfilesTable(data) {
             const tbody = document.getElementById("clientProfileBody");
+            if (!tbody) return;
             tbody.innerHTML = "";
             data.forEach(item => {
                 tbody.innerHTML += `<tr><td class="p-2 font-medium">${item.clientName}</td><td class="p-2 text-slate-400">${item.contact || 'N/A'}</td></tr>`;
@@ -992,6 +1031,7 @@
 
         function renderClientDocsTable(data) {
             const tbody = document.getElementById("clientDocTableBody");
+            if (!tbody) return;
             tbody.innerHTML = "";
             data.forEach(item => {
                 tbody.innerHTML += `<tr>
@@ -1018,26 +1058,29 @@
                 await addDoc(collection(db, "supplier_profiles"), { supplierName, contact, createdAt: new Date().toISOString() });
                 alert("Supplier profile saved!");
                 document.getElementById("supplierRegisterForm").reset();
-                loadSupplierProfiles();
+                await loadSupplierProfiles();
+                handleRegistrationStatusChange();
+                handleFollowupStatusChange();
             } catch (err) { alert("Error: " + err.message); }
         });
 
         async function loadSupplierProfiles() {
             const select = document.getElementById("supplierDocSelect");
-            select.innerHTML = '<option value="">-- Choose Supplier --</option>';
+            if (select) select.innerHTML = '<option value="">-- Choose Supplier --</option>';
             supplierProfilesData = [];
             const snap = await getDocs(collection(db, "supplier_profiles"));
             snap.forEach(d => {
                 const data = d.data();
                 data.id = d.id;
                 supplierProfilesData.push(data);
-                select.innerHTML += `<option value="${data.supplierName}">${data.supplierName}</option>`;
+                if (select) select.innerHTML += `<option value="${data.supplierName}">${data.supplierName}</option>`;
             });
             renderSupplierProfilesTable(supplierProfilesData);
         }
 
         function renderSupplierProfilesTable(data) {
             const tbody = document.getElementById("supplierProfileBody");
+            if (!tbody) return;
             tbody.innerHTML = "";
             data.forEach(item => {
                 tbody.innerHTML += `<tr><td class="p-2 font-medium">${item.supplierName}</td><td class="p-2 text-slate-400">${item.contact || 'N/A'}</td></tr>`;
@@ -1088,6 +1131,7 @@
 
         function renderSupplierDocsTable(data) {
             const tbody = document.getElementById("supplierDocTableBody");
+            if (!tbody) return;
             tbody.innerHTML = "";
             data.forEach(item => {
                 tbody.innerHTML += `<tr>
@@ -1108,6 +1152,7 @@
 
         async function loadUserDirectory() {
             const tbody = document.getElementById("userTableBody");
+            if (!tbody) return;
             tbody.innerHTML = "";
             const querySnapshot = await getDocs(collection(db, "users"));
             querySnapshot.forEach((docSnap) => {
@@ -1169,7 +1214,9 @@
             await addDoc(collection(db, "settings"), { type: "warehouse", value: name });
             alert("Warehouse added!");
             document.getElementById("warehouseName").value = "";
-            loadSettings();
+            await loadSettings();
+            handleRegistrationStatusChange();
+            handleFollowupStatusChange();
         });
 
         document.getElementById("categoryForm").addEventListener("submit", async (e) => {
@@ -1190,17 +1237,18 @@
             const whContainer = document.getElementById("warehouseListContainer");
             const catContainer = document.getElementById("categoryListContainer");
             const categorySelect = document.getElementById("itemCategory");
-            const locationSelect = document.getElementById("itemLocation");
 
-            whContainer.innerHTML = "";
-            catContainer.innerHTML = "";
+            if (whContainer) whContainer.innerHTML = "";
+            if (catContainer) catContainer.innerHTML = "";
             if (categorySelect) categorySelect.innerHTML = '<option value="">-- Select Category --</option>';
-            if (locationSelect) locationSelect.innerHTML = '<option value="">-- Select Warehouse --</option>';
+            warehousesData = [];
 
             const snap = await getDocs(collection(db, "settings"));
             if (snap.empty) {
-                whContainer.innerHTML = "<p>No warehouses configured.</p>";
-                catContainer.innerHTML = "<p>No categories configured.</p>";
+                if (whContainer) whContainer.innerHTML = "<p>No warehouses configured.</p>";
+                if (catContainer) catContainer.innerHTML = "<p>No categories configured.</p>";
+                handleRegistrationStatusChange();
+                handleFollowupStatusChange();
                 return;
             }
 
@@ -1219,13 +1267,16 @@
                 `;
 
                 if (data.type === "warehouse") {
-                    whContainer.innerHTML += itemHTML;
-                    if (locationSelect) locationSelect.innerHTML += `<option value="${data.value}">${data.value}</option>`;
+                    if (whContainer) whContainer.innerHTML += itemHTML;
+                    warehousesData.push(data.value);
                 } else if (data.type === "category") {
-                    catContainer.innerHTML += itemHTML;
+                    if (catContainer) catContainer.innerHTML += itemHTML;
                     if (categorySelect) categorySelect.innerHTML += `<option value="${data.value}">${data.value}</option>`;
                 }
             });
+
+            handleRegistrationStatusChange();
+            handleFollowupStatusChange();
         }
 
         window.editSetting = async (settingId, oldVal) => {
@@ -1234,7 +1285,9 @@
                 try {
                     await updateDoc(doc(db, "settings", settingId), { value: newVal.trim() });
                     alert("Setting updated successfully!");
-                    loadSettings();
+                    await loadSettings();
+                    handleRegistrationStatusChange();
+                    handleFollowupStatusChange();
                 } catch (err) { alert("Error updating setting: " + err.message); }
             }
         };
