@@ -22,6 +22,7 @@
             <button onclick="switchTab('register')" id="tab-register-btn" class="text-slate-400 pb-2 text-xs sm:text-sm md:text-base px-3 py-1.5 transition rounded-lg hover:bg-slate-800/40">Register & Lifecycle Followup</button>
             <button onclick="switchTab('clients')" id="tab-clients-btn" class="text-slate-400 pb-2 text-xs sm:text-sm md:text-base px-3 py-1.5 transition rounded-lg hover:bg-slate-800/40">Clients</button>
             <button onclick="switchTab('suppliers')" id="tab-suppliers-btn" class="text-slate-400 pb-2 text-xs sm:text-sm md:text-base px-3 py-1.5 transition rounded-lg hover:bg-slate-800/40">Suppliers</button>
+            <button onclick="switchTab('settings')" id="tab-settings-btn" class="text-slate-400 pb-2 text-xs sm:text-sm md:text-base px-3 py-1.5 transition rounded-lg hover:bg-slate-800/40">Master Settings</button>
         </div>
 
         <!-- Tab 1: Inventory Overview -->
@@ -380,6 +381,38 @@
                 </div>
             </div>
         </section>
+
+        <!-- Tab 6: Master Settings (Warehouses & Categories) -->
+        <section id="tab-settings" class="bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-700 space-y-6 shadow-xl hidden w-full max-w-5xl">
+            <h2 class="text-base sm:text-lg font-bold text-center">Master Settings (Warehouses & Categories)</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Warehouses Card -->
+                <div class="bg-slate-900/60 p-5 rounded-xl border border-slate-700 space-y-4">
+                    <h3 class="text-sm font-bold text-cyan-400">Add New Warehouse Location</h3>
+                    <form id="warehouseSettingForm" class="space-y-3">
+                        <input type="text" id="newWarehouseValue" required placeholder="e.g. Warehouse Alpha - Port Klang" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm">
+                        <button type="submit" class="w-full bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-2 rounded-lg text-sm transition">Add Warehouse</button>
+                    </form>
+                    <div class="mt-4 space-y-2">
+                        <h4 class="text-xs font-semibold text-slate-400">Existing Warehouses (View Only)</h4>
+                        <div id="warehouseListContainer" class="space-y-1.5 max-h-48 overflow-y-auto text-xs bg-slate-900 p-3 rounded-lg border border-slate-700"></div>
+                    </div>
+                </div>
+
+                <!-- Categories Card -->
+                <div class="bg-slate-900/60 p-5 rounded-xl border border-slate-700 space-y-4">
+                    <h3 class="text-sm font-bold text-cyan-400">Add New Equipment Category</h3>
+                    <form id="categorySettingForm" class="space-y-3">
+                        <input type="text" id="newCategoryValue" required placeholder="e.g. Subsea Valves" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm">
+                        <button type="submit" class="w-full bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-2 rounded-lg text-sm transition">Add Category</button>
+                    </form>
+                    <div class="mt-4 space-y-2">
+                        <h4 class="text-xs font-semibold text-slate-400">Existing Categories (View Only)</h4>
+                        <div id="categoryListContainer" class="space-y-1.5 max-h-48 overflow-y-auto text-xs bg-slate-900 p-3 rounded-lg border border-slate-700"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
     </main>
 
     <!-- Asset History & Document Modal -->
@@ -443,7 +476,7 @@
         });
 
         window.switchTab = (tabName) => {
-            ['inventory', 'transit', 'register', 'clients', 'suppliers'].forEach(tab => {
+            ['inventory', 'transit', 'register', 'clients', 'suppliers', 'settings'].forEach(tab => {
                 document.getElementById(`tab-${tab}`).classList.add("hidden");
                 document.getElementById(`tab-${tab}-btn`).className = "text-slate-400 pb-2 text-xs sm:text-sm md:text-base px-3 py-1.5 transition rounded-lg hover:bg-slate-800/40";
             });
@@ -1059,20 +1092,63 @@
             renderSupplierDocsTable(filtered);
         };
 
+        // Master Settings handlers for Manager (Add & View only)
+        document.getElementById("warehouseSettingForm").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const value = document.getElementById("newWarehouseValue").value.trim();
+            if (!value) return;
+            try {
+                await addDoc(collection(db, "settings"), { type: "warehouse", value, addedBy: currentUserEmail, createdAt: new Date().toISOString() });
+                alert("Warehouse added successfully!");
+                document.getElementById("warehouseSettingForm").reset();
+                await loadSettings();
+            } catch (err) { alert("Error: " + err.message); }
+        });
+
+        document.getElementById("categorySettingForm").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const value = document.getElementById("newCategoryValue").value.trim();
+            if (!value) return;
+            try {
+                await addDoc(collection(db, "settings"), { type: "category", value, addedBy: currentUserEmail, createdAt: new Date().toISOString() });
+                alert("Category added successfully!");
+                document.getElementById("categorySettingForm").reset();
+                await loadSettings();
+            } catch (err) { alert("Error: " + err.message); }
+        });
+
         async function loadSettings() {
             const categorySelect = document.getElementById("itemCategory");
             if (categorySelect) categorySelect.innerHTML = '<option value="">-- Select Category --</option>';
             warehousesData = [];
+
+            const warehouseListContainer = document.getElementById("warehouseListContainer");
+            const categoryListContainer = document.getElementById("categoryListContainer");
+            if (warehouseListContainer) warehouseListContainer.innerHTML = "";
+            if (categoryListContainer) categoryListContainer.innerHTML = "";
 
             const snap = await getDocs(collection(db, "settings"));
             snap.forEach(d => {
                 const data = d.data();
                 if (data.type === "warehouse") {
                     warehousesData.push(data.value);
+                    if (warehouseListContainer) {
+                        warehouseListContainer.innerHTML += `<div class="p-2 bg-slate-800 rounded border border-slate-700 font-medium text-slate-200">${data.value}</div>`;
+                    }
                 } else if (data.type === "category") {
                     if (categorySelect) categorySelect.innerHTML += `<option value="${data.value}">${data.value}</option>`;
+                    if (categoryListContainer) {
+                        categoryListContainer.innerHTML += `<div class="p-2 bg-slate-800 rounded border border-slate-700 font-medium text-slate-200">${data.value}</div>`;
+                    }
                 }
             });
+
+            if (warehouseListContainer && warehouseListContainer.innerHTML === "") {
+                warehouseListContainer.innerHTML = `<div class="text-slate-500">No warehouses configured.</div>`;
+            }
+            if (categoryListContainer && categoryListContainer.innerHTML === "") {
+                categoryListContainer.innerHTML = `<div class="text-slate-500">No categories configured.</div>`;
+            }
 
             handleRegistrationStatusChange();
             handleFollowupStatusChange();
