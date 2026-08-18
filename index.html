@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IMS Login - Industrial Inventory System</title>
+    <title>IMS</title>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
 </head>
 <body class="bg-slate-900 text-slate-100 flex items-center justify-center min-h-screen p-4">
@@ -29,7 +29,7 @@
 
     <script type="module">
         import { auth, db } from "./firebase-config.js";
-        import { signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
+        import { signInWithEmailAndPassword, signOut, setPersistence, browserSessionPersistence } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
         import { doc, getDoc } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
         document.getElementById("loginForm").addEventListener("submit", async (e) => {
@@ -39,12 +39,20 @@
             const errorMsg = document.getElementById("errorMsg");
 
             try {
+                await setPersistence(auth, browserSessionPersistence);
                 const userCredential = await signInWithEmailAndPassword(auth, email, password);
                 const uid = userCredential.user.uid;
 
                 const userDoc = await getDoc(doc(db, "users", uid));
                 if (userDoc.exists()) {
-                    const role = userDoc.data().role;
+                    const profile = userDoc.data();
+                    if (profile.status !== "active") {
+                        await signOut(auth);
+                        errorMsg.innerText = "This account is inactive. Please contact an authorized manager or superadmin.";
+                        errorMsg.classList.remove("hidden");
+                        return;
+                    }
+                    const role = profile.role;
                     if (role === "superadmin") window.location.href = "superadmin.html";
                     else if (role === "manager") window.location.href = "manager.html";
                     else if (role === "admin") window.location.href = "admin.html";
