@@ -8,1158 +8,236 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col">
-
-    <nav class="bg-slate-800 border-b border-slate-700 px-4 sm:px-6 py-4 flex flex-col sm:flex-row justify-between items-center gap-3 shadow-md">
-        <h1 class="text-lg sm:text-xl font-bold text-red-400">IMS System - Admin</h1>
-        <button id="logoutBtn" class="bg-red-600 hover:bg-red-500 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium w-full sm:w-auto transition">Logout</button>
-    </nav>
-
-    <main class="flex-1 max-w-6xl w-full mx-auto p-3 sm:p-6 space-y-6 box-border flex flex-col items-center">
-        <!-- Master Navigation Tabs -->
-        <div class="flex flex-wrap justify-center gap-2 border-b border-slate-700 pb-3 w-full">
-            <button onclick="switchTab('inventory')" id="tab-inventory-btn" class="text-red-400 font-semibold pb-2 border-b-2 border-red-400 text-xs sm:text-sm md:text-base px-3 py-1.5 transition rounded-lg bg-slate-800/80">Inventory Overview</button>
-            <button onclick="switchTab('transit')" id="tab-transit-btn" class="text-slate-400 pb-2 text-xs sm:text-sm md:text-base px-3 py-1.5 transition rounded-lg hover:bg-slate-800/40">Logistic</button>
-            <button onclick="switchTab('register')" id="tab-register-btn" class="text-slate-400 pb-2 text-xs sm:text-sm md:text-base px-3 py-1.5 transition rounded-lg hover:bg-slate-800/40">Register & Lifecycle Followup</button>
-            <button onclick="switchTab('clients')" id="tab-clients-btn" class="text-slate-400 pb-2 text-xs sm:text-sm md:text-base px-3 py-1.5 transition rounded-lg hover:bg-slate-800/40">Clients</button>
-            <button onclick="switchTab('suppliers')" id="tab-suppliers-btn" class="text-slate-400 pb-2 text-xs sm:text-sm md:text-base px-3 py-1.5 transition rounded-lg hover:bg-slate-800/40">Suppliers</button>
-            <button onclick="switchTab('settings')" id="tab-settings-btn" class="text-slate-400 pb-2 text-xs sm:text-sm md:text-base px-3 py-1.5 transition rounded-lg hover:bg-slate-800/40">Other settings</button>
-        </div>
-
-        <!-- Tab 1: Inventory Overview -->
-        <section id="tab-inventory" class="bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-700 space-y-4 shadow-xl w-full max-w-5xl">
-            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-                <h2 class="text-base sm:text-lg font-bold">Inventory & Audit Log (Relational Document Tracking)</h2>
-                <button onclick="exportTableToExcel('inventoryTable', 'Admin_Audit_Report.xlsx')" class="bg-emerald-600 hover:bg-emerald-500 px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold w-full sm:w-auto transition">Export Report</button>
-            </div>
-            
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-slate-900/50 p-3 rounded-xl border border-slate-700">
-                <input type="text" id="inventorySearch" placeholder="🔍 Search inventory & linked docs..." onkeyup="filterAndSortInventory()" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm focus:outline-none focus:border-red-500">
-                <select id="inventoryFilterStatus" onchange="filterAndSortInventory()" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm focus:outline-none focus:border-red-500">
-                    <option value="">Filter by Status / Location (All)</option>
-                    <option value="In Stock">In Stock</option>
-                    <option value="In Transit">In Transit</option>
-                    <option value="Rented">Rented</option>
-                    <option value="In Maintenance">In Maintenance</option>
-                </select>
-                <select id="inventorySortBy" onchange="filterAndSortInventory()" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm focus:outline-none focus:border-red-500">
-                    <option value="codeAsc">Sort: Code (A-Z)</option>
-                    <option value="codeDesc">Sort: Code (Z-A)</option>
-                    <option value="nameAsc">Sort: Name (A-Z)</option>
-                </select>
-            </div>
-
-            <div class="overflow-x-auto rounded-xl border border-slate-700">
-                <table id="inventoryTable" class="w-full text-left border-collapse min-w-[900px]">
-                    <thead>
-                        <tr class="bg-slate-900/50 border-b border-slate-700 text-slate-400 text-xs sm:text-sm">
-                            <th class="p-3 cursor-pointer select-none" onclick="toggleTableSort('inventoryTable', 0)">Code / SN ↕</th>
-                            <th class="p-3 cursor-pointer select-none" onclick="toggleTableSort('inventoryTable', 1)">Name ↕</th>
-                            <th class="p-3 cursor-pointer select-none" onclick="toggleTableSort('inventoryTable', 2)">Type / Category ↕</th>
-                            <th class="p-3 cursor-pointer select-none" onclick="toggleTableSort('inventoryTable', 3)">Status ↕</th>
-                            <th class="p-3 cursor-pointer select-none" onclick="toggleTableSort('inventoryTable', 4)">Location ↕</th>
-                            <th class="p-3">Linked Commercial Docs</th>
-                            <th class="p-3">Remark</th>
-                            <th class="p-3">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="inventoryTableBody" class="divide-y divide-slate-700 text-xs sm:text-sm"></tbody>
-                </table>
-            </div>
-        </section>
-
-        <!-- Tab 2: Logistic -->
-        <section id="tab-transit" class="bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-700 space-y-6 shadow-xl hidden w-full max-w-5xl flex flex-col items-center">
-            <h2 class="text-base sm:text-lg font-bold text-center">Movement & Shipping</h2>
-            <form id="transitForm" class="space-y-4 bg-slate-900/50 p-5 rounded-xl border border-slate-700 shadow-md w-full max-w-5xl">
-                <div>
-                    <label class="block text-xs sm:text-sm font-medium mb-1">Select Asset / Item Code</label>
-                    <select id="transitItemSelect" required class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm focus:outline-none focus:border-red-500">
-                        <option value="">-- Choose Asset --</option>
-                    </select>
-                </div>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-xs sm:text-sm font-medium mb-1">Transit Mode</label>
-                        <select id="transitMode" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm focus:outline-none focus:border-red-500">
-                            <option value="Sea Freight">🚢 Sea Freight</option>
-                            <option value="Land Transport">🚚 Land Transport</option>
-                            <option value="Air Freight">✈️ Air Freight</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-xs sm:text-sm font-medium mb-1">Destination / Carrier Detail</label>
-                        <input type="text" id="transitDestination" placeholder="e.g. Vessel MV Nusantara / Truck AA1234" required class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm focus:outline-none focus:border-red-500">
-                    </div>
-                </div>
-                <div>
-                    <label class="block text-xs sm:text-sm font-medium mb-1">Remark / Additional Info</label>
-                    <textarea id="transitRemark" placeholder="Enter logistics instructions or tracking notes..." rows="2" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm focus:outline-none focus:border-red-500"></textarea>
-                </div>
-                <div>
-                    <label class="block text-xs sm:text-sm font-medium mb-1">Shipping Docs (BL, Customs Clearance, etc.)</label>
-                    <input type="file" id="transitDocFile" class="w-full text-xs sm:text-sm text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs sm:file:text-sm file:font-semibold file:bg-red-600 file:text-white hover:file:bg-red-500 transition">
-                </div>
-                <button type="submit" class="w-full bg-red-600 hover:bg-red-500 text-white font-bold py-2.5 rounded-lg text-sm transition">Dispatch Asset & Upload Documents</button>
-            </form>
-        </section>
-
-        <!-- Tab 3: Register & Lifecycle Followup -->
-        <section id="tab-register" class="bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-700 space-y-6 shadow-xl hidden w-full max-w-5xl">
-            <h2 class="text-base sm:text-lg font-bold text-center">Register New Equipment or Part</h2>
-            <form id="registerForm" class="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-slate-900/50 p-5 rounded-xl border border-slate-700">
-                <div>
-                    <label class="block text-xs sm:text-sm font-medium mb-1">Item Type</label>
-                    <select id="itemType" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm focus:outline-none focus:border-red-500">
-                        <option value="Equipment">Equipment</option>
-                        <option value="Part">Part</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-xs sm:text-sm font-medium mb-1">Item Code / Serial Number</label>
-                    <input type="text" id="itemCode" required class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm focus:outline-none focus:border-red-500">
-                </div>
-                <div>
-                    <label class="block text-xs sm:text-sm font-medium mb-1">Item Name</label>
-                    <input type="text" id="itemName" required class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm focus:outline-none focus:border-red-500">
-                </div>
-                <div>
-                    <label class="block text-xs sm:text-sm font-medium mb-1">Category (Linked to Other Settings)</label>
-                    <select id="itemCategory" required class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm focus:outline-none focus:border-red-500">
-                        <option value="">-- Select Category --</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-xs sm:text-sm font-medium mb-1">Asset Status</label>
-                    <select id="itemStatus" onchange="handleRegistrationStatusChange()" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm focus:outline-none focus:border-red-500">
-                        <option value="Own Warehouse">Own Warehouse</option>
-                        <option value="Supplier Site">Supplier Site</option>
-                        <option value="Client Site">Client Site</option>
-                        <option value="In Maintenance">In Maintenance</option>
-                        <option value="Disposed">Disposed</option>
-                    </select>
-                </div>
-                <div id="registerLocationContainer">
-                    <label class="block text-xs sm:text-sm font-medium mb-1">Assigned Warehouse</label>
-                    <select id="itemLocation" required class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm focus:outline-none focus:border-red-500">
-                        <option value="">-- Select Warehouse --</option>
-                    </select>
-                </div>
-                <div class="sm:col-span-2">
-                    <label class="block text-xs sm:text-sm font-medium mb-1">Remark / Asset Notes</label>
-                    <textarea id="itemRemark" placeholder="Add custom remarks or operational instructions..." rows="2" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm focus:outline-none focus:border-red-500"></textarea>
-                </div>
-                <div class="sm:col-span-2 border-t border-slate-700 pt-4">
-                    <label class="block text-xs sm:text-sm font-medium mb-1">Lifecycle / Compliance Document (Optional)</label>
-                    <input type="file" id="initialDoc" class="w-full text-xs sm:text-sm text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs sm:file:text-sm file:font-semibold file:bg-red-600 file:text-white hover:file:bg-red-500 transition">
-                </div>
-                <div class="sm:col-span-2 flex justify-center">
-                    <button type="submit" class="w-full sm:w-auto bg-red-600 hover:bg-red-500 text-white font-bold py-2.5 px-6 rounded-lg text-sm transition">Save & Register Asset</button>
-                </div>
-            </form>
-
-            <div class="bg-slate-900/60 p-5 rounded-xl border border-slate-700 space-y-4">
-                <h3 class="text-base font-bold text-red-400 text-center">Lifecycle Followup & Status Updates</h3>
-                <div>
-                    <label class="block text-xs font-medium mb-1">Select Asset to Follow Up / Update Status</label>
-                    <select id="followupAssetSelect" onchange="populateFollowupForm()" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm">
-                        <option value="">-- Choose Registered Asset --</option>
-                    </select>
-                </div>
-                
-                <form id="followupForm" class="space-y-4 hidden border-t border-slate-700 pt-4">
-                    <input type="hidden" id="editAssetId">
-                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                        <div>
-                            <label class="block text-xs font-medium mb-1">Update Status</label>
-                            <select id="editItemStatus" onchange="handleFollowupStatusChange()" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm">
-                                <option value="Own Warehouse">Own Warehouse</option>
-                                <option value="Supplier Site">Supplier Site</option>
-                                <option value="Client Site">Client Site</option>
-                                <option value="In Transit (Returning)">In Transit (Returning)</option>
-                                <option value="In Maintenance">In Maintenance</option>
-                                <option value="Disposed">Disposed</option>
-                            </select>
-                        </div>
-                        <div id="editLocationContainer">
-                            <label class="block text-xs font-medium mb-1">Update Current Location / Destination</label>
-                            <input type="text" id="editItemLocation" required class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-medium mb-1">Append Remark / Status Note</label>
-                            <input type="text" id="editItemRemark" placeholder="e.g. Returned safely to warehouse" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm">
-                        </div>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium mb-1">Add Followup Document (Inspection Report, Return Slip, etc.)</label>
-                        <input type="file" id="followupFile" class="w-full text-xs text-slate-400 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:bg-red-600 file:text-white">
-                    </div>
-                    <div class="flex justify-end gap-2">
-                        <button type="submit" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 px-6 rounded-lg text-sm transition">Save Followup</button>
-                    </div>
-                </form>
-            </div>
-        </section>
-
-        <!-- Tab 4: Clients -->
-        <section id="tab-clients" class="bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-700 space-y-6 shadow-xl hidden w-full max-w-5xl">
-            <div class="bg-slate-900/60 p-5 rounded-xl border border-slate-700 space-y-4 shadow-md w-full">
-                <h2 class="text-base font-bold text-red-400 text-center">Register Client Profile</h2>
-                <form id="clientRegisterForm" class="space-y-3">
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-xs font-medium mb-1">Client Company Name</label>
-                            <input type="text" id="regClientName" required placeholder="e.g. Petronas Carigali" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-medium mb-1">Contact Person & Email</label>
-                            <input type="text" id="regClientContact" placeholder="e.g. John Doe (john@petronas.com)" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm">
-                        </div>
-                    </div>
-                    <button type="submit" class="w-full sm:w-auto bg-red-600 hover:bg-red-500 text-white font-bold py-2 px-6 rounded-lg text-sm">Save Client Profile</button>
-                </form>
-                <div class="mt-4 space-y-2">
-                    <input type="text" id="clientSearch" placeholder="🔍 Search Clients..." onkeyup="filterClientsTable()" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-xs">
-                    <div class="overflow-x-auto rounded-xl border border-slate-700 max-h-48 overflow-y-auto">
-                        <table id="clientProfileTable" class="w-full text-left border-collapse min-w-[300px]">
-                            <thead>
-                                <tr class="bg-slate-900/50 border-b border-slate-700 text-slate-400 text-xs">
-                                    <th class="p-2 cursor-pointer select-none" onclick="toggleTableSort('clientProfileTable', 0)">Client Name ↕</th>
-                                    <th class="p-2 cursor-pointer select-none" onclick="toggleTableSort('clientProfileTable', 1)">Contact ↕</th>
-                                </tr>
-                            </thead>
-                            <tbody id="clientProfileBody" class="divide-y divide-slate-700 text-xs"></tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
-            <div class="bg-slate-900/60 p-5 rounded-xl border border-slate-700 space-y-4 shadow-md w-full">
-                <h2 class="text-base font-bold text-red-400 text-center">Client Commercial Documents</h2>
-                <form id="clientDocForm" class="space-y-3">
-                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                        <div>
-                            <label class="block text-xs font-medium mb-1">Select Client</label>
-                            <select id="clientDocSelect" required class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm">
-                                <option value="">-- Choose Client --</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-medium mb-1">Doc Type</label>
-                            <select id="clientDocType" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm">
-                                <option value="PO">Purchase Order (PO)</option>
-                                <option value="DO">Delivery Order (DO)</option>
-                                <option value="Invoice">Invoice (Inv)</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-medium mb-1">Document Date</label>
-                            <input type="date" id="clientDocDate" required class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-medium mb-1">Link to Asset Code / SN (Optional)</label>
-                            <select id="clientDocAssetCode" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm">
-                                <option value="">-- None / General Doc --</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium mb-1">File Attachment (Base64)</label>
-                        <input type="file" id="clientFile" required class="w-full text-xs text-slate-400 file:mr-2 file:py-1.5 file:px-3 file:rounded file:border-0 file:bg-red-600 file:text-white">
-                    </div>
-                    <button type="submit" class="w-full sm:w-auto bg-red-600 hover:bg-red-500 text-white font-bold py-2 px-6 rounded-lg text-sm">Upload Document & Link Asset</button>
-                </form>
-                <div class="mt-4 space-y-2">
-                    <input type="text" id="clientDocSearch" placeholder="🔍 Search Client Docs or Asset Codes..." onkeyup="filterClientDocsTable()" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-xs">
-                    <div class="overflow-x-auto rounded-xl border border-slate-700 max-h-48 overflow-y-auto">
-                        <table id="clientDocTable" class="w-full text-left border-collapse min-w-[300px]">
-                            <thead>
-                                <tr class="bg-slate-900/50 border-b border-slate-700 text-slate-400 text-xs">
-                                    <th class="p-2 cursor-pointer select-none" onclick="toggleTableSort('clientDocTable', 0)">Client ↕</th>
-                                    <th class="p-2 cursor-pointer select-none" onclick="toggleTableSort('clientDocTable', 1)">Type ↕</th>
-                                    <th class="p-2 cursor-pointer select-none" onclick="toggleTableSort('clientDocTable', 2)">Linked Asset Code ↕</th>
-                                    <th class="p-2">Date</th>
-                                    <th class="p-2">File</th>
-                                </tr>
-                            </thead>
-                            <tbody id="clientDocTableBody" class="divide-y divide-slate-700 text-xs"></tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Tab 5: Suppliers -->
-        <section id="tab-suppliers" class="bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-700 space-y-6 shadow-xl hidden w-full max-w-5xl">
-            <div class="bg-slate-900/60 p-5 rounded-xl border border-slate-700 space-y-4 shadow-md w-full">
-                <h2 class="text-base font-bold text-red-400 text-center">Register Supplier Profile</h2>
-                <form id="supplierRegisterForm" class="space-y-3">
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-xs font-medium mb-1">Supplier Company Name</label>
-                            <input type="text" id="regSupplierName" required placeholder="e.g. Schlumberger Parts" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-medium mb-1">Contact Person & Email</label>
-                            <input type="text" id="regSupplierContact" placeholder="e.g. Jane Smith (jane@schlumberger.com)" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm">
-                        </div>
-                    </div>
-                    <button type="submit" class="w-full sm:w-auto bg-red-600 hover:bg-red-500 text-white font-bold py-2 px-6 rounded-lg text-sm">Save Supplier Profile</button>
-                </form>
-                <div class="mt-4 space-y-2">
-                    <input type="text" id="supplierSearch" placeholder="🔍 Search Suppliers..." onkeyup="filterSuppliersTable()" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-xs">
-                    <div class="overflow-x-auto rounded-xl border border-slate-700 max-h-48 overflow-y-auto">
-                        <table id="supplierProfileTable" class="w-full text-left border-collapse min-w-[300px]">
-                            <thead>
-                                <tr class="bg-slate-900/50 border-b border-slate-700 text-slate-400 text-xs">
-                                    <th class="p-2 cursor-pointer select-none" onclick="toggleTableSort('supplierProfileTable', 0)">Supplier Name ↕</th>
-                                    <th class="p-2 cursor-pointer select-none" onclick="toggleTableSort('supplierProfileTable', 1)">Contact ↕</th>
-                                </tr>
-                            </thead>
-                            <tbody id="supplierProfileBody" class="divide-y divide-slate-700 text-xs"></tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
-            <div class="bg-slate-900/60 p-5 rounded-xl border border-slate-700 space-y-4 shadow-md w-full">
-                <h2 class="text-base font-bold text-red-400 text-center">Supplier Compliance Documents</h2>
-                <form id="supplierDocForm" class="space-y-3">
-                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                        <div>
-                            <label class="block text-xs font-medium mb-1">Select Supplier</label>
-                            <select id="supplierDocSelect" required class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm">
-                                <option value="">-- Choose Supplier --</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-medium mb-1">Doc Type</label>
-                            <select id="supplierDocType" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm">
-                                <option value="Supplier Invoice">Supplier Invoice</option>
-                                <option value="Our PO">Our PO to Supplier</option>
-                                <option value="Supplier DO">Supplier DO</option>
-                                <option value="SIRIM Certificate">SIRIM Certificate</option>
-                                <option value="Permit of Sale">Permit of Sale</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-medium mb-1">Document Date</label>
-                            <input type="date" id="supplierDocDate" required class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-medium mb-1">Link to Asset Code / SN (Optional)</label>
-                            <select id="supplierDocAssetCode" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm">
-                                <option value="">-- None / General Doc --</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium mb-1">File Attachment (Base64)</label>
-                        <input type="file" id="supplierFile" required class="w-full text-xs text-slate-400 file:mr-2 file:py-1.5 file:px-3 file:rounded file:border-0 file:bg-red-600 file:text-white">
-                    </div>
-                    <button type="submit" class="w-full sm:w-auto bg-red-600 hover:bg-red-500 text-white font-bold py-2 px-6 rounded-lg text-sm">Upload Document & Link Asset</button>
-                </form>
-                <div class="mt-4 space-y-2">
-                    <input type="text" id="supplierDocSearch" placeholder="🔍 Search Supplier Docs or Asset Codes..." onkeyup="filterSupplierDocsTable()" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-xs">
-                    <div class="overflow-x-auto rounded-xl border border-slate-700 max-h-48 overflow-y-auto">
-                        <table id="supplierDocTable" class="w-full text-left border-collapse min-w-[300px]">
-                            <thead>
-                                <tr class="bg-slate-900/50 border-b border-slate-700 text-slate-400 text-xs">
-                                    <th class="p-2 cursor-pointer select-none" onclick="toggleTableSort('supplierDocTable', 0)">Supplier ↕</th>
-                                    <th class="p-2 cursor-pointer select-none" onclick="toggleTableSort('supplierDocTable', 1)">Type ↕</th>
-                                    <th class="p-2 cursor-pointer select-none" onclick="toggleTableSort('supplierDocTable', 2)">Linked Asset Code ↕</th>
-                                    <th class="p-2">Date</th>
-                                    <th class="p-2">File</th>
-                                </tr>
-                            </thead>
-                            <tbody id="supplierDocTableBody" class="divide-y divide-slate-700 text-xs"></tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Tab 6: Other Settings -->
-        <section id="tab-settings" class="bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-700 space-y-6 shadow-xl hidden w-full max-w-5xl flex flex-col items-center">
-            <h2 class="text-base sm:text-lg font-bold text-center">Global Master Settings Configuration</h2>
-            
-            <div class="flex flex-col gap-6 w-full">
-                <!-- Warehouses -->
-                <div class="bg-slate-900/50 p-4 sm:p-6 rounded-xl border border-slate-700 shadow-md space-y-3 w-full">
-                    <h3 class="font-semibold text-sm sm:text-base text-cyan-400 text-center">Warehouse Settings</h3>
-                    <form id="warehouseForm" class="space-y-2">
-                        <input type="text" id="warehouseName" placeholder="e.g. Labuan Base" required class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm">
-                        <button type="submit" class="w-full bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-2 rounded-lg text-sm">Add Warehouse</button>
-                    </form>
-                    <div id="warehouseListContainer" class="space-y-2 max-h-48 overflow-y-auto text-xs text-slate-300">Loading warehouses...</div>
-                </div>
-
-                <!-- Categories -->
-                <div class="bg-slate-900/50 p-4 sm:p-6 rounded-xl border border-slate-700 shadow-md space-y-3 w-full">
-                    <h3 class="font-semibold text-sm sm:text-base text-amber-400 text-center">Categories Setting</h3>
-                    <form id="categoryForm" class="space-y-2">
-                        <input type="text" id="categoryName" placeholder="e.g. Drilling Bits (800+ Series)" required class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm">
-                        <div>
-                            <label class="block text-xs text-slate-400 mb-1">Sample Thumbnail Image (Base64)</label>
-                            <input type="file" id="categoryImageFile" class="w-full text-xs text-slate-400 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:bg-amber-600 file:text-white">
-                        </div>
-                        <button type="submit" class="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold py-2 rounded-lg text-sm">Add Category</button>
-                    </form>
-                    <div id="categoryListContainer" class="space-y-2 max-h-48 overflow-y-auto text-xs text-slate-300">Loading categories...</div>
-                </div>
-            </div>
-        </section>
-    </main>
-
-    <!-- Asset History & Document Modal -->
-    <div id="historyModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
-        <div class="bg-slate-800 border border-slate-700 rounded-2xl max-w-2xl w-full p-6 space-y-5 shadow-2xl max-h-[90vh] overflow-y-auto">
-            <div class="flex justify-between items-center border-b border-slate-700 pb-3">
-                <h3 id="modalAssetTitle" class="text-base sm:text-lg font-bold text-red-400">Asset History & Files</h3>
-                <button onclick="closeHistoryModal()" class="text-slate-400 hover:text-white font-bold text-lg px-2">✕</button>
-            </div>
-            
-            <div class="space-y-4">
-                <div>
-                    <h4 class="text-xs sm:text-sm font-semibold text-cyan-400 mb-2">📜 Movement & Lifecycle History Log</h4>
-                    <div id="modalHistoryContainer" class="space-y-2 bg-slate-900/60 p-3 rounded-xl border border-slate-700 text-xs max-h-48 overflow-y-auto"></div>
-                </div>
-
-                <div>
-                    <h4 class="text-xs sm:text-sm font-semibold text-amber-400 mb-2">📎 Attached Documents (Transit, Registration & Followups)</h4>
-                    <div id="modalDocsContainer" class="space-y-2 bg-slate-900/60 p-3 rounded-xl border border-slate-700 text-xs max-h-48 overflow-y-auto"></div>
-                </div>
-            </div>
-
-            <div class="flex justify-end pt-2">
-                <button onclick="closeHistoryModal()" class="bg-slate-700 hover:bg-slate-600 px-4 py-2 rounded-lg text-xs font-semibold">Close</button>
-            </div>
-        </div>
+<nav class="bg-slate-800 border-b border-slate-700 px-4 sm:px-6 py-4 flex flex-col sm:flex-row justify-between items-center gap-3 shadow-md">
+    <h1 class="text-lg sm:text-xl font-bold text-red-400">IMS System - Admin</h1>
+    <button id="logoutBtn" class="bg-red-600 hover:bg-red-500 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium w-full sm:w-auto transition">Logout</button>
+</nav>
+<main class="flex-1 max-w-6xl w-full mx-auto p-3 sm:p-6 space-y-6 box-border flex flex-col items-center">
+    <div class="flex flex-wrap justify-center gap-2 border-b border-slate-700 pb-3 w-full">
+        <button onclick="switchTab('inventory')" id="tab-inventory-btn" class="text-red-400 font-semibold pb-2 border-b-2 border-red-400 text-xs sm:text-sm md:text-base px-3 py-1.5 transition rounded-lg bg-slate-800/80">Inventory Overview</button>
+        <button onclick="switchTab('transit')" id="tab-transit-btn" class="text-slate-400 pb-2 text-xs sm:text-sm md:text-base px-3 py-1.5 transition rounded-lg hover:bg-slate-800/40">Logistic</button>
+        <button onclick="switchTab('register')" id="tab-register-btn" class="text-slate-400 pb-2 text-xs sm:text-sm md:text-base px-3 py-1.5 transition rounded-lg hover:bg-slate-800/40">Register & Lifecycle Followup</button>
+        <button onclick="switchTab('clients')" id="tab-clients-btn" class="text-slate-400 pb-2 text-xs sm:text-sm md:text-base px-3 py-1.5 transition rounded-lg hover:bg-slate-800/40">Clients</button>
+        <button onclick="switchTab('suppliers')" id="tab-suppliers-btn" class="text-slate-400 pb-2 text-xs sm:text-sm md:text-base px-3 py-1.5 transition rounded-lg hover:bg-slate-800/40">Suppliers</button>
+        
+        <button onclick="switchTab('settings')" id="tab-settings-btn" class="text-slate-400 pb-2 text-xs sm:text-sm md:text-base px-3 py-1.5 transition rounded-lg hover:bg-slate-800/40">Global Settings</button>
     </div>
 
-    <script type="module">
-        import { auth, db } from "./firebase-config.js";
-        import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
-        import { collection, addDoc, getDocs, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
-
-        let currentUserEmail = "";
-        let globalInventoryData = [];
-        let clientProfilesData = [];
-        let clientDocsData = [];
-        let supplierProfilesData = [];
-        let supplierDocsData = [];
-        let warehousesData = [];
-        let tableSortDirections = {};
-
-        onAuthStateChanged(auth, async (user) => {
-            if (!user) { window.location.href = "index.html"; return; }
-            const userSnap = await getDoc(doc(db, "users", user.uid));
-            if (!userSnap.exists() || (userSnap.data().role !== "admin" && userSnap.data().role !== "superadmin")) {
-                window.location.href = "index.html";
-            } else {
-                currentUserEmail = userSnap.data().email;
-                await loadSettings();
-                await loadClientProfiles();
-                await loadSupplierProfiles();
-                loadGlobalInventory();
-                loadClientDocs();
-                loadSupplierDocs();
-            }
-        });
-
-        document.getElementById("logoutBtn").addEventListener("click", () => {
-            signOut(auth).then(() => window.location.href = "index.html");
-        });
-
-        window.switchTab = (tabName) => {
-            ['inventory', 'transit', 'register', 'clients', 'suppliers', 'settings'].forEach(tab => {
-                document.getElementById(`tab-${tab}`).classList.add("hidden");
-                document.getElementById(`tab-${tab}-btn`).className = "text-slate-400 pb-2 text-xs sm:text-sm md:text-base px-3 py-1.5 transition rounded-lg hover:bg-slate-800/40";
-            });
-
-            document.getElementById(`tab-${tabName}`).classList.remove("hidden");
-            document.getElementById(`tab-${tabName}-btn`).className = "text-red-400 font-semibold pb-2 border-b-2 border-red-400 text-xs sm:text-sm md:text-base px-3 py-1.5 transition rounded-lg bg-slate-800/80";
-        };
-
-        const fileToBase64 = file => new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.readAsDataURL(file);
-            reader.onload = () => resolve(reader.result);
-            reader.onerror = error => reject(error);
-        });
-
-        window.handleRegistrationStatusChange = () => {
-            const status = document.getElementById("itemStatus").value;
-            const container = document.getElementById("registerLocationContainer");
-            if (!container) return;
-
-            if (status === "Client Site") {
-                let options = '<option value="">-- Select Client --</option>';
-                clientProfilesData.forEach(c => options += `<option value="Client: ${c.clientName}">${c.clientName}</option>`);
-                container.innerHTML = `<label class="block text-xs sm:text-sm font-medium mb-1">Select Client Site</label><select id="itemLocation" required class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm focus:outline-none focus:border-red-500">${options}</select>`;
-            } else if (status === "Supplier Site") {
-                let options = '<option value="">-- Select Supplier --</option>';
-                supplierProfilesData.forEach(s => options += `<option value="Supplier: ${s.supplierName}">${s.supplierName}</option>`);
-                container.innerHTML = `<label class="block text-xs sm:text-sm font-medium mb-1">Select Supplier Site</label><select id="itemLocation" required class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm focus:outline-none focus:border-red-500">${options}</select>`;
-            } else {
-                let options = '<option value="">-- Select Warehouse --</option>';
-                warehousesData.forEach(w => options += `<option value="${w}">${w}</option>`);
-                container.innerHTML = `<label class="block text-xs sm:text-sm font-medium mb-1">Assigned Warehouse</label><select id="itemLocation" required class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm focus:outline-none focus:border-red-500">${options}</select>`;
-            }
-        };
-
-        window.handleFollowupStatusChange = () => {
-            const status = document.getElementById("editItemStatus").value;
-            const container = document.getElementById("editLocationContainer");
-            if (!container) return;
-
-            if (status === "Client Site") {
-                let options = '<option value="">-- Select Client --</option>';
-                clientProfilesData.forEach(c => options += `<option value="Client: ${c.clientName}">${c.clientName}</option>`);
-                container.innerHTML = `<label class="block text-xs font-medium mb-1">Update Client Location</label><select id="editItemLocation" required class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm">${options}</select>`;
-            } else if (status === "Supplier Site") {
-                let options = '<option value="">-- Select Supplier --</option>';
-                supplierProfilesData.forEach(s => options += `<option value="Supplier: ${s.supplierName}">${s.supplierName}</option>`);
-                container.innerHTML = `<label class="block text-xs font-medium mb-1">Update Supplier Location</label><select id="editItemLocation" required class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm">${options}</select>`;
-            } else {
-                let options = '<option value="">-- Select Warehouse --</option>';
-                warehousesData.forEach(w => options += `<option value="${w}">${w}</option>`);
-                container.innerHTML = `<label class="block text-xs font-medium mb-1">Update Warehouse Location</label><select id="editItemLocation" required class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm">${options}</select>`;
-            }
-        };
-
-        function populateAssetCodeDropdowns() {
-            const clientAssetSelect = document.getElementById("clientDocAssetCode");
-            const supplierAssetSelect = document.getElementById("supplierDocAssetCode");
-            const followupSelect = document.getElementById("followupAssetSelect");
-            
-            let optionsHTML = '<option value="">-- None / General Doc --</option>';
-            let followupOptionsHTML = '<option value="">-- Choose Registered Asset --</option>';
-
-            globalInventoryData.forEach(item => {
-                optionsHTML += `<option value="${item.itemCode}">${item.itemCode} - ${item.name}</option>`;
-                followupOptionsHTML += `<option value="${item.id}">${item.itemCode} - ${item.name} (${item.status})</option>`;
-            });
-
-            if (clientAssetSelect) clientAssetSelect.innerHTML = optionsHTML;
-            if (supplierAssetSelect) supplierAssetSelect.innerHTML = optionsHTML;
-            if (followupSelect) followupSelect.innerHTML = followupOptionsHTML;
-        }
-
-        async function loadGlobalInventory() {
-            const transitSelect = document.getElementById("transitItemSelect");
-            transitSelect.innerHTML = '<option value="">-- Choose Asset --</option>';
-            globalInventoryData = [];
-
-            const querySnapshot = await getDocs(collection(db, "inventory"));
-            querySnapshot.forEach((docSnap) => {
-                const data = docSnap.data();
-                data.id = docSnap.id;
-                globalInventoryData.push(data);
-                transitSelect.innerHTML += `<option value="${data.id}">${data.itemCode} - ${data.name}</option>`;
-            });
-
-            populateAssetCodeDropdowns();
-            filterAndSortInventory();
-        }
-
-        window.filterAndSortInventory = () => {
-            const searchVal = document.getElementById("inventorySearch").value.toLowerCase();
-            const statusVal = document.getElementById("inventoryFilterStatus").value;
-            const sortVal = document.getElementById("inventorySortBy").value;
-
-            let filtered = globalInventoryData.filter(item => {
-                const matchesSearch = item.itemCode.toLowerCase().includes(searchVal) ||
-                                    item.name.toLowerCase().includes(searchVal) ||
-                                    (item.remark && item.remark.toLowerCase().includes(searchVal));
-                const matchesStatus = statusVal === "" || item.status.includes(statusVal) || item.currentLocation.includes(statusVal);
-                return matchesSearch && matchesStatus;
-            });
-
-            filtered.sort((a, b) => {
-                if (sortVal === 'codeAsc') return a.itemCode.localeCompare(b.itemCode);
-                if (sortVal === 'codeDesc') return b.itemCode.localeCompare(a.itemCode);
-                if (sortVal === 'nameAsc') return a.name.localeCompare(b.name);
-                return 0;
-            });
-
-            renderInventoryTable(filtered);
-        };
-
-        function renderInventoryTable(dataArray) {
-            const tbody = document.getElementById("inventoryTableBody");
-            tbody.innerHTML = "";
-            if (dataArray.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="8" class="p-4 text-center text-slate-500">No inventory records found.</td></tr>`;
-                return;
-            }
-
-            dataArray.forEach((data) => {
-                const linkedClientDocs = clientDocsData.filter(d => d.linkedAssetCode === data.itemCode);
-                const linkedSupplierDocs = supplierDocsData.filter(d => d.linkedAssetCode === data.itemCode);
-                
-                let docBadges = '';
-                linkedClientDocs.forEach(d => {
-                    docBadges += `<span class="inline-block px-1.5 py-0.5 rounded bg-cyan-900/80 text-cyan-200 text-[10px] mr-1 mb-1">Client ${d.docType} (${d.clientName})</span>`;
-                });
-                linkedSupplierDocs.forEach(d => {
-                    docBadges += `<span class="inline-block px-1.5 py-0.5 rounded bg-amber-900/80 text-amber-200 text-[10px] mr-1 mb-1">${d.docType} (${d.supplierName})</span>`;
-                });
-                if (!docBadges) docBadges = '<span class="text-slate-500 text-xs">No linked docs</span>';
-
-                tbody.innerHTML += `
-                    <tr class="hover:bg-slate-700/50" id="row-${data.id}">
-                        <td class="p-3 font-mono break-all">${data.itemCode}</td>
-                        <td class="p-3 font-medium">${data.name}</td>
-                        <td class="p-3">${data.type} <br><span class="text-xs text-slate-400">${data.category}</span></td>
-                        <td class="p-3"><span class="px-2 py-1 rounded bg-red-900 text-red-300 text-xs">${data.status}</span></td>
-                        <td class="p-3">${data.currentLocation}</td>
-                        <td class="p-3 max-w-[200px]">${docBadges}</td>
-                        <td class="p-3 text-slate-300 text-xs">${data.remark || 'None'}</td>
-                        <td class="p-3 flex gap-2">
-                            <button onclick="openHistoryModal('${data.id}')" class="bg-cyan-700/80 hover:bg-cyan-600 text-white px-2.5 py-1 rounded text-xs transition">History & Docs</button>
-                        </td>
-                    </tr>
-                `;
-            });
-        }
-
-        window.openHistoryModal = async (itemId) => {
-            const modal = document.getElementById("historyModal");
-            const titleEl = document.getElementById("modalAssetTitle");
-            const historyContainer = document.getElementById("modalHistoryContainer");
-            const docsContainer = document.getElementById("modalDocsContainer");
-
-            const itemSnap = await getDoc(doc(db, "inventory", itemId));
-            if (!itemSnap.exists()) return;
-
-            const data = itemSnap.data();
-            titleEl.textContent = `Asset: ${data.itemCode} - ${data.name}`;
-
-            historyContainer.innerHTML = "";
-            if (data.lifecycleHistory && data.lifecycleHistory.length > 0) {
-                data.lifecycleHistory.forEach((h, idx) => {
-                    historyContainer.innerHTML += `
-                        <div class="p-2 bg-slate-800 rounded border border-slate-700 space-y-1">
-                            <div class="flex justify-between text-slate-400"><span>#${idx + 1} Status: <strong class="text-white">${h.status}</strong></span><span>${new Date(h.timestamp).toLocaleString()}</span></div>
-                            <div>Location: <span class="text-cyan-300">${h.location}</span> | User: ${h.user || 'System'}</div>
-                            ${h.note ? `<div class="text-slate-300 italic">Note: ${h.note}</div>` : ''}
-                        </div>
-                    `;
-                });
-            } else {
-                historyContainer.innerHTML = `<p class="text-slate-500">No historical logs recorded.</p>`;
-            }
-
-            docsContainer.innerHTML = "";
-            if (data.documents && data.documents.length > 0) {
-                data.documents.forEach((docItem, idx) => {
-                    const fileName = docItem.docName || docItem.fileName || `Document #${idx + 1}`;
-                    const uploadDate = docItem.uploadedAt ? new Date(docItem.uploadedAt).toLocaleString() : 'N/A';
-                    docsContainer.innerHTML += `
-                        <div class="flex items-center justify-between p-2 bg-slate-800 rounded border border-slate-700">
-                            <div>
-                                <div class="font-medium text-amber-200">${fileName}</div>
-                                <div class="text-[10px] text-slate-400">Uploaded: ${uploadDate}</div>
-                            </div>
-                            ${docItem.base64Data ? `<a href="${docItem.base64Data}" download="${fileName}" class="bg-amber-600 hover:bg-amber-500 px-2.5 py-1 rounded text-white text-[10px] font-semibold">Download</a>` : '<span class="text-slate-500 text-[10px]">No File Data</span>'}
-                        </div>
-                    `;
-                });
-            } else {
-                docsContainer.innerHTML = `<p class="text-slate-500">No files attached to this asset.</p>`;
-            }
-
-            modal.classList.remove("hidden");
-            modal.classList.add("flex");
-        };
-
-        window.closeHistoryModal = () => {
-            const modal = document.getElementById("historyModal");
-            modal.classList.remove("flex");
-            modal.classList.add("hidden");
-        };
-
-        window.toggleTableSort = (tableId, colIndex) => {
-            const table = document.getElementById(tableId);
-            const tbody = table.querySelector("tbody");
-            const rowsArray = Array.from(tbody.querySelectorAll("tr"));
-            if (rowsArray.length <= 1) return;
-
-            tableSortDirections[colIndex] = !tableSortDirections[colIndex];
-            const asc = tableSortDirections[colIndex];
-
-            rowsArray.sort((rowA, rowB) => {
-                const cellA = rowA.cells[colIndex] ? rowA.cells[colIndex].textContent.trim() : "";
-                const cellB = rowB.cells[colIndex] ? rowB.cells[colIndex].textContent.trim() : "";
-                return asc ? cellA.localeCompare(cellB) : cellB.localeCompare(cellA);
-            });
-
-            rowsArray.forEach(row => tbody.appendChild(row));
-        };
-
-        document.getElementById("transitForm").addEventListener("submit", async (e) => {
-            e.preventDefault();
-            const itemId = document.getElementById("transitItemSelect").value;
-            const mode = document.getElementById("transitMode").value;
-            const destination = document.getElementById("transitDestination").value;
-            const remark = document.getElementById("transitRemark").value;
-            const fileInput = document.getElementById("transitDocFile");
-
-            if (!itemId) { alert("Please select an asset."); return; }
-
-            try {
-                let transitDocs = [];
-                if (fileInput.files.length > 0) {
-                    const b64 = await fileToBase64(fileInput.files[0]);
-                    transitDocs.push({
-                        docName: fileInput.files[0].name,
-                        base64Data: b64,
-                        uploadedAt: new Date().toISOString()
-                    });
-                }
-
-                const itemRef = doc(db, "inventory", itemId);
-                const itemSnap = await getDoc(itemRef);
-                if (!itemSnap.exists()) return;
-
-                const data = itemSnap.data();
-                const history = data.lifecycleHistory || [];
-                history.push({
-                    status: `In Transit (${mode})`,
-                    location: destination,
-                    timestamp: new Date().toISOString(),
-                    user: currentUserEmail
-                });
-
-                const existingDocs = data.documents || [];
-                const mergedDocs = [...existingDocs, ...transitDocs];
-
-                await updateDoc(itemRef, {
-                    status: `In Transit (${mode})`,
-                    currentLocation: destination,
-                    remark: remark ? `Transit: ${remark}` : data.remark,
-                    lifecycleHistory: history,
-                    documents: mergedDocs,
-                    lastEditedBy: currentUserEmail,
-                    lastEditedAt: new Date().toISOString()
-                });
-
-                alert(`Asset dispatched via ${mode} with documentation!`);
-                document.getElementById("transitForm").reset();
-                loadGlobalInventory();
-                switchTab('inventory');
-            } catch (err) {
-                alert("Error: " + err.message);
-            }
-        });
-
-        document.getElementById("registerForm").addEventListener("submit", async (e) => {
-            e.preventDefault();
-            const fileInput = document.getElementById("initialDoc");
-            let documents = [];
-
-            if (fileInput.files.length > 0) {
-                const b64 = await fileToBase64(fileInput.files[0]);
-                documents.push({
-                    docId: "doc_" + Date.now(),
-                    title: "Lifecycle Document",
-                    fileName: fileInput.files[0].name,
-                    base64Data: b64,
-                    uploadedAt: new Date().toISOString(),
-                    uploadedBy: currentUserEmail
-                });
-            }
-
-            const newItem = {
-                type: document.getElementById("itemType").value,
-                itemCode: document.getElementById("itemCode").value,
-                name: document.getElementById("itemName").value,
-                category: document.getElementById("itemCategory").value,
-                status: document.getElementById("itemStatus").value,
-                currentLocation: document.getElementById("itemLocation").value,
-                remark: document.getElementById("itemRemark").value,
-                documents: documents,
-                lifecycleHistory: [{
-                    status: document.getElementById("itemStatus").value,
-                    location: document.getElementById("itemLocation").value,
-                    timestamp: new Date().toISOString(),
-                    user: currentUserEmail
-                }],
-                createdBy: currentUserEmail,
-                createdAt: new Date().toISOString(),
-                lastEditedBy: null,
-                lastEditedAt: null
-            };
-
-            try {
-                await addDoc(collection(db, "inventory"), newItem);
-                alert("Asset registered successfully!");
-                document.getElementById("registerForm").reset();
-                handleRegistrationStatusChange();
-                loadGlobalInventory();
-                switchTab('inventory');
-            } catch (err) {
-                alert("Error: " + err.message);
-            }
-        });
-
-        window.populateFollowupForm = async () => {
-            const assetId = document.getElementById("followupAssetSelect").value;
-            const followupForm = document.getElementById("followupForm");
-            if (!assetId) {
-                followupForm.classList.add("hidden");
-                return;
-            }
-
-            const itemSnap = await getDoc(doc(db, "inventory", assetId));
-            if (itemSnap.exists()) {
-                const data = itemSnap.data();
-                document.getElementById("editAssetId").value = assetId;
-                document.getElementById("editItemStatus").value = data.status || "Own Warehouse";
-                handleFollowupStatusChange();
-                document.getElementById("editItemLocation").value = data.currentLocation || "";
-                document.getElementById("editItemRemark").value = "";
-                followupForm.classList.remove("hidden");
-            }
-        };
-
-        document.getElementById("followupForm").addEventListener("submit", async (e) => {
-            e.preventDefault();
-            const assetId = document.getElementById("editAssetId").value;
-            const status = document.getElementById("editItemStatus").value;
-            const location = document.getElementById("editItemLocation").value;
-            const remark = document.getElementById("editItemRemark").value;
-            const fileInput = document.getElementById("followupFile");
-
-            if (!assetId) return;
-
-            try {
-                let newDocs = [];
-                if (fileInput.files.length > 0) {
-                    const b64 = await fileToBase64(fileInput.files[0]);
-                    newDocs.push({
-                        docId: "doc_" + Date.now(),
-                        title: "Followup Document",
-                        fileName: fileInput.files[0].name,
-                        base64Data: b64,
-                        uploadedAt: new Date().toISOString(),
-                        uploadedBy: currentUserEmail
-                    });
-                }
-
-                const itemRef = doc(db, "inventory", assetId);
-                const itemSnap = await getDoc(itemRef);
-                if (!itemSnap.exists()) return;
-
-                const data = itemSnap.data();
-                const history = data.lifecycleHistory || [];
-                history.push({
-                    status: status,
-                    location: location,
-                    timestamp: new Date().toISOString(),
-                    user: currentUserEmail,
-                    note: remark || 'Lifecycle status update'
-                });
-
-                const existingDocs = data.documents || [];
-                const mergedDocs = [...existingDocs, ...newDocs];
-
-                await updateDoc(itemRef, {
-                    status: status,
-                    currentLocation: location,
-                    remark: remark ? `Followup: ${remark}` : data.remark,
-                    lifecycleHistory: history,
-                    documents: mergedDocs,
-                    lastEditedBy: currentUserEmail,
-                    lastEditedAt: new Date().toISOString()
-                });
-
-                alert("Asset lifecycle updated successfully!");
-                document.getElementById("followupForm").reset();
-                document.getElementById("followupForm").classList.add("hidden");
-                document.getElementById("followupAssetSelect").value = "";
-                loadGlobalInventory();
-            } catch (err) {
-                alert("Error: " + err.message);
-            }
-        });
-
-        document.getElementById("clientRegisterForm").addEventListener("submit", async (e) => {
-            e.preventDefault();
-            const clientName = document.getElementById("regClientName").value;
-            const contact = document.getElementById("regClientContact").value;
-            try {
-                await addDoc(collection(db, "client_profiles"), { clientName, contact, createdAt: new Date().toISOString() });
-                alert("Client profile saved!");
-                document.getElementById("clientRegisterForm").reset();
-                await loadClientProfiles();
-                handleRegistrationStatusChange();
-                handleFollowupStatusChange();
-            } catch (err) { alert("Error: " + err.message); }
-        });
-
-        async function loadClientProfiles() {
-            const select = document.getElementById("clientDocSelect");
-            if (select) select.innerHTML = '<option value="">-- Choose Client --</option>';
-            clientProfilesData = [];
-            const snap = await getDocs(collection(db, "client_profiles"));
-            snap.forEach(d => {
-                const data = d.data();
-                data.id = d.id;
-                clientProfilesData.push(data);
-                if (select) select.innerHTML += `<option value="${data.clientName}">${data.clientName}</option>`;
-            });
-            renderClientProfilesTable(clientProfilesData);
-        }
-
-        function renderClientProfilesTable(data) {
-            const tbody = document.getElementById("clientProfileBody");
-            if (!tbody) return;
-            tbody.innerHTML = "";
-            data.forEach(item => {
-                tbody.innerHTML += `<tr><td class="p-2 font-medium">${item.clientName}</td><td class="p-2 text-slate-400">${item.contact || 'N/A'}</td></tr>`;
-            });
-        }
-
-        window.filterClientsTable = () => {
-            const query = document.getElementById("clientSearch").value.toLowerCase();
-            const filtered = clientProfilesData.filter(c => c.clientName.toLowerCase().includes(query) || (c.contact && c.contact.toLowerCase().includes(query)));
-            renderClientProfilesTable(filtered);
-        };
-
-        document.getElementById("clientDocForm").addEventListener("submit", async (e) => {
-            e.preventDefault();
-            const clientName = document.getElementById("clientDocSelect").value;
-            const docType = document.getElementById("clientDocType").value;
-            const docDate = document.getElementById("clientDocDate").value;
-            const linkedAssetCode = document.getElementById("clientDocAssetCode").value;
-            const fileInput = document.getElementById("clientFile");
-
-            try {
-                let b64 = "", fileName = "";
-                if (fileInput.files.length > 0) {
-                    fileName = fileInput.files[0].name;
-                    b64 = await fileToBase64(fileInput.files[0]);
-                }
-                await addDoc(collection(db, "client_docs"), {
-                    clientName, docType, docDate, linkedAssetCode, fileName, base64Data: b64, uploadedBy: currentUserEmail, createdAt: new Date().toISOString()
-                });
-                alert("Client document uploaded & linked successfully!");
-                document.getElementById("clientDocForm").reset();
-                loadClientDocs();
-                loadGlobalInventory();
-            } catch (err) { alert("Error: " + err.message); }
-        });
-
-        async function loadClientDocs() {
-            clientDocsData = [];
-            const snap = await getDocs(collection(db, "client_docs"));
-            snap.forEach(d => {
-                const data = d.data();
-                data.id = d.id;
-                clientDocsData.push(data);
-            });
-            renderClientDocsTable(clientDocsData);
-            renderInventoryTable(globalInventoryData);
-        }
-
-        function renderClientDocsTable(data) {
-            const tbody = document.getElementById("clientDocTableBody");
-            if (!tbody) return;
-            tbody.innerHTML = "";
-            data.forEach(item => {
-                tbody.innerHTML += `<tr>
-                    <td class="p-2 font-medium">${item.clientName}</td>
-                    <td class="p-2 text-cyan-300">${item.docType}</td>
-                    <td class="p-2 font-mono text-amber-300">${item.linkedAssetCode || 'General'}</td>
-                    <td class="p-2 text-slate-300">${item.docDate}</td>
-                    <td class="p-2 truncate max-w-[100px]">${item.fileName || 'None'}</td>
-                </tr>`;
-            });
-        }
-
-        window.filterClientDocsTable = () => {
-            const query = document.getElementById("clientDocSearch").value.toLowerCase();
-            const filtered = clientDocsData.filter(d => d.clientName.toLowerCase().includes(query) || d.docType.toLowerCase().includes(query) || d.docDate.includes(query) || (d.linkedAssetCode && d.linkedAssetCode.toLowerCase().includes(query)));
-            renderClientDocsTable(filtered);
-        };
-
-        document.getElementById("supplierRegisterForm").addEventListener("submit", async (e) => {
-            e.preventDefault();
-            const supplierName = document.getElementById("regSupplierName").value;
-            const contact = document.getElementById("regSupplierContact").value;
-            try {
-                await addDoc(collection(db, "supplier_profiles"), { supplierName, contact, createdAt: new Date().toISOString() });
-                alert("Supplier profile saved!");
-                document.getElementById("supplierRegisterForm").reset();
-                await loadSupplierProfiles();
-                handleRegistrationStatusChange();
-                handleFollowupStatusChange();
-            } catch (err) { alert("Error: " + err.message); }
-        });
-
-        async function loadSupplierProfiles() {
-            const select = document.getElementById("supplierDocSelect");
-            if (select) select.innerHTML = '<option value="">-- Choose Supplier --</option>';
-            supplierProfilesData = [];
-            const snap = await getDocs(collection(db, "supplier_profiles"));
-            snap.forEach(d => {
-                const data = d.data();
-                data.id = d.id;
-                supplierProfilesData.push(data);
-                if (select) select.innerHTML += `<option value="${data.supplierName}">${data.supplierName}</option>`;
-            });
-            renderSupplierProfilesTable(supplierProfilesData);
-        }
-
-        function renderSupplierProfilesTable(data) {
-            const tbody = document.getElementById("supplierProfileBody");
-            if (!tbody) return;
-            tbody.innerHTML = "";
-            data.forEach(item => {
-                tbody.innerHTML += `<tr><td class="p-2 font-medium">${item.supplierName}</td><td class="p-2 text-slate-400">${item.contact || 'N/A'}</td></tr>`;
-            });
-        }
-
-        window.filterSuppliersTable = () => {
-            const query = document.getElementById("supplierSearch").value.toLowerCase();
-            const filtered = supplierProfilesData.filter(s => s.supplierName.toLowerCase().includes(query) || (s.contact && s.contact.toLowerCase().includes(query)));
-            renderSupplierProfilesTable(filtered);
-        };
-
-        document.getElementById("supplierDocForm").addEventListener("submit", async (e) => {
-            e.preventDefault();
-            const supplierName = document.getElementById("supplierDocSelect").value;
-            const docType = document.getElementById("supplierDocType").value;
-            const docDate = document.getElementById("supplierDocDate").value;
-            const linkedAssetCode = document.getElementById("supplierDocAssetCode").value;
-            const fileInput = document.getElementById("supplierFile");
-
-            try {
-                let b64 = "", fileName = "";
-                if (fileInput.files.length > 0) {
-                    fileName = fileInput.files[0].name;
-                    b64 = await fileToBase64(fileInput.files[0]);
-                }
-                await addDoc(collection(db, "supplier_docs"), {
-                    supplierName, docType, docDate, linkedAssetCode, fileName, base64Data: b64, uploadedBy: currentUserEmail, createdAt: new Date().toISOString()
-                });
-                alert("Supplier document uploaded & linked successfully!");
-                document.getElementById("supplierDocForm").reset();
-                loadSupplierDocs();
-                loadGlobalInventory();
-            } catch (err) { alert("Error: " + err.message); }
-        });
-
-        async function loadSupplierDocs() {
-            supplierDocsData = [];
-            const snap = await getDocs(collection(db, "supplier_docs"));
-            snap.forEach(d => {
-                const data = d.data();
-                data.id = d.id;
-                supplierDocsData.push(data);
-            });
-            renderSupplierDocsTable(supplierDocsData);
-            renderInventoryTable(globalInventoryData);
-        }
-
-        function renderSupplierDocsTable(data) {
-            const tbody = document.getElementById("supplierDocTableBody");
-            if (!tbody) return;
-            tbody.innerHTML = "";
-            data.forEach(item => {
-                tbody.innerHTML += `<tr>
-                    <td class="p-2 font-medium">${item.supplierName}</td>
-                    <td class="p-2 text-amber-300">${item.docType}</td>
-                    <td class="p-2 font-mono text-cyan-300">${item.linkedAssetCode || 'General'}</td>
-                    <td class="p-2 text-slate-300">${item.docDate}</td>
-                    <td class="p-2 truncate max-w-[100px]">${item.fileName || 'None'}</td>
-                </tr>`;
-            });
-        }
-
-        window.filterSupplierDocsTable = () => {
-            const query = document.getElementById("supplierDocSearch").value.toLowerCase();
-            const filtered = supplierDocsData.filter(d => d.supplierName.toLowerCase().includes(query) || d.docType.toLowerCase().includes(query) || d.docDate.includes(query) || (d.linkedAssetCode && d.linkedAssetCode.toLowerCase().includes(query)));
-            renderSupplierDocsTable(filtered);
-        };
-
-        document.getElementById("warehouseForm").addEventListener("submit", async (e) => {
-            e.preventDefault();
-            const name = document.getElementById("warehouseName").value;
-            await addDoc(collection(db, "settings"), { type: "warehouse", value: name, addedBy: currentUserEmail });
-            alert("Warehouse added!");
-            document.getElementById("warehouseName").value = "";
-            await loadSettings();
-            handleRegistrationStatusChange();
-            handleFollowupStatusChange();
-        });
-
-        document.getElementById("categoryForm").addEventListener("submit", async (e) => {
-            e.preventDefault();
-            const name = document.getElementById("categoryName").value;
-            const imgFile = document.getElementById("categoryImageFile");
-            let imgB64 = "";
-            if (imgFile.files.length > 0) {
-                imgB64 = await fileToBase64(imgFile.files[0]);
-            }
-            await addDoc(collection(db, "settings"), { type: "category", value: name, imageBase64: imgB64, addedBy: currentUserEmail });
-            alert("Category added!");
-            document.getElementById("categoryForm").reset();
-            loadSettings();
-        });
-
-        async function loadSettings() {
-            const whContainer = document.getElementById("warehouseListContainer");
-            const catContainer = document.getElementById("categoryListContainer");
-            const categorySelect = document.getElementById("itemCategory");
-
-            if (whContainer) whContainer.innerHTML = "";
-            if (catContainer) catContainer.innerHTML = "";
-            if (categorySelect) categorySelect.innerHTML = '<option value="">-- Select Category --</option>';
-            warehousesData = [];
-
-            const snap = await getDocs(collection(db, "settings"));
-            if (snap.empty) {
-                if (whContainer) whContainer.innerHTML = "<p class='p-2'>No warehouses configured.</p>";
-                if (catContainer) catContainer.innerHTML = "<p class='p-2'>No categories configured.</p>";
-                handleRegistrationStatusChange();
-                handleFollowupStatusChange();
-                return;
-            }
-
-            snap.forEach(d => {
-                const data = d.data();
-                const settingId = d.id;
-
-                const itemHTML = `
-                    <div class="flex items-center justify-between bg-slate-900 p-2 rounded border border-slate-700">
-                        <div class="flex items-center gap-2">
-                            ${data.imageBase64 ? `<img src="${data.imageBase64}" class="w-6 h-6 object-cover rounded"/>` : ''}
-                            <span id="label-${settingId}">${data.value}</span>
-                        </div>
-                        <span class="text-[10px] text-slate-400">View Only</span>
-                    </div>
-                `;
-
-                if (data.type === "warehouse") {
-                    if (whContainer) whContainer.innerHTML += itemHTML;
-                    warehousesData.push(data.value);
-                } else if (data.type === "category") {
-                    if (catContainer) catContainer.innerHTML += itemHTML;
-                    if (categorySelect) categorySelect.innerHTML += `<option value="${data.value}">${data.value}</option>`;
-                }
-            });
-
-            handleRegistrationStatusChange();
-            handleFollowupStatusChange();
-        }
-
-        window.exportTableToExcel = (tableId, filename) => {
-            const table = document.getElementById(tableId);
-            const wb = XLSX.utils.table_to_book(table, {sheet: "Sheet1"});
-            XLSX.writeFile(wb, filename);
-        };
-    </script>
-</body>
-</html>
+    <section id="tab-inventory" class="bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-700 space-y-4 shadow-xl w-full max-w-5xl">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+            <h2 class="text-base sm:text-lg font-bold">Inventory & Audit Log (Relational Document Tracking)</h2>
+            <div class="flex flex-wrap gap-2 w-full sm:w-auto">
+                <button onclick="exportInventory(false)" class="bg-emerald-600 hover:bg-emerald-500 px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold flex-1 sm:flex-none transition">Export Selected</button>
+                <button onclick="exportInventory(true)" class="bg-emerald-700 hover:bg-emerald-600 px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold flex-1 sm:flex-none transition">Export All</button>
+                <button onclick="exportAllHistory()" class="bg-cyan-700 hover:bg-cyan-600 px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold flex-1 sm:flex-none transition">Export All History</button>
+            </div>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-slate-900/50 p-3 rounded-xl border border-slate-700">
+            <input type="text" id="inventorySearch" placeholder="🔍 Search inventory & linked docs..." onkeyup="filterAndSortInventory()" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm focus:outline-none focus:border-red-500">
+            <select id="inventoryFilterStatus" onchange="filterAndSortInventory()" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm focus:outline-none focus:border-red-500">
+                <option value="">Filter Status / Location (All)</option><option>Own Warehouse</option><option>In Transit</option><option>Client Site</option><option>Supplier Site</option><option>In Maintenance</option><option>Multiple Locations</option><option>Disposed</option>
+            </select>
+            <select id="inventorySortBy" onchange="filterAndSortInventory()" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm focus:outline-none focus:border-red-500">
+                <option value="codeAsc">Sort: Code (A-Z)</option><option value="codeDesc">Sort: Code (Z-A)</option><option value="nameAsc">Sort: Name (A-Z)</option>
+            </select>
+        </div>
+        <div class="overflow-x-auto rounded-xl border border-slate-700">
+            <table id="inventoryTable" class="w-full text-left border-collapse min-w-[1100px]">
+                <thead><tr class="bg-slate-900/50 border-b border-slate-700 text-slate-400 text-xs sm:text-sm">
+                    <th class="p-3"><input type="checkbox" id="selectAllInventory" onchange="toggleAllInventorySelection(this.checked)"></th>
+                    <th class="p-3 cursor-pointer" onclick="toggleTableSort('inventoryTable',1)">Code / SN ↕</th><th class="p-3 cursor-pointer" onclick="toggleTableSort('inventoryTable',2)">Name ↕</th><th class="p-3">Type / Category</th><th class="p-3">Qty</th><th class="p-3">Unit</th><th class="p-3">Status</th><th class="p-3">Location</th><th class="p-3">Linked Docs</th><th class="p-3">Remark</th><th class="p-3">Actions</th>
+                </tr></thead>
+                <tbody id="inventoryTableBody" class="divide-y divide-slate-700 text-xs sm:text-sm"></tbody>
+            </table>
+        </div>
+    </section>
+
+    <section id="tab-transit" class="bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-700 space-y-6 shadow-xl hidden w-full max-w-5xl flex flex-col items-center">
+        <h2 class="text-base sm:text-lg font-bold text-center">Movement & Shipping</h2>
+        <form id="transitForm" class="space-y-4 bg-slate-900/50 p-5 rounded-xl border border-slate-700 shadow-md w-full max-w-5xl">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div><label class="block text-xs font-medium mb-1">Movement Type</label><select id="movementType" onchange="refreshMovementDestination()" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm"><option value="Transfer">Warehouse Transfer</option><option value="Deliver">Deliver to Client</option><option value="Return">Return to Warehouse</option><option value="Supplier">Send to Supplier</option><option value="Maintenance">Send to Maintenance</option><option value="Dispatch">General Dispatch / In Transit</option></select></div>
+                <div><label class="block text-xs font-medium mb-1">Transit Mode</label><select id="transitMode" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm"><option>Sea Freight</option><option>Land Transport</option><option>Air Freight</option><option>Internal Transfer</option></select></div>
+                <div id="movementDestinationContainer"></div>
+            </div>
+            <div class="border-t border-slate-700 pt-4 space-y-3">
+                <h3 class="text-sm font-semibold text-red-400">Add Items to Movement</h3>
+                <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                    <div><label class="block text-xs mb-1">Item</label><select id="movementItemSelect" onchange="refreshMovementSources()" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm"><option value="">-- Choose Item --</option></select></div>
+                    <div><label class="block text-xs mb-1">Source Location</label><select id="movementSourceSelect" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm"><option value="">-- Source --</option></select></div>
+                    <div><label class="block text-xs mb-1">Qty</label><input type="number" id="movementQty" min="0.0001" step="any" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm"></div>
+                    <div class="flex items-end"><button type="button" onclick="addMovementLine()" class="w-full bg-cyan-700 hover:bg-cyan-600 py-2 rounded-lg text-sm font-semibold">Add Item</button></div>
+                </div>
+                <div id="movementLinesContainer" class="space-y-2 text-xs"></div>
+            </div>
+            <div><label class="block text-xs font-medium mb-1">Carrier / Destination Detail</label><input type="text" id="transitDestination" placeholder="Vessel, truck, job, site or reference" required class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm"></div>
+            <div><label class="block text-xs font-medium mb-1">Remark / Additional Info</label><textarea id="transitRemark" rows="2" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm"></textarea></div>
+            <div><label class="block text-xs font-medium mb-1">Shipping Document</label><input type="file" id="transitDocFile" class="w-full text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-red-600 file:text-white"></div>
+            <button type="submit" class="w-full bg-red-600 hover:bg-red-500 text-white font-bold py-2.5 rounded-lg text-sm">Process Movement & Upload Documents</button>
+        </form>
+    </section>
+
+    <section id="tab-register" class="bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-700 space-y-6 shadow-xl hidden w-full max-w-5xl">
+        <h2 class="text-base sm:text-lg font-bold text-center">Register New Equipment or Part</h2>
+        <form id="registerForm" class="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-slate-900/50 p-5 rounded-xl border border-slate-700">
+            <div><label class="block text-xs sm:text-sm font-medium mb-1">Item Type</label><select id="itemType" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm"><option>Equipment</option><option>Part</option></select></div>
+            <div><label class="block text-xs sm:text-sm font-medium mb-1">Tracking Type</label><select id="trackingType" onchange="handleTrackingTypeChange()" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm"><option value="serialized">Serialized / Individual</option><option value="quantity">Quantity / Bulk</option></select></div>
+            <div><label class="block text-xs sm:text-sm font-medium mb-1">Item Code / Serial Number</label><input type="text" id="itemCode" required class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm"></div>
+            <div><label class="block text-xs sm:text-sm font-medium mb-1">Item Name</label><input type="text" id="itemName" required class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm"></div>
+            <div><label class="block text-xs sm:text-sm font-medium mb-1">Category</label><select id="itemCategory" required class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm"><option value="">-- Select Category --</option></select></div>
+            <div class="grid grid-cols-2 gap-2"><div><label class="block text-xs sm:text-sm font-medium mb-1">Qty</label><input type="number" id="itemQty" min="0.0001" step="any" value="1" required class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm"></div><div><label class="block text-xs sm:text-sm font-medium mb-1">Unit</label><select id="itemUnit" required class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm"><option value="">-- Unit --</option></select></div></div>
+            <div><label class="block text-xs sm:text-sm font-medium mb-1">Asset Status</label><select id="itemStatus" onchange="handleRegistrationStatusChange()" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm"><option>Own Warehouse</option><option>Supplier Site</option><option>Client Site</option><option>In Maintenance</option><option>Disposed</option></select></div>
+            <div id="registerLocationContainer"></div>
+            <div class="sm:col-span-2"><label class="block text-xs sm:text-sm font-medium mb-1">Remark / Asset Notes</label><textarea id="itemRemark" rows="2" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm"></textarea></div>
+            <div class="sm:col-span-2 border-t border-slate-700 pt-4"><label class="block text-xs sm:text-sm font-medium mb-1">Lifecycle / Compliance Document (Optional)</label><input type="file" id="initialDoc" class="w-full text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-red-600 file:text-white"></div>
+            <div class="sm:col-span-2 flex justify-center"><button type="submit" class="w-full sm:w-auto bg-red-600 hover:bg-red-500 text-white font-bold py-2.5 px-6 rounded-lg text-sm">Save & Register Asset</button></div>
+        </form>
+        <div class="bg-slate-900/60 p-5 rounded-xl border border-slate-700 space-y-4">
+            <h3 class="text-base font-bold text-red-400 text-center">Lifecycle Followup & Status Updates</h3>
+            <div><label class="block text-xs font-medium mb-1">Select Asset</label><select id="followupAssetSelect" onchange="populateFollowupForm()" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm"><option value="">-- Choose Registered Asset --</option></select></div>
+            <form id="followupForm" class="space-y-4 hidden border-t border-slate-700 pt-4"><input type="hidden" id="editAssetId">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                    <div><label class="block text-xs font-medium mb-1">Update Status</label><select id="editItemStatus" onchange="handleFollowupStatusChange()" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm"><option>Own Warehouse</option><option>Supplier Site</option><option>Client Site</option><option>In Maintenance</option><option>Disposed</option></select></div>
+                    <div id="editLocationContainer"></div>
+                    <div><label class="block text-xs font-medium mb-1">Append Remark / Status Note</label><input type="text" id="editItemRemark" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm"></div>
+                </div>
+                <div><label class="block text-xs font-medium mb-1">Add Followup Document</label><input type="file" id="followupFile" class="w-full text-xs text-slate-400 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:bg-red-600 file:text-white"></div>
+                <div class="flex justify-end"><button type="submit" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 px-6 rounded-lg text-sm">Save Followup</button></div>
+            </form>
+        </div>
+    </section>
+
+    <section id="tab-clients" class="bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-700 space-y-6 shadow-xl hidden w-full max-w-5xl"><div class="bg-slate-900/60 p-5 rounded-xl border border-slate-700 space-y-4"><h2 class="text-base font-bold text-red-400 text-center">Register Client Profile</h2><form id="clientRegisterForm" class="grid grid-cols-1 sm:grid-cols-2 gap-4"><input type="text" id="regClientName" required placeholder="Client Company Name" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm"><input type="text" id="regClientContact" placeholder="Contact Person & Email" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm"><button type="submit" class="bg-red-600 hover:bg-red-500 py-2 px-6 rounded-lg text-sm font-bold">Save Client Profile</button></form><input type="text" id="clientSearch" onkeyup="filterClientsTable()" placeholder="🔍 Search Clients..." class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-xs"><div class="overflow-x-auto max-h-48 overflow-y-auto rounded-xl border border-slate-700"><table class="w-full text-left"><thead><tr class="bg-slate-900/50 text-slate-400 text-xs"><th class="p-2">Client Name</th><th class="p-2">Contact</th></tr></thead><tbody id="clientProfileBody" class="divide-y divide-slate-700 text-xs"></tbody></table></div></div>
+<div class="bg-slate-900/60 p-5 rounded-xl border border-slate-700 space-y-4"><h2 class="text-base font-bold text-red-400 text-center">Client Commercial Documents</h2><form id="clientDocForm" class="space-y-3"><div class="grid grid-cols-1 sm:grid-cols-3 gap-3"><select id="clientDocSelect" required class="px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm"><option value="">-- Choose Client --</option></select><select id="clientDocType" class="px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm"><option value="PO">Purchase Order (PO)</option><option value="DO">Delivery Order (DO)</option><option value="Invoice">Invoice</option></select><input type="date" id="clientDocDate" required class="px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm"></div><div class="grid grid-cols-1 sm:grid-cols-3 gap-3"><select id="clientDocAssetCode" class="px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm"><option value="">-- Choose Item --</option></select><input type="number" id="clientDocQty" min="0.0001" step="any" value="1" class="px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm"><button type="button" onclick="addClientDocLink()" class="bg-cyan-700 hover:bg-cyan-600 rounded-lg text-sm">Add Linked Item</button></div><div id="clientDocLinks" class="space-y-1 text-xs"></div><input type="file" id="clientFile" required class="w-full text-xs text-slate-400 file:bg-red-600 file:text-white file:border-0 file:rounded file:px-3 file:py-1.5"><button type="submit" class="bg-red-600 hover:bg-red-500 py-2 px-6 rounded-lg text-sm font-bold">Upload Document & Link Items</button></form><input type="text" id="clientDocSearch" onkeyup="filterClientDocsTable()" placeholder="🔍 Search Client Docs..." class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-xs"><div class="overflow-x-auto max-h-56 overflow-y-auto rounded-xl border border-slate-700"><table class="w-full text-left min-w-[600px]"><thead><tr class="bg-slate-900/50 text-slate-400 text-xs"><th class="p-2">Client</th><th class="p-2">Type</th><th class="p-2">Linked Items / Qty</th><th class="p-2">Date</th><th class="p-2">File</th></tr></thead><tbody id="clientDocTableBody" class="divide-y divide-slate-700 text-xs"></tbody></table></div></div></section>
+    <section id="tab-suppliers" class="bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-700 space-y-6 shadow-xl hidden w-full max-w-5xl"><div class="bg-slate-900/60 p-5 rounded-xl border border-slate-700 space-y-4"><h2 class="text-base font-bold text-red-400 text-center">Register Supplier Profile</h2><form id="supplierRegisterForm" class="grid grid-cols-1 sm:grid-cols-2 gap-4"><input type="text" id="regSupplierName" required placeholder="Supplier Company Name" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm"><input type="text" id="regSupplierContact" placeholder="Contact Person & Email" class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm"><button type="submit" class="bg-red-600 hover:bg-red-500 py-2 px-6 rounded-lg text-sm font-bold">Save Supplier Profile</button></form><input type="text" id="supplierSearch" onkeyup="filterSuppliersTable()" placeholder="🔍 Search Suppliers..." class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-xs"><div class="overflow-x-auto max-h-48 overflow-y-auto rounded-xl border border-slate-700"><table class="w-full text-left"><thead><tr class="bg-slate-900/50 text-slate-400 text-xs"><th class="p-2">Supplier Name</th><th class="p-2">Contact</th></tr></thead><tbody id="supplierProfileBody" class="divide-y divide-slate-700 text-xs"></tbody></table></div></div>
+<div class="bg-slate-900/60 p-5 rounded-xl border border-slate-700 space-y-4"><h2 class="text-base font-bold text-red-400 text-center">Supplier Compliance Documents</h2><form id="supplierDocForm" class="space-y-3"><div class="grid grid-cols-1 sm:grid-cols-3 gap-3"><select id="supplierDocSelect" required class="px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm"><option value="">-- Choose Supplier --</option></select><select id="supplierDocType" class="px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm"><option value="Supplier Invoice">Supplier Invoice</option><option value="Our PO">Our PO</option><option value="Supplier DO">Supplier DO</option><option value="SIRIM Certificate">SIRIM Certificate</option><option value="Permit of Sale">Permit of Sale</option></select><input type="date" id="supplierDocDate" required class="px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm"></div><div class="grid grid-cols-1 sm:grid-cols-3 gap-3"><select id="supplierDocAssetCode" class="px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm"><option value="">-- Choose Item --</option></select><input type="number" id="supplierDocQty" min="0.0001" step="any" value="1" class="px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm"><button type="button" onclick="addSupplierDocLink()" class="bg-cyan-700 hover:bg-cyan-600 rounded-lg text-sm">Add Linked Item</button></div><div id="supplierDocLinks" class="space-y-1 text-xs"></div><input type="file" id="supplierFile" required class="w-full text-xs text-slate-400 file:bg-red-600 file:text-white file:border-0 file:rounded file:px-3 file:py-1.5"><button type="submit" class="bg-red-600 hover:bg-red-500 py-2 px-6 rounded-lg text-sm font-bold">Upload Document & Link Items</button></form><input type="text" id="supplierDocSearch" onkeyup="filterSupplierDocsTable()" placeholder="🔍 Search Supplier Docs..." class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-xs"><div class="overflow-x-auto max-h-56 overflow-y-auto rounded-xl border border-slate-700"><table class="w-full text-left min-w-[600px]"><thead><tr class="bg-slate-900/50 text-slate-400 text-xs"><th class="p-2">Supplier</th><th class="p-2">Type</th><th class="p-2">Linked Items / Qty</th><th class="p-2">Date</th><th class="p-2">File</th></tr></thead><tbody id="supplierDocTableBody" class="divide-y divide-slate-700 text-xs"></tbody></table></div></div></section>
+    
+    <section id="tab-settings" class="bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-700 space-y-6 shadow-xl hidden w-full max-w-5xl">
+        <h2 class="text-base sm:text-lg font-bold text-center">Global Master Settings Configuration</h2>
+        <div class="grid grid-cols-1 gap-6 w-full"><div class="bg-slate-900/50 p-4 sm:p-6 rounded-xl border border-slate-700 shadow-md space-y-3"><h3 class="font-semibold text-cyan-400 text-center">Warehouse Settings</h3><p class="text-xs text-slate-400">Master creation is controlled by Superadmin. Existing records remain available for use.</p><div id="warehouseListContainer" class="space-y-2 max-h-56 overflow-y-auto text-xs"></div></div><div class="bg-slate-900/50 p-4 sm:p-6 rounded-xl border border-slate-700 shadow-md space-y-3"><h3 class="font-semibold text-amber-400 text-center">Categories Setting</h3><p class="text-xs text-slate-400">Master creation is controlled by Superadmin. Existing records remain available for use.</p><div id="categoryListContainer" class="space-y-2 max-h-56 overflow-y-auto text-xs"></div></div><div class="bg-slate-900/50 p-4 sm:p-6 rounded-xl border border-slate-700 shadow-md space-y-3"><h3 class="font-semibold text-emerald-400 text-center">Unit Settings</h3><p class="text-xs text-slate-400">Master creation is controlled by Superadmin. Existing records remain available for use.</p><div id="unitListContainer" class="space-y-2 max-h-56 overflow-y-auto text-xs"></div></div></div>
+        
+    </section>
+</main>
+
+<div id="historyModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+ <div class="bg-slate-800 border border-slate-700 rounded-2xl max-w-4xl w-full p-6 space-y-5 shadow-2xl max-h-[90vh] overflow-y-auto">
+  <div class="flex justify-between items-center border-b border-slate-700 pb-3"><h3 id="modalAssetTitle" class="text-base sm:text-lg font-bold text-red-400">Asset History & Files</h3><button onclick="closeHistoryModal()" class="text-slate-400 hover:text-white font-bold text-lg px-2">✕</button></div>
+  <div id="modalBalanceContainer" class="bg-slate-900/60 p-3 rounded-xl border border-slate-700 text-xs"></div>
+  <div><div class="flex justify-between gap-2 mb-2"><h4 class="text-xs sm:text-sm font-semibold text-cyan-400">📜 Detailed History</h4><div class="flex gap-2"><button onclick="exportModalHistory(false)" class="bg-cyan-700 hover:bg-cyan-600 px-2.5 py-1 rounded text-[10px] font-semibold">Export Selected</button><button onclick="exportModalHistory(true)" class="bg-cyan-800 hover:bg-cyan-700 px-2.5 py-1 rounded text-[10px] font-semibold">Export Full</button></div></div><div id="modalHistoryContainer" class="space-y-2 bg-slate-900/60 p-3 rounded-xl border border-slate-700 text-xs max-h-72 overflow-y-auto"></div></div>
+  <div><h4 class="text-xs sm:text-sm font-semibold text-amber-400 mb-2">📎 Attached Documents</h4><div id="modalDocsContainer" class="space-y-2 bg-slate-900/60 p-3 rounded-xl border border-slate-700 text-xs max-h-48 overflow-y-auto"></div></div>
+  <div class="flex justify-end"><button onclick="closeHistoryModal()" class="bg-slate-700 hover:bg-slate-600 px-4 py-2 rounded-lg text-xs font-semibold">Close</button></div>
+ </div>
+</div>
+
+<script type="module">
+import { auth, db } from "./firebase-config.js";
+import { initializeApp, deleteApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+import { onAuthStateChanged, signOut, createUserWithEmailAndPassword, getAuth } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
+import { collection, addDoc, getDocs, doc, getDoc, setDoc, updateDoc, runTransaction } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+
+const ROLE="admin";
+const CAN_EDIT_NAME=false;
+const CAN_CREATE_MASTER=false;
+const CAN_EDIT_MASTER=false;
+const CAN_MANAGE_USERS=false;
+const TRACE_SCOPE="none";
+const TABS=["inventory", "transit", "register", "clients", "suppliers", "settings"];
+let currentUserEmail="", currentUserRole=ROLE;
+let globalInventoryData=[], clientProfilesData=[], clientDocsData=[], supplierProfilesData=[], supplierDocsData=[], warehousesData=[], categoriesData=[], unitsData=[], usersData=[], auditData=[], currentTraceView=[];
+let movementLines=[], clientDocLinks=[], supplierDocLinks=[], currentModalItemId="", currentModalHistory=[];
+let tableSortDirections={};
+
+const nowISO=()=>new Date().toISOString();
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const normalize=s=>String(s??"").trim().replace(/\s+/g," ").toLowerCase();
+const fileToBase64=file=>new Promise((res,rej)=>{const r=new FileReader();r.readAsDataURL(file);r.onload=()=>res(r.result);r.onerror=rej;});
+
+function traceComparable(v){if(v===undefined)return null;if(v===null||typeof v!=="object")return v;if(Array.isArray(v))return v.map(traceComparable);const o={};Object.keys(v).sort().forEach(k=>{if(!["base64Data","uid","password","itemId","docId","targetId"].includes(k))o[k]=traceComparable(v[k]);});return o;}
+function changedTraceFields(beforeValue,afterValue){const b=beforeValue&&typeof beforeValue==="object"&&!Array.isArray(beforeValue)?beforeValue:{value:beforeValue};const a=afterValue&&typeof afterValue==="object"&&!Array.isArray(afterValue)?afterValue:{value:afterValue};return [...new Set([...Object.keys(b||{}),...Object.keys(a||{})])].filter(k=>JSON.stringify(traceComparable(b?.[k]))!==JSON.stringify(traceComparable(a?.[k])));}
+function friendlyTraceAction(a){return String(a||"").toLowerCase().replace(/_/g," ").replace(/\b\w/g,c=>c.toUpperCase());}
+async function writeAuditTrace(actionType,module,targetType,targetName,beforeValue=null,afterValue=null,remark="",targetId="",metadata={}){
+ const cleanBefore=traceComparable(beforeValue),cleanAfter=traceComparable(afterValue),performedAt=nowISO();
+ const trace={traceVersion:2,actionType,module,targetType,targetName:String(targetName||""),targetId:String(targetId||""),summary:`${friendlyTraceAction(actionType)}: ${String(targetName||targetType||module)}`,beforeValue:cleanBefore,afterValue:cleanAfter,changedFields:changedTraceFields(cleanBefore,cleanAfter),remark:String(remark||""),metadata:traceComparable(metadata||{}),performedBy:currentUserEmail,performedByRole:currentUserRole,performedAt};
+ try{await addDoc(collection(db,"audit_traces"),trace);if(TRACE_SCOPE!=="none"&&typeof loadAuditTraces==="function")loadAuditTraces();}catch(e){console.warn("Trace write failed",e);}
+}
+
+onAuthStateChanged(auth, async user=>{
+ if(!user){location.href="index.html";return;}
+ const snap=await getDoc(doc(db,"users",user.uid));
+ if(!snap.exists()||snap.data().role!==ROLE||snap.data().status==="inactive"){await signOut(auth);location.href="index.html";return;}
+ currentUserEmail=snap.data().email||user.email||""; currentUserRole=snap.data().role;
+ await Promise.all([loadSettings(),loadClientProfiles(),loadSupplierProfiles()]);
+ await loadGlobalInventory(); await Promise.all([loadClientDocs(),loadSupplierDocs()]);
+ if(CAN_MANAGE_USERS) await loadUserDirectory(); if(TRACE_SCOPE!=="none") await loadAuditTraces();
+ refreshMovementDestination();
+});
+
+document.getElementById("logoutBtn").addEventListener("click",()=>signOut(auth).then(()=>location.href="index.html"));
+window.switchTab=name=>{TABS.forEach(t=>{document.getElementById(`tab-${t}`).classList.add("hidden");document.getElementById(`tab-${t}-btn`).className="text-slate-400 pb-2 text-xs sm:text-sm md:text-base px-3 py-1.5 transition rounded-lg hover:bg-slate-800/40";});document.getElementById(`tab-${name}`).classList.remove("hidden");document.getElementById(`tab-${name}-btn`).className="text-red-400 font-semibold pb-2 border-b-2 border-red-400 text-xs sm:text-sm md:text-base px-3 py-1.5 transition rounded-lg bg-slate-800/80";};
+
+function activeSettings(type){return (type==="warehouse"?warehousesData:type==="category"?categoriesData:unitsData).filter(x=>x.status!=="inactive");}
+async function loadSettings(){
+ warehousesData=[];categoriesData=[];unitsData=[]; const snap=await getDocs(collection(db,"settings")); snap.forEach(d=>{const x={id:d.id,...d.data()}; if(x.type==="warehouse")warehousesData.push(x); if(x.type==="category")categoriesData.push(x); if(x.type==="unit")unitsData.push(x);});
+ const cat=document.getElementById("itemCategory"),unit=document.getElementById("itemUnit"); if(cat)cat.innerHTML='<option value="">-- Select Category --</option>'+activeSettings("category").map(x=>`<option value="${esc(x.value)}">${esc(x.value)}</option>`).join(""); if(unit)unit.innerHTML='<option value="">-- Unit --</option>'+activeSettings("unit").map(x=>`<option value="${esc(x.value)}">${esc(x.value)}</option>`).join("");
+ renderSettingList("warehouse",warehousesData);renderSettingList("category",categoriesData);renderSettingList("unit",unitsData);handleRegistrationStatusChange();handleFollowupStatusChange();refreshMovementDestination();
+}
+function renderSettingList(type,data){const el=document.getElementById(`${type}ListContainer`);if(!el)return;el.innerHTML=data.length?data.map(x=>`<div class="flex items-center justify-between bg-slate-900 p-2 rounded border border-slate-700"><div class="flex items-center gap-2">${x.imageBase64?`<img src="${x.imageBase64}" class="w-6 h-6 object-cover rounded">`:""}<span>${esc(x.value)}</span>${x.status==="inactive"?'<span class="text-[10px] text-slate-500">Inactive</span>':""}</div>${CAN_EDIT_MASTER?`<div class="flex gap-1"><button onclick="editMaster('${x.id}','${type}')" class="text-[10px] bg-slate-700 hover:bg-slate-600 px-2 py-1 rounded">Edit</button>${ROLE==="superadmin"?`<button onclick="toggleMasterStatus('${x.id}','${type}')" class="text-[10px] bg-slate-700 hover:bg-slate-600 px-2 py-1 rounded">${x.status==="inactive"?"Activate":"Deactivate"}</button>`:""}</div>`:'<span class="text-[10px] text-slate-400">View Only</span>'}</div>`).join(""):'<p class="p-2 text-slate-500">No records configured.</p>';}
+window.toggleMasterStatus=async(id,type)=>{if(ROLE!=="superadmin")return;const arr=type==="warehouse"?warehousesData:type==="category"?categoriesData:unitsData;const item=arr.find(x=>x.id===id);if(!item)return;const status=item.status==="inactive"?"active":"inactive";await updateDoc(doc(db,"settings",id),{status,updatedAt:nowISO(),updatedBy:currentUserEmail});await writeAuditTrace("CHANGE_MASTER_STATUS","Global Settings",type,item.value,item.status||"active",status);await loadSettings();};
+window.editMaster=async(id,type)=>{if(!CAN_EDIT_MASTER)return;const arr=type==="warehouse"?warehousesData:type==="category"?categoriesData:unitsData;const item=arr.find(x=>x.id===id);if(!item)return;const val=prompt(`Edit ${type} name`,item.value);if(!val||normalize(val)===normalize(item.value))return;const duplicate=arr.some(x=>x.id!==id&&normalize(x.value)===normalize(val));if(duplicate){alert("A matching master record already exists.");return;}await updateDoc(doc(db,"settings",id),{value:val.trim(),normalizedValue:normalize(val),updatedAt:nowISO(),updatedBy:currentUserEmail});await writeAuditTrace("EDIT_MASTER","Global Settings",type,item.value,item.value,val.trim());await loadSettings();};
+async function createMaster(type,name,imageBase64=""){if(!CAN_CREATE_MASTER)return;const arr=type==="warehouse"?warehousesData:type==="category"?categoriesData:unitsData;if(arr.some(x=>normalize(x.value)===normalize(name))){alert("A matching master record already exists.");return;}await addDoc(collection(db,"settings"),{type,value:name.trim(),normalizedValue:normalize(name),status:"active",imageBase64,createdAt:nowISO(),createdBy:currentUserEmail});await writeAuditTrace("CREATE_MASTER","Global Settings",type,name.trim(),null,name.trim());await loadSettings();}
+
+
+window.handleTrackingTypeChange=()=>{const t=document.getElementById("trackingType").value,q=document.getElementById("itemQty");if(t==="serialized"){q.value=1;q.readOnly=true;}else q.readOnly=false;};
+function locationOptionsForStatus(status,selected=""){let data=[];if(status==="Client Site")data=clientProfilesData.map(x=>`Client: ${x.clientName}`);else if(status==="Supplier Site")data=supplierProfilesData.map(x=>`Supplier: ${x.supplierName}`);else data=activeSettings("warehouse").map(x=>x.value);return data.map(v=>`<option value="${esc(v)}" ${v===selected?"selected":""}>${esc(v)}</option>`).join("");}
+window.handleRegistrationStatusChange=()=>{const s=document.getElementById("itemStatus")?.value||"Own Warehouse",c=document.getElementById("registerLocationContainer");if(!c)return;c.innerHTML=`<label class="block text-xs sm:text-sm font-medium mb-1">Location</label><select id="itemLocation" required class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm"><option value="">-- Select Location --</option>${locationOptionsForStatus(s)}</select>`;};
+window.handleFollowupStatusChange=()=>{const s=document.getElementById("editItemStatus")?.value||"Own Warehouse",c=document.getElementById("editLocationContainer");if(!c)return;c.innerHTML=`<label class="block text-xs font-medium mb-1">Update Location</label><select id="editItemLocation" required class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm"><option value="">-- Select Location --</option>${locationOptionsForStatus(s)}</select>`;};
+
+async function loadGlobalInventory(){globalInventoryData=[];const snap=await getDocs(collection(db,"inventory"));snap.forEach(d=>globalInventoryData.push({id:d.id,...d.data()}));populateAssetDropdowns();filterAndSortInventory();}
+function totalQty(item){if(Array.isArray(item.stockBalances))return item.stockBalances.reduce((a,b)=>a+Number(b.qty||0),0);return Number(item.quantity??item.qty??1);}
+function positiveBalances(item){if(Array.isArray(item.stockBalances))return item.stockBalances.filter(b=>Number(b.qty)>0);return [{location:item.currentLocation||"Unknown",status:item.status||"Unknown",qty:totalQty(item)}];}
+function summarizeBalances(balances){const p=balances.filter(b=>Number(b.qty)>0);if(p.length===0)return{status:"Disposed",location:"No Stock"};if(p.length===1)return{status:p[0].status||"Own Warehouse",location:p[0].location};return{status:"Multiple Locations",location:`${p.length} Locations`};}
+function populateAssetDropdowns(){const opts=globalInventoryData.map(i=>`<option value="${i.id}">${esc(i.itemCode)} - ${esc(i.name)} (${totalQty(i)} ${esc(i.unit||"")})</option>`).join("");["movementItemSelect","followupAssetSelect"].forEach(id=>{const e=document.getElementById(id);if(e)e.innerHTML=`<option value="">-- Choose Registered Item --</option>${opts}`;});["clientDocAssetCode","supplierDocAssetCode"].forEach(id=>{const e=document.getElementById(id);if(e)e.innerHTML=`<option value="">-- Choose Item --</option>${globalInventoryData.map(i=>`<option value="${i.id}">${esc(i.itemCode)} - ${esc(i.name)}</option>`).join("")}`;});}
+window.filterAndSortInventory=()=>{const q=normalize(document.getElementById("inventorySearch").value),s=document.getElementById("inventoryFilterStatus").value,sort=document.getElementById("inventorySortBy").value;let arr=globalInventoryData.filter(i=>{const hay=normalize([i.itemCode,i.name,i.category,i.remark,i.status,i.currentLocation,JSON.stringify(i.stockBalances||[])].join(" "));return(!q||hay.includes(q))&&(!s||hay.includes(normalize(s)));});arr.sort((a,b)=>sort==="codeDesc"?b.itemCode.localeCompare(a.itemCode):sort==="nameAsc"?a.name.localeCompare(b.name):a.itemCode.localeCompare(b.itemCode));renderInventoryTable(arr);};
+function renderInventoryTable(arr){const tb=document.getElementById("inventoryTableBody");tb.innerHTML=arr.length?arr.map(i=>{const cd=clientDocsData.filter(d=>(d.linkedItems||[]).some(x=>x.itemId===i.id)||d.linkedAssetCode===i.itemCode),sd=supplierDocsData.filter(d=>(d.linkedItems||[]).some(x=>x.itemId===i.id)||d.linkedAssetCode===i.itemCode);const docs=[...cd.map(d=>`Client ${d.docType}`),...sd.map(d=>d.docType)].map(x=>`<span class="inline-block px-1.5 py-0.5 rounded bg-slate-700 text-[10px] mr-1 mb-1">${esc(x)}</span>`).join("")||'<span class="text-slate-500">None</span>';return `<tr class="hover:bg-slate-700/50"><td class="p-3"><input type="checkbox" class="inventory-select" value="${i.id}"></td><td class="p-3 font-mono">${esc(i.itemCode)}</td><td class="p-3 font-medium">${esc(i.name)}</td><td class="p-3">${esc(i.type)}<br><span class="text-slate-400">${esc(i.category)}</span></td><td class="p-3">${totalQty(i)}</td><td class="p-3">${esc(i.unit||"")}</td><td class="p-3"><span class="px-2 py-1 rounded bg-red-900 text-red-300 text-xs">${esc(i.status)}</span></td><td class="p-3">${esc(i.currentLocation)}</td><td class="p-3 max-w-[180px]">${docs}</td><td class="p-3 text-slate-300">${esc(i.remark||"None")}</td><td class="p-3"><button onclick="openHistoryModal('${i.id}')" class="bg-cyan-700/80 hover:bg-cyan-600 px-2.5 py-1 rounded text-xs">History & Docs</button></td></tr>`;}).join(""):'<tr><td colspan="11" class="p-4 text-center text-slate-500">No inventory records found.</td></tr>';}
+window.toggleAllInventorySelection=checked=>document.querySelectorAll(".inventory-select").forEach(x=>x.checked=checked);
+window.toggleTableSort=(id,col)=>{const tb=document.getElementById(id)?.querySelector("tbody");if(!tb)return;const rows=[...tb.querySelectorAll("tr")];tableSortDirections[`${id}-${col}`]=!tableSortDirections[`${id}-${col}`];rows.sort((a,b)=>{const x=a.cells[col]?.textContent.trim()||"",y=b.cells[col]?.textContent.trim()||"";return tableSortDirections[`${id}-${col}`]?x.localeCompare(y):y.localeCompare(x);});rows.forEach(r=>tb.appendChild(r));};
+
+function inventoryRows(items){return items.map(i=>({Code:i.itemCode,Name:i.name,Type:i.type,Category:i.category,Tracking:i.trackingType||"legacy",Qty:totalQty(i),Unit:i.unit||"",Status:i.status,Location:i.currentLocation,Remark:i.remark||"",CreatedBy:i.createdBy||"",CreatedAt:i.createdAt||"",LastEditedBy:i.lastEditedBy||"",LastEditedAt:i.lastEditedAt||""}));}
+window.exportInventory=all=>{let items=globalInventoryData;if(!all){const ids=[...document.querySelectorAll(".inventory-select:checked")].map(x=>x.value);if(!ids.length){alert("Select at least one inventory item.");return;}items=items.filter(i=>ids.includes(i.id));}const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(inventoryRows(items)),"Inventory");const hist=[];items.forEach(i=>(i.lifecycleHistory||[]).forEach(h=>hist.push({ItemCode:i.itemCode,ItemName:i.name,Date:h.timestamp,Action:h.action||"Lifecycle",Status:h.status,Location:h.location,Qty:h.qty??"",Unit:h.unit||i.unit||"",User:h.user||"",Note:h.note||""})));XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(hist),"Embedded History");XLSX.writeFile(wb,all?"IMS_All_Inventory.xlsx":"IMS_Selected_Inventory.xlsx");};
+
+window.refreshMovementSources=()=>{const id=document.getElementById("movementItemSelect").value,e=document.getElementById("movementSourceSelect");const item=globalInventoryData.find(i=>i.id===id);e.innerHTML='<option value="">-- Source --</option>'+(!item?"":positiveBalances(item).map((b,idx)=>`<option value="${idx}">${esc(b.location)} - ${b.qty} ${esc(item.unit||"")}</option>`).join(""));};
+window.addMovementLine=()=>{const itemId=document.getElementById("movementItemSelect").value,srcIdx=Number(document.getElementById("movementSourceSelect").value),qty=Number(document.getElementById("movementQty").value);const item=globalInventoryData.find(i=>i.id===itemId);if(!item||!Number.isFinite(srcIdx)||qty<=0){alert("Select item, source and quantity.");return;}const balances=positiveBalances(item),source=balances[srcIdx];if(!source||qty>Number(source.qty)){alert("Quantity exceeds available stock at the selected source.");return;}if(item.trackingType==="serialized"&&qty!==1){alert("Serialized items must move as quantity 1.");return;}movementLines.push({itemId,itemCode:item.itemCode,name:item.name,unit:item.unit||"",qty,sourceLocation:source.location,sourceStatus:source.status});renderMovementLines();document.getElementById("movementQty").value="";};
+window.removeMovementLine=idx=>{movementLines.splice(idx,1);renderMovementLines();};
+function renderMovementLines(){document.getElementById("movementLinesContainer").innerHTML=movementLines.length?movementLines.map((l,i)=>`<div class="flex justify-between items-center bg-slate-800 p-2 rounded border border-slate-700"><span>${esc(l.itemCode)} - ${esc(l.name)} | ${l.qty} ${esc(l.unit)} | From: ${esc(l.sourceLocation)}</span><button type="button" onclick="removeMovementLine(${i})" class="text-red-400">Remove</button></div>`).join(""):'<p class="text-slate-500">No items added.</p>';}
+window.refreshMovementDestination=()=>{const t=document.getElementById("movementType")?.value||"Transfer",c=document.getElementById("movementDestinationContainer");if(!c)return;let opts=[],label="Destination";if(["Transfer","Return"].includes(t))opts=activeSettings("warehouse").map(x=>x.value);else if(t==="Deliver")opts=clientProfilesData.map(x=>`Client: ${x.clientName}`);else if(t==="Supplier")opts=supplierProfilesData.map(x=>`Supplier: ${x.supplierName}`);else if(t==="Maintenance")opts=["Maintenance"];if(opts.length)c.innerHTML=`<label class="block text-xs font-medium mb-1">${label}</label><select id="movementDestinationSelect" required class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm"><option value="">-- Select --</option>${opts.map(v=>`<option value="${esc(v)}">${esc(v)}</option>`).join("")}</select>`;else c.innerHTML=`<label class="block text-xs font-medium mb-1">${label}</label><input id="movementDestinationSelect" required class="w-full px-3 py-2 bg-slate-900 rounded-lg border border-slate-700 text-sm" placeholder="Destination / site">`;};
+function movementTargetStatus(type){return type==="Deliver"?"Client Site":type==="Supplier"?"Supplier Site":type==="Maintenance"?"In Maintenance":type==="Dispatch"?"In Transit":"Own Warehouse";}
+document.getElementById("transitForm").addEventListener("submit",async e=>{e.preventDefault();if(!movementLines.length){alert("Add at least one item.");return;}const type=document.getElementById("movementType").value,target=document.getElementById("movementDestinationSelect").value,mode=document.getElementById("transitMode").value,detail=document.getElementById("transitDestination").value,remark=document.getElementById("transitRemark").value,file=document.getElementById("transitDocFile").files[0];if(!target)return;let attachment=null;if(file)attachment={fileName:file.name,base64Data:await fileToBase64(file),uploadedAt:nowISO(),uploadedBy:currentUserEmail};const movementRef=doc(collection(db,"movements")),movementId=movementRef.id;try{await runTransaction(db,async tx=>{const reads=[];for(const l of movementLines)reads.push([l,await tx.get(doc(db,"inventory",l.itemId))]);for(const [l,snap] of reads){if(!snap.exists())throw new Error(`Missing item ${l.itemCode}`);const data=snap.data();let balances=Array.isArray(data.stockBalances)?data.stockBalances.map(b=>({...b,qty:Number(b.qty||0)})):[{location:data.currentLocation,status:data.status,qty:Number(data.quantity??data.qty??1)}];const src=balances.find(b=>b.location===l.sourceLocation&&Number(b.qty)>=l.qty);if(!src)throw new Error(`Insufficient stock for ${l.itemCode}`);src.qty-=l.qty;let dest=balances.find(b=>b.location===target);if(dest){dest.qty+=l.qty;dest.status=movementTargetStatus(type);}else balances.push({location:target,status:movementTargetStatus(type),qty:l.qty});balances=balances.filter(b=>b.qty>0);const summary=summarizeBalances(balances),history=[...(data.lifecycleHistory||[]),{action:"Movement",movementId,status:summary.status,location:summary.location,from:l.sourceLocation,to:target,qty:l.qty,unit:data.unit||l.unit,timestamp:nowISO(),user:currentUserEmail,note:remark||`${type} via ${mode}`}],docs=[...(data.documents||[])];if(attachment)docs.push({...attachment,docName:attachment.fileName,movementId});tx.update(doc(db,"inventory",l.itemId),{stockBalances:balances,status:summary.status,currentLocation:summary.location,lifecycleHistory:history,documents:docs,lastEditedBy:currentUserEmail,lastEditedAt:nowISO()});}
+tx.set(movementRef,{movementId,type,mode,target,detail,remark,lines:movementLines,itemIds:movementLines.map(x=>x.itemId),attachment,createdBy:currentUserEmail,createdByRole:currentUserRole,createdAt:nowISO(),status:"posted"});});await writeAuditTrace("CREATE_MOVEMENT","Inventory","movement",movementId,null,{type,target,mode,detail,lines:movementLines.map(l=>({itemCode:l.itemCode,name:l.name,sourceLocation:l.sourceLocation,qty:l.qty,unit:l.unit}))},remark,movementId,{lineCount:movementLines.length});alert("Movement posted successfully.");movementLines=[];renderMovementLines();e.target.reset();refreshMovementDestination();await loadGlobalInventory();switchTab("inventory");}catch(err){alert("Movement failed: "+err.message);}});
+
+document.getElementById("registerForm").addEventListener("submit",async e=>{e.preventDefault();const code=document.getElementById("itemCode").value.trim();if(globalInventoryData.some(i=>normalize(i.itemCode)===normalize(code))){alert("Item Code / Serial Number already exists.");return;}const qty=Number(document.getElementById("itemQty").value),unit=document.getElementById("itemUnit").value,tracking=document.getElementById("trackingType").value;if(qty<=0||!unit)return;const file=document.getElementById("initialDoc").files[0],documents=[];if(file)documents.push({docId:`doc_${Date.now()}`,title:"Lifecycle Document",fileName:file.name,base64Data:await fileToBase64(file),uploadedAt:nowISO(),uploadedBy:currentUserEmail});const status=document.getElementById("itemStatus").value,loc=document.getElementById("itemLocation").value,newItem={type:document.getElementById("itemType").value,trackingType:tracking,itemCode:code,name:document.getElementById("itemName").value.trim(),category:document.getElementById("itemCategory").value,quantity:qty,unit,status,currentLocation:loc,stockBalances:qty>0?[{location:loc,status,qty}]:[],remark:document.getElementById("itemRemark").value,documents,lifecycleHistory:[{action:"Register",status,location:loc,qty,unit,timestamp:nowISO(),user:currentUserEmail}],createdBy:currentUserEmail,createdAt:nowISO(),lastEditedBy:null,lastEditedAt:null};const ref=await addDoc(collection(db,"inventory"),newItem);await writeAuditTrace("CREATE_ITEM","Inventory","inventory",code,null,{name:newItem.name,qty,unit,status,location:loc,trackingType:tracking,category:newItem.category},"",ref.id);alert("Asset registered successfully.");e.target.reset();handleTrackingTypeChange();handleRegistrationStatusChange();await loadGlobalInventory();switchTab("inventory");});
+
+window.populateFollowupForm=()=>{const id=document.getElementById("followupAssetSelect").value,f=document.getElementById("followupForm"),i=globalInventoryData.find(x=>x.id===id);if(!i){f.classList.add("hidden");return;}document.getElementById("editAssetId").value=id;if(CAN_EDIT_NAME)document.getElementById("editItemName").value=i.name||"";document.getElementById("editItemStatus").value=["Own Warehouse","Supplier Site","Client Site","In Maintenance","Disposed"].includes(i.status)?i.status:"Own Warehouse";handleFollowupStatusChange();const loc=document.getElementById("editItemLocation");if(loc&&[...loc.options].some(o=>o.value===i.currentLocation))loc.value=i.currentLocation;document.getElementById("editItemRemark").value="";f.classList.remove("hidden");};
+document.getElementById("followupForm").addEventListener("submit",async e=>{e.preventDefault();const id=document.getElementById("editAssetId").value,ref=doc(db,"inventory",id),snap=await getDoc(ref);if(!snap.exists())return;const data=snap.data(),status=document.getElementById("editItemStatus").value,loc=document.getElementById("editItemLocation").value,remark=document.getElementById("editItemRemark").value,file=document.getElementById("followupFile").files[0],docs=[...(data.documents||[])];if(file)docs.push({docId:`doc_${Date.now()}`,title:"Followup Document",fileName:file.name,base64Data:await fileToBase64(file),uploadedAt:nowISO(),uploadedBy:currentUserEmail});const existingBalances=positiveBalances(data);if(existingBalances.length>1&&(status!==data.status||loc!==data.currentLocation)){alert("This item has stock in multiple locations. Use Logistic movement to change stock location/status so quantities remain auditable.");return;}const nextBalances=existingBalances.length===1?[{...existingBalances[0],status,location:loc}]:data.stockBalances;const after={status,currentLocation:loc,stockBalances:nextBalances,remark:remark?`Followup: ${remark}`:data.remark,documents:docs,lastEditedBy:currentUserEmail,lastEditedAt:nowISO(),lifecycleHistory:[...(data.lifecycleHistory||[]),{action:"Followup",status,location:loc,qty:totalQty(data),unit:data.unit||"",timestamp:nowISO(),user:currentUserEmail,note:remark||"Lifecycle followup"}]};if(CAN_EDIT_NAME)after.name=document.getElementById("editItemName").value.trim();await updateDoc(ref,after);await writeAuditTrace("UPDATE_ITEM","Inventory","inventory",data.itemCode,{name:data.name,status:data.status,location:data.currentLocation,remark:data.remark||""},{name:after.name||data.name,status,location:loc,remark:after.remark||""},remark,id);alert("Followup saved.");e.target.reset();e.target.classList.add("hidden");await loadGlobalInventory();});
+
+async function loadClientProfiles(){clientProfilesData=[];const s=await getDocs(collection(db,"client_profiles"));s.forEach(d=>clientProfilesData.push({id:d.id,...d.data()}));renderProfiles("client");refreshMovementDestination();}
+async function loadSupplierProfiles(){supplierProfilesData=[];const s=await getDocs(collection(db,"supplier_profiles"));s.forEach(d=>supplierProfilesData.push({id:d.id,...d.data()}));renderProfiles("supplier");refreshMovementDestination();}
+function renderProfiles(kind){const data=kind==="client"?clientProfilesData:supplierProfilesData,tb=document.getElementById(`${kind}ProfileBody`),sel=document.getElementById(`${kind}DocSelect`);if(tb)tb.innerHTML=data.map(x=>`<tr><td class="p-2 font-medium">${esc(x[kind+"Name"])}</td><td class="p-2 text-slate-400">${esc(x.contact||"N/A")}</td></tr>`).join("");if(sel)sel.innerHTML=`<option value="">-- Choose ${kind} --</option>`+data.map(x=>`<option value="${esc(x[kind+"Name"])}">${esc(x[kind+"Name"])}</option>`).join("");}
+window.filterClientsTable=()=>renderFilteredProfiles("client");window.filterSuppliersTable=()=>renderFilteredProfiles("supplier");function renderFilteredProfiles(kind){const q=normalize(document.getElementById(`${kind}Search`).value),data=(kind==="client"?clientProfilesData:supplierProfilesData).filter(x=>normalize([x[kind+"Name"],x.contact].join(" ")).includes(q)),tb=document.getElementById(`${kind}ProfileBody`);tb.innerHTML=data.map(x=>`<tr><td class="p-2 font-medium">${esc(x[kind+"Name"])}</td><td class="p-2 text-slate-400">${esc(x.contact||"N/A")}</td></tr>`).join("");}
+function profileForm(kind){document.getElementById(`${kind}RegisterForm`).addEventListener("submit",async e=>{e.preventDefault();const name=document.getElementById(`reg${kind[0].toUpperCase()+kind.slice(1)}Name`).value.trim(),contact=document.getElementById(`reg${kind[0].toUpperCase()+kind.slice(1)}Contact`).value.trim(),data=kind==="client"?clientProfilesData:supplierProfilesData;if(data.some(x=>normalize(x[kind+"Name"])===normalize(name))){alert(`${kind} already exists.`);return;}await addDoc(collection(db,`${kind}_profiles`),{[kind+"Name"]:name,contact,status:"active",createdAt:nowISO(),createdBy:currentUserEmail});await writeAuditTrace("CREATE_PROFILE",kind==="client"?"Clients":"Suppliers",kind,name,null,{contact});e.target.reset();kind==="client"?await loadClientProfiles():await loadSupplierProfiles();});}profileForm("client");profileForm("supplier");
+function linkLine(kind){const id=document.getElementById(`${kind}DocAssetCode`).value,qty=Number(document.getElementById(`${kind}DocQty`).value||1),item=globalInventoryData.find(x=>x.id===id),arr=kind==="client"?clientDocLinks:supplierDocLinks;if(!item||qty<=0)return;arr.push({itemId:item.id,itemCode:item.itemCode,itemName:item.name,qty,unit:item.unit||""});renderDocLinks(kind);}window.addClientDocLink=()=>linkLine("client");window.addSupplierDocLink=()=>linkLine("supplier");window.removeDocLink=(kind,idx)=>{(kind==="client"?clientDocLinks:supplierDocLinks).splice(idx,1);renderDocLinks(kind);};function renderDocLinks(kind){const arr=kind==="client"?clientDocLinks:supplierDocLinks;document.getElementById(`${kind}DocLinks`).innerHTML=arr.map((x,i)=>`<div class="flex justify-between bg-slate-800 p-2 rounded"><span>${esc(x.itemCode)} - ${x.qty} ${esc(x.unit)}</span><button type="button" onclick="removeDocLink('${kind}',${i})" class="text-red-400">Remove</button></div>`).join("")||'<span class="text-slate-500">No linked items.</span>';}
+function docForm(kind){document.getElementById(`${kind}DocForm`).addEventListener("submit",async e=>{e.preventDefault();const cap=kind[0].toUpperCase()+kind.slice(1),name=document.getElementById(`${kind}DocSelect`).value,docType=document.getElementById(`${kind}DocType`).value,docDate=document.getElementById(`${kind}DocDate`).value,file=document.getElementById(`${kind}File`).files[0],links=kind==="client"?clientDocLinks:supplierDocLinks;if(!file){alert("Attach a file.");return;}const payload={[kind+"Name"]:name,docType,docDate,linkedItems:[...links],linkedAssetCode:links[0]?.itemCode||"",fileName:file.name,base64Data:await fileToBase64(file),uploadedBy:currentUserEmail,createdAt:nowISO()};await addDoc(collection(db,`${kind}_docs`),payload);await writeAuditTrace("UPLOAD_DOCUMENT",kind==="client"?"Clients":"Suppliers",`${kind}_document`,`${name} ${docType}`,null,{docDate,linkedItems:links.map(x=>({itemCode:x.itemCode,qty:x.qty,unit:x.unit}))});if(kind==="client")clientDocLinks=[];else supplierDocLinks=[];renderDocLinks(kind);e.target.reset();kind==="client"?await loadClientDocs():await loadSupplierDocs();});}docForm("client");docForm("supplier");
+async function loadClientDocs(){clientDocsData=[];const s=await getDocs(collection(db,"client_docs"));s.forEach(d=>clientDocsData.push({id:d.id,...d.data()}));renderDocs("client",clientDocsData);filterAndSortInventory();}
+async function loadSupplierDocs(){supplierDocsData=[];const s=await getDocs(collection(db,"supplier_docs"));s.forEach(d=>supplierDocsData.push({id:d.id,...d.data()}));renderDocs("supplier",supplierDocsData);filterAndSortInventory();}
+function renderDocs(kind,data){const tb=document.getElementById(`${kind}DocTableBody`);if(!tb)return;tb.innerHTML=data.map(x=>`<tr><td class="p-2 font-medium">${esc(x[kind+"Name"])}</td><td class="p-2">${esc(x.docType)}</td><td class="p-2">${esc((x.linkedItems||[]).map(y=>`${y.itemCode} (${y.qty} ${y.unit})`).join(", ")||x.linkedAssetCode||"General")}</td><td class="p-2">${esc(x.docDate)}</td><td class="p-2">${esc(x.fileName||"")}</td></tr>`).join("");}
+window.filterClientDocsTable=()=>filterDocs("client");window.filterSupplierDocsTable=()=>filterDocs("supplier");function filterDocs(kind){const q=normalize(document.getElementById(`${kind}DocSearch`).value),data=(kind==="client"?clientDocsData:supplierDocsData).filter(x=>normalize(JSON.stringify(x)).includes(q));renderDocs(kind,data);}
+
+window.openHistoryModal=async id=>{currentModalItemId=id;const item=globalInventoryData.find(x=>x.id===id);if(!item)return;document.getElementById("modalAssetTitle").textContent=`Asset: ${item.itemCode} - ${item.name}`;document.getElementById("modalBalanceContainer").innerHTML='<div class="font-semibold text-emerald-400 mb-2">Current Stock Balance</div>'+positiveBalances(item).map(b=>`<div class="flex justify-between border-b border-slate-800 py-1"><span>${esc(b.location)} <span class="text-slate-400">(${esc(b.status)})</span></span><strong>${b.qty} ${esc(item.unit||"")}</strong></div>`).join("");const ms=await getDocs(collection(db,"movements")),mov=[];ms.forEach(d=>{const x=d.data();(x.lines||[]).filter(l=>l.itemId===id).forEach(l=>mov.push({kind:"Movement",date:x.createdAt,action:x.type,from:l.sourceLocation,to:x.target,status:movementTargetStatus(x.type),qty:l.qty,unit:l.unit,user:x.createdBy,note:x.remark||x.detail||"",movementId:x.movementId||d.id}));});const legacy=(item.lifecycleHistory||[]).filter(h=>!(h.action==="Movement"&&h.movementId)).map((h,i)=>({kind:"Lifecycle",date:h.timestamp,action:h.action||"Lifecycle",from:h.from||"",to:h.to||h.location||"",status:h.status||"",qty:h.qty??"",unit:h.unit||item.unit||"",user:h.user||"",note:h.note||"",movementId:h.movementId||"",legacyIndex:i}));currentModalHistory=[...legacy,...mov].sort((a,b)=>String(b.date).localeCompare(String(a.date)));document.getElementById("modalHistoryContainer").innerHTML=currentModalHistory.length?currentModalHistory.map((h,i)=>`<div class="p-2 bg-slate-800 rounded border border-slate-700"><div class="flex justify-between gap-2"><label><input type="checkbox" class="history-select mr-2" value="${i}"><strong>${esc(h.action)}</strong> ${h.movementId?`<span class="text-slate-500">${esc(h.movementId)}</span>`:""}</label><span class="text-slate-400">${h.date?new Date(h.date).toLocaleString():""}</span></div><div class="mt-1">${h.from?`From <span class="text-cyan-300">${esc(h.from)}</span> `:""}${h.to?`→ <span class="text-cyan-300">${esc(h.to)}</span>`:""} ${h.qty!==""?`| <strong>${h.qty} ${esc(h.unit)}</strong>`:""}</div><div class="text-slate-400">Status: ${esc(h.status)} | User: ${esc(h.user||"System")}${h.note?` | ${esc(h.note)}`:""}</div></div>`).join(""):'<p class="text-slate-500">No history.</p>';document.getElementById("modalDocsContainer").innerHTML=(item.documents||[]).map(d=>`<div class="flex justify-between items-center bg-slate-800 p-2 rounded border border-slate-700"><div><div class="text-amber-200">${esc(d.docName||d.fileName||"Document")}</div><div class="text-[10px] text-slate-400">${esc(d.uploadedAt||"")}</div></div>${d.base64Data?`<a href="${d.base64Data}" download="${esc(d.docName||d.fileName||"document")}" class="bg-amber-600 px-2.5 py-1 rounded text-[10px]">Download</a>`:""}</div>`).join("")||'<p class="text-slate-500">No attached documents.</p>';document.getElementById("historyModal").classList.remove("hidden");document.getElementById("historyModal").classList.add("flex");};
+window.closeHistoryModal=()=>{document.getElementById("historyModal").classList.add("hidden");document.getElementById("historyModal").classList.remove("flex");};
+function historyRows(rows,item){return rows.map(h=>({ItemCode:item.itemCode,ItemName:item.name,Date:h.date,Action:h.action,MovementId:h.movementId,From:h.from,To:h.to,Status:h.status,Qty:h.qty,Unit:h.unit,User:h.user,Note:h.note}));}
+window.exportModalHistory=all=>{const item=globalInventoryData.find(x=>x.id===currentModalItemId);if(!item)return;let rows=currentModalHistory;if(!all){const ids=[...document.querySelectorAll(".history-select:checked")].map(x=>Number(x.value));if(!ids.length){alert("Select history rows first.");return;}rows=ids.map(i=>currentModalHistory[i]);}const ws=XLSX.utils.json_to_sheet(historyRows(rows,item));const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"History");XLSX.writeFile(wb,`${item.itemCode}_${all?"Full":"Selected"}_History.xlsx`);};
+window.exportAllHistory=async()=>{const ms=await getDocs(collection(db,"movements")),rows=[];ms.forEach(d=>{const x=d.data();(x.lines||[]).forEach(l=>rows.push({MovementId:x.movementId||d.id,Date:x.createdAt,Type:x.type,ItemCode:l.itemCode,ItemName:l.name,From:l.sourceLocation,To:x.target,Qty:l.qty,Unit:l.unit,User:x.createdBy,Remark:x.remark||""}));});globalInventoryData.forEach(i=>(i.lifecycleHistory||[]).filter(h=>!(h.action==="Movement"&&h.movementId)).forEach(h=>rows.push({MovementId:h.movementId||"",Date:h.timestamp,Type:h.action||"Lifecycle",ItemCode:i.itemCode,ItemName:i.name,From:h.from||"",To:h.to||h.location||"",Qty:h.qty??"",Unit:h.unit||i.unit||"",User:h.user||"",Remark:h.note||""})));const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(rows),"All History");XLSX.writeFile(wb,"IMS_All_History.xlsx");};
+
+
+
+</script>
+</body></html>
