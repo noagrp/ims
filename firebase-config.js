@@ -2,7 +2,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebas
 import { getAuth } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
 import { getFirestore } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
-const firebaseConfig = {
+export const firebaseConfig = {
     apiKey: "AIzaSyBb2BrGjHIzOnds-f-LtmsW0WocOh9SxEk",
     authDomain: "imssystem-38c4f.firebaseapp.com",
     projectId: "imssystem-38c4f",
@@ -13,5 +13,6 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
+
 export const auth = getAuth(app);
 export const db = getFirestore(app);
