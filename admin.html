@@ -151,7 +151,7 @@
     
     <section id="tab-settings" class="bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-700 space-y-6 shadow-xl hidden w-full max-w-5xl">
         <h2 class="text-base sm:text-lg font-bold text-center">Global Master Settings Configuration</h2>
-        <div class="grid grid-cols-1 gap-6 w-full"><div class="bg-slate-900/50 p-4 sm:p-6 rounded-xl border border-slate-700 shadow-md space-y-3"><h3 class="font-semibold text-cyan-400 text-center">Warehouse Settings</h3><p class="text-xs text-slate-400">Master creation is controlled by Superadmin. Existing records remain available for use.</p><div id="warehouseListContainer" class="space-y-2 max-h-56 overflow-y-auto text-xs"></div></div><div class="bg-slate-900/50 p-4 sm:p-6 rounded-xl border border-slate-700 shadow-md space-y-3"><h3 class="font-semibold text-amber-400 text-center">Categories Setting</h3><p class="text-xs text-slate-400">Master creation is controlled by Superadmin. Existing records remain available for use.</p><div id="categoryListContainer" class="space-y-2 max-h-56 overflow-y-auto text-xs"></div></div><div class="bg-slate-900/50 p-4 sm:p-6 rounded-xl border border-slate-700 shadow-md space-y-3"><h3 class="font-semibold text-emerald-400 text-center">Unit Settings</h3><p class="text-xs text-slate-400">Master creation is controlled by Superadmin. Existing records remain available for use.</p><div id="unitListContainer" class="space-y-2 max-h-56 overflow-y-auto text-xs"></div></div></div>
+        <div class="grid grid-cols-1 gap-6 w-full"><div class="bg-slate-900/50 p-4 sm:p-6 rounded-xl border border-slate-700 shadow-md space-y-3"><h3 class="font-semibold text-cyan-400 text-center">Warehouse Settings</h3><p class="text-xs text-slate-400">Global master data is maintained by Manager/Superadmin. Admin can view and use active records.</p><div id="warehouseListContainer" class="space-y-2 max-h-56 overflow-y-auto text-xs"></div></div><div class="bg-slate-900/50 p-4 sm:p-6 rounded-xl border border-slate-700 shadow-md space-y-3"><h3 class="font-semibold text-amber-400 text-center">Categories Setting</h3><p class="text-xs text-slate-400">Global master data is maintained by Manager/Superadmin. Admin can view and use active records.</p><div id="categoryListContainer" class="space-y-2 max-h-56 overflow-y-auto text-xs"></div></div><div class="bg-slate-900/50 p-4 sm:p-6 rounded-xl border border-slate-700 shadow-md space-y-3"><h3 class="font-semibold text-emerald-400 text-center">Unit Settings</h3><p class="text-xs text-slate-400">Global master data is maintained by Manager/Superadmin. Admin can view and use active records.</p><div id="unitListContainer" class="space-y-2 max-h-56 overflow-y-auto text-xs"></div></div></div>
         
     </section>
 </main>
@@ -167,10 +167,9 @@
 </div>
 
 <script type="module">
-import { auth, db } from "./firebase-config.js";
-import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
+import { auth, db, firebaseConfig } from "./firebase-config.js";
+import { onAuthStateChanged, signOut, getAuth, createUserWithEmailAndPassword, deleteUser } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
 import { collection, addDoc, getDocs, doc, getDoc, setDoc, updateDoc, runTransaction, writeBatch } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
-import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-functions.js";
 
 const ROLE="admin";
 const CAN_EDIT_NAME=false;
@@ -193,9 +192,12 @@ async function loadAttachments(){attachmentsData=[];const s=await getDocs(collec
 function traceComparable(v){if(v===undefined)return null;if(v===null||typeof v!=="object")return v;if(Array.isArray(v))return v.map(traceComparable);const o={};Object.keys(v).sort().forEach(k=>{if(!["base64Data","uid","password","itemId","docId","targetId"].includes(k))o[k]=traceComparable(v[k]);});return o;}
 function changedTraceFields(beforeValue,afterValue){const b=beforeValue&&typeof beforeValue==="object"&&!Array.isArray(beforeValue)?beforeValue:{value:beforeValue};const a=afterValue&&typeof afterValue==="object"&&!Array.isArray(afterValue)?afterValue:{value:afterValue};return [...new Set([...Object.keys(b||{}),...Object.keys(a||{})])].filter(k=>JSON.stringify(traceComparable(b?.[k]))!==JSON.stringify(traceComparable(a?.[k])));}
 function friendlyTraceAction(a){return String(a||"").toLowerCase().replace(/_/g," ").replace(/\b\w/g,c=>c.toUpperCase());}
-async function writeAuditTrace(actionType,module,targetType,targetName,beforeValue=null,afterValue=null,remark="",targetId="",metadata={}){
+function makeAuditTrace(actionType,module,targetType,targetName,beforeValue=null,afterValue=null,remark="",targetId="",metadata={}){
  const cleanBefore=traceComparable(beforeValue),cleanAfter=traceComparable(afterValue),performedAt=nowISO();
- const trace={traceVersion:2,actionType,module,targetType,targetName:String(targetName||""),targetId:String(targetId||""),summary:`${friendlyTraceAction(actionType)}: ${String(targetName||targetType||module)}`,beforeValue:cleanBefore,afterValue:cleanAfter,changedFields:changedTraceFields(cleanBefore,cleanAfter),remark:String(remark||""),metadata:traceComparable(metadata||{}),performedBy:currentUserEmail,performedByRole:currentUserRole,performedAt};
+ return {traceVersion:2,actionType,module,targetType,targetName:String(targetName||""),targetId:String(targetId||""),summary:`${friendlyTraceAction(actionType)}: ${String(targetName||targetType||module)}`,beforeValue:cleanBefore,afterValue:cleanAfter,changedFields:changedTraceFields(cleanBefore,cleanAfter),remark:String(remark||""),metadata:traceComparable(metadata||{}),performedBy:currentUserEmail,performedByRole:currentUserRole,performedAt};
+}
+async function writeAuditTrace(actionType,module,targetType,targetName,beforeValue=null,afterValue=null,remark="",targetId="",metadata={}){
+ const trace=makeAuditTrace(actionType,module,targetType,targetName,beforeValue,afterValue,remark,targetId,metadata);
  try{await addDoc(collection(db,"audit_traces"),trace);if(TRACE_SCOPE!=="none"&&typeof loadAuditTraces==="function")loadAuditTraces();}catch(e){console.warn("Trace write failed",e);}
 }
 
@@ -222,7 +224,7 @@ async function loadSettings(){
 function renderSettingList(type,data){const el=document.getElementById(`${type}ListContainer`);if(!el)return;el.innerHTML=data.length?data.map(x=>`<div class="flex items-center justify-between bg-slate-900 p-2 rounded border border-slate-700"><div class="flex items-center gap-2"><span>${esc(x.value)}</span>${x.status==="inactive"?'<span class="text-[10px] text-slate-500">Inactive</span>':""}</div>${CAN_EDIT_MASTER?`<div class="flex gap-1"><button onclick="editMaster('${x.id}','${type}')" class="text-[10px] bg-slate-700 hover:bg-slate-600 px-2 py-1 rounded">Edit</button>${ROLE==="superadmin"?`<button onclick="toggleMasterStatus('${x.id}','${type}')" class="text-[10px] bg-slate-700 hover:bg-slate-600 px-2 py-1 rounded">${x.status==="inactive"?"Activate":"Deactivate"}</button>`:""}</div>`:'<span class="text-[10px] text-slate-400">View Only</span>'}</div>`).join(""):'<p class="p-2 text-slate-500">No records configured.</p>';}
 window.toggleMasterStatus=async(id,type)=>{if(ROLE!=="superadmin")return;const arr=type==="warehouse"?warehousesData:type==="category"?categoriesData:unitsData;const item=arr.find(x=>x.id===id);if(!item)return;const status=item.status==="inactive"?"active":"inactive";await updateDoc(doc(db,"settings",id),{status,updatedAt:nowISO(),updatedBy:currentUserEmail});await writeAuditTrace("CHANGE_MASTER_STATUS","Global Settings",type,item.value,item.status||"active",status);await loadSettings();};
 window.editMaster=async(id,type)=>{if(!CAN_EDIT_MASTER)return;const arr=type==="warehouse"?warehousesData:type==="category"?categoriesData:unitsData;const item=arr.find(x=>x.id===id);if(!item)return;const val=prompt(`Edit ${type} name`,item.value);if(!val||normalize(val)===normalize(item.value))return;const duplicate=arr.some(x=>x.id!==id&&normalize(x.value)===normalize(val));if(duplicate){alert("A matching master record already exists.");return;}await updateDoc(doc(db,"settings",id),{value:val.trim(),normalizedValue:normalize(val),updatedAt:nowISO(),updatedBy:currentUserEmail});await writeAuditTrace("EDIT_MASTER","Global Settings",type,item.value,item.value,val.trim());await loadSettings();};
-async function createMaster(type,name){if(!CAN_CREATE_MASTER)return;try{const fn=httpsCallable(getFunctions(),"createMasterSetting"),result=await fn({type,value:name.trim()});alert(result.data?.message||"Master setting created.");await loadSettings();}catch(err){alert("Unable to create master setting: "+(err.message||err));}}
+async function createMaster(){ return; }
 
 
 window.handleTrackingTypeChange=()=>{const t=document.getElementById("trackingType").value,q=document.getElementById("itemQty");if(t==="serialized"){q.value=1;q.readOnly=true;}else q.readOnly=false;};
