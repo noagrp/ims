@@ -3,16 +3,6 @@ import { onAuthStateChanged, signOut, getAuth, createUserWithEmailAndPassword } 
 import { collection, addDoc, getDocs, doc, getDoc, setDoc, updateDoc, runTransaction, writeBatch, query, where } from 'https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js';
 import { initializeApp, deleteApp } from 'https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js';
 
-const deps = {
-  auth, db, firebaseConfig,
-  onAuthStateChanged, signOut, getAuth, createUserWithEmailAndPassword,
-  collection, addDoc, getDocs, doc, getDoc, setDoc, updateDoc,
-  runTransaction, writeBatch, query, where,
-  initializeApp, deleteApp
-};
-
-const {auth,db,firebaseConfig,onAuthStateChanged,signOut,getAuth,createUserWithEmailAndPassword,collection,addDoc,getDocs,doc,getDoc,setDoc,updateDoc,runTransaction,writeBatch,query,where,initializeApp,deleteApp}=deps;
-
 const ROLE = window.IMS_ROLE || 'admin';
 const CAN_EDIT_ITEM = ['manager','superadmin'].includes(ROLE);
 const CAN_MANAGE_MASTER = ['manager','superadmin'].includes(ROLE);
