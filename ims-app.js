@@ -3,6 +3,16 @@ import { onAuthStateChanged, signOut, getAuth, createUserWithEmailAndPassword } 
 import { collection, addDoc, getDocs, doc, getDoc, setDoc, updateDoc, runTransaction, writeBatch, query, where } from 'https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js';
 import { initializeApp, deleteApp } from 'https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js';
 
+const deps = {
+  auth, db, firebaseConfig,
+  onAuthStateChanged, signOut, getAuth, createUserWithEmailAndPassword,
+  collection, addDoc, getDocs, doc, getDoc, setDoc, updateDoc,
+  runTransaction, writeBatch, query, where,
+  initializeApp, deleteApp
+};
+
+const {auth,db,firebaseConfig,onAuthStateChanged,signOut,getAuth,createUserWithEmailAndPassword,collection,addDoc,getDocs,doc,getDoc,setDoc,updateDoc,runTransaction,writeBatch,query,where,initializeApp,deleteApp}=deps;
+
 const ROLE = window.IMS_ROLE || 'admin';
 const CAN_EDIT_ITEM = ['manager','superadmin'].includes(ROLE);
 const CAN_MANAGE_MASTER = ['manager','superadmin'].includes(ROLE);
@@ -224,6 +234,27 @@ window.changeRole=async id=>{if(ROLE!=='superadmin')return;const u=users.find(x=
 async function loadCollection(name){const arr=[];const snap=await getDocs(collection(db,name));snap.forEach(d=>arr.push({id:d.id,...d.data()}));return arr;}
 async function loadAuditVisible(){if(!CAN_AUDIT){audit=[];return;}if(ROLE==='superadmin'){audit=await loadCollection('audit_traces');}else{const [a,o]=await Promise.all([getDocs(query(collection(db,'audit_traces'),where('performedByRole','==','admin'))),getDocs(query(collection(db,'audit_traces'),where('performedBy','==',me.email)))]);const m=new Map();[a,o].forEach(s=>s.forEach(d=>m.set(d.id,{id:d.id,...d.data()})));audit=[...m.values()].filter(x=>x.performedByRole==='admin'||x.performedBy===me.email);}audit.sort((a,b)=>String(b.performedAt).localeCompare(String(a.performedAt)));}
 function legacyOperationalLogs(){const out=[];inventory.forEach(i=>(i.lifecycleHistory||[]).forEach((h,n)=>out.push({id:`legacy-${i.id}-${n}`,legacy:true,date:h.timestamp,activity:h.action||'LEGACY',activityLabel:h.action||'Legacy Activity',status:h.status||i.status,fromName:h.from||'',toName:h.to||h.location||'',qty:h.qty??'',unit:h.unit||i.unit,itemId:i.id,itemCode:i.itemCode,itemName:i.name,category:i.category,supplierId:i.supplierId||'',supplierName:i.supplierName||'',clientId:'',clientName:'',performedBy:h.user||'',performedByRole:'',remark:h.note||'',documents:h.documentRefs||[]})));return out;}
-async function loadAll(){[inventory,suppliers,clients,settings,movements,maintenance,documents,users]=await Promise.all(['inventory','supplier_profiles','client_profiles','settings','movements','maintenance_events','document_refs','users'].map(loadCollection));const newLogs=await loadCollection('operational_logs');logs=[...newLogs,...legacyOperationalLogs()].sort((a,b)=>String(b.date).localeCompare(String(a.date)));await loadAuditVisible();}
+async function loadAll(){
+  [inventory,suppliers,clients,settings,movements,maintenance,documents]=await Promise.all(
+    ['inventory','supplier_profiles','client_profiles','settings','movements','maintenance_events','document_refs'].map(loadCollection)
+  );
+
+  // Firestore rules are not filters:
+  // - Admin cannot list users.
+  // - Manager may read Admin profiles only, so use a role-filtered query.
+  // - Superadmin may read the full users collection.
+  if (ROLE === 'superadmin') {
+    users = await loadCollection('users');
+  } else if (ROLE === 'manager') {
+    const snap = await getDocs(query(collection(db,'users'), where('role','==','admin')));
+    users = snap.docs.map(d => ({id:d.id, ...d.data()}));
+  } else {
+    users = [];
+  }
+
+  const newLogs=await loadCollection('operational_logs');
+  logs=[...newLogs,...legacyOperationalLogs()].sort((a,b)=>String(b.date).localeCompare(String(a.date)));
+  await loadAuditVisible();
+}
 
 onAuthStateChanged(auth,async user=>{if(!user){location.href='index.html';return;}const snap=await getDoc(doc(db,'users',user.uid));if(!snap.exists()||snap.data().role!==ROLE||snap.data().status==='inactive'){await signOut(auth);location.href='index.html';return;}me={uid:user.uid,email:snap.data().email||user.email||'',role:snap.data().role};shell();byId('currentUser').textContent=me.email;try{await loadAll();showTab('workspace');}catch(err){console.error(err);byId('appContent').innerHTML=`<div class="bg-red-950/50 border border-red-900 rounded-xl p-4 text-sm">Failed to load IMS data: ${esc(err.message)}</div>`;}});
