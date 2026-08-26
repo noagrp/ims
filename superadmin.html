@@ -72,5 +72,138 @@
 <body class="bg-slate-950">
 <script>window.IMS_ROLE='superadmin';</script>
 <script type="module" src="./ims-app.js"></script>
+<script type="module">
+import { auth, db } from './firebase-config.js';
+import { doc, getDoc, setDoc, addDoc, collection } from 'https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js';
+
+const allowedRestoreCollections = [
+  'settings','client_profiles','supplier_profiles','inventory','movements',
+  'maintenance_events','client_docs','supplier_docs','document_refs',
+  'operational_logs','audit_traces'
+];
+
+function ensureRestoreControl(){
+  const backupBtn=document.getElementById('downloadBackup');
+  if(!backupBtn || document.getElementById('restoreBackup'))return;
+  const wrap=backupBtn.parentElement;
+  const btn=document.createElement('button');
+  btn.id='restoreBackup';
+  btn.type='button';
+  btn.className='bg-amber-700 hover:bg-amber-600 px-4 py-2 rounded-lg text-xs font-bold';
+  btn.textContent='Restore Backup JSON';
+  wrap.appendChild(btn);
+
+  const input=document.createElement('input');
+  input.id='restoreBackupFile';
+  input.type='file';
+  input.accept='.json,application/json';
+  input.className='hidden';
+  wrap.appendChild(input);
+
+  const note=wrap.parentElement?.querySelector('.text-slate-500.mt-2');
+  if(note){
+    note.insertAdjacentHTML('beforebegin','<div class="text-[10px] text-amber-400 mt-2">Restore uses merge mode: backup fields are written back by original document ID, while newer documents remain. User profiles are not restored.</div>');
+  }
+
+  btn.onclick=()=>input.click();
+  input.onchange=()=>restoreBackupFile(input.files?.[0]);
+}
+
+async function restoreBackupFile(file){
+  if(!file)return;
+  const user=auth.currentUser;
+  if(!user){alert('You must be signed in.');return;}
+
+  let payload;
+  try{
+    payload=JSON.parse(await file.text());
+  }catch{
+    alert('Invalid JSON file.');
+    return;
+  }
+
+  if(!payload || Number(payload.imsBackupVersion)!==2 || !payload.collections || typeof payload.collections!=='object'){
+    alert('This is not a valid IMS backup version 2 file.');
+    return;
+  }
+
+  const userSnap=await getDoc(doc(db,'users',user.uid));
+  const profile=userSnap.exists()?userSnap.data():null;
+  if(!profile || profile.role!=='superadmin' || profile.status==='inactive'){
+    alert('Restore is restricted to an active Superadmin account.');
+    return;
+  }
+
+  const summary={};
+  let total=0;
+  for(const name of allowedRestoreCollections){
+    const rows=Array.isArray(payload.collections[name])?payload.collections[name]:[];
+    summary[name]=rows.length;
+    total+=rows.length;
+  }
+  if(!total){alert('The backup contains no supported records to restore.');return;}
+
+  const createdAt=payload.createdAt||'unknown date';
+  const message=`Restore ${total} record(s) from backup ${createdAt}?\n\nThis is MERGE restore:\n• backup documents are restored by original ID\n• backup fields overwrite matching fields\n• newer documents not in the backup are kept\n• Firestore user profiles and Firebase Auth accounts are NOT restored\n\nContinue?`;
+  if(!confirm(message))return;
+
+  const btn=document.getElementById('restoreBackup');
+  if(btn){btn.disabled=true;btn.textContent='Restoring...';}
+  let restored=0;
+  const errors=[];
+
+  try{
+    for(const name of allowedRestoreCollections){
+      const rows=Array.isArray(payload.collections[name])?payload.collections[name]:[];
+      for(const row of rows){
+        if(!row || typeof row.id!=='string' || !row.id || !row.data || typeof row.data!=='object'){
+          errors.push(`${name}: invalid record`);
+          continue;
+        }
+        try{
+          await setDoc(doc(db,name,row.id),row.data,{merge:true});
+          restored++;
+        }catch(err){
+          errors.push(`${name}/${row.id}: ${err?.message||err}`);
+        }
+      }
+    }
+
+    await addDoc(collection(db,'audit_traces'),{
+      traceVersion:3,
+      actionType:'RESTORE_SYSTEM_BACKUP',
+      module:'Global Settings',
+      targetType:'backup',
+      targetName:'Merge System Restore',
+      targetId:'',
+      summary:'Restore System Backup: Merge System Restore',
+      beforeValue:null,
+      afterValue:{restored,errors:errors.length,backupCreatedAt:payload.createdAt||'',collections:summary},
+      changedFields:['restored','errors','backupCreatedAt','collections'],
+      remark:'Merge restore from uploaded IMS backup JSON. Existing newer documents were preserved. User profiles were intentionally excluded.',
+      metadata:{fileName:file.name,backupVersion:payload.imsBackupVersion,backupCreatedBy:payload.createdBy||'',excludedCollections:['users']},
+      performedBy:profile.email||user.email||'',
+      performedByRole:'superadmin',
+      performedAt:new Date().toISOString()
+    });
+
+    if(errors.length){
+      console.error('IMS restore partial errors:',errors);
+      alert(`Restore completed with some errors.\nRestored: ${restored}\nErrors: ${errors.length}\n\nCheck the browser console for details.`);
+    }else{
+      alert(`Restore completed successfully.\n${restored} record(s) merged.\nNewer records were kept.`);
+    }
+    location.reload();
+  }catch(err){
+    console.error('IMS restore failed:',err);
+    alert('Restore failed: '+(err?.message||err));
+    if(btn){btn.disabled=false;btn.textContent='Restore Backup JSON';}
+  }
+}
+
+const observer=new MutationObserver(ensureRestoreControl);
+observer.observe(document.body,{childList:true,subtree:true});
+ensureRestoreControl();
+</script>
 </body>
 </html>
