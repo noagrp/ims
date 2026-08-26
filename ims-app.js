@@ -231,29 +231,83 @@ async function createUserAccount(e){e.preventDefault();const email=byId('userEma
 window.toggleUser=async id=>{const u=users.find(x=>x.id===id);if(!u||u.uid===me.uid)return;if(ROLE==='manager'&&u.role!=='admin')return;const status=u.status==='inactive'?'active':'inactive',reason=prompt(`Reason for ${status==='inactive'?'deactivating':'activating'} ${u.email} (required)`,'');if(!reason?.trim())return;await updateDoc(doc(db,'users',id),{status});await writeAudit('CHANGE_USER_STATUS','User Management','user',u.email,{status:u.status||'active'},{status},reason.trim(),id);await loadAll();renderUsers();};
 window.changeRole=async id=>{if(ROLE!=='superadmin')return;const u=users.find(x=>x.id===id);if(!u||u.uid===me.uid)return;const role=prompt('New role: admin, manager or superadmin',u.role);if(!['admin','manager','superadmin'].includes(role)||role===u.role)return;const reason=prompt('Reason for role change (required)','');if(!reason?.trim())return;await updateDoc(doc(db,'users',id),{role});await writeAudit('CHANGE_USER_ROLE','User Management','user',u.email,{role:u.role},{role},reason.trim(),id);await loadAll();renderUsers();};
 
-async function loadCollection(name){const arr=[];const snap=await getDocs(collection(db,name));snap.forEach(d=>arr.push({id:d.id,...d.data()}));return arr;}
-async function loadAuditVisible(){if(!CAN_AUDIT){audit=[];return;}if(ROLE==='superadmin'){audit=await loadCollection('audit_traces');}else{const [a,o]=await Promise.all([getDocs(query(collection(db,'audit_traces'),where('performedByRole','==','admin'))),getDocs(query(collection(db,'audit_traces'),where('performedBy','==',me.email)))]);const m=new Map();[a,o].forEach(s=>s.forEach(d=>m.set(d.id,{id:d.id,...d.data()})));audit=[...m.values()].filter(x=>x.performedByRole==='admin'||x.performedBy===me.email);}audit.sort((a,b)=>String(b.performedAt).localeCompare(String(a.performedAt)));}
+async function loadCollection(name){
+  const arr=[];
+  const snap=await getDocs(collection(db,name));
+  snap.forEach(d=>arr.push({id:d.id,...d.data()}));
+  return arr;
+}
+
+async function safeLoadCollection(name, required=false){
+  try {
+    return await loadCollection(name);
+  } catch (err) {
+    console.warn(`IMS: unable to load ${name}:`, err);
+    if (required) throw err;
+    return [];
+  }
+}
+
+async function loadAuditVisible(){
+  if(!CAN_AUDIT){audit=[];return;}
+  try {
+    if(ROLE==='superadmin'){
+      audit=await loadCollection('audit_traces');
+    } else {
+      const [a,o]=await Promise.all([
+        getDocs(query(collection(db,'audit_traces'),where('performedByRole','==','admin'))),
+        getDocs(query(collection(db,'audit_traces'),where('performedBy','==',me.email)))
+      ]);
+      const m=new Map();
+      [a,o].forEach(s=>s.forEach(d=>m.set(d.id,{id:d.id,...d.data()})));
+      audit=[...m.values()].filter(x=>x.performedByRole==='admin'||x.performedBy===me.email);
+    }
+    audit.sort((a,b)=>String(b.performedAt).localeCompare(String(a.performedAt)));
+  } catch(err) {
+    console.warn('IMS: audit traces unavailable for this role/ruleset:', err);
+    audit=[];
+  }
+}
 function legacyOperationalLogs(){const out=[];inventory.forEach(i=>(i.lifecycleHistory||[]).forEach((h,n)=>out.push({id:`legacy-${i.id}-${n}`,legacy:true,date:h.timestamp,activity:h.action||'LEGACY',activityLabel:h.action||'Legacy Activity',status:h.status||i.status,fromName:h.from||'',toName:h.to||h.location||'',qty:h.qty??'',unit:h.unit||i.unit,itemId:i.id,itemCode:i.itemCode,itemName:i.name,category:i.category,supplierId:i.supplierId||'',supplierName:i.supplierName||'',clientId:'',clientName:'',performedBy:h.user||'',performedByRole:'',remark:h.note||'',documents:h.documentRefs||[]})));return out;}
 async function loadAll(){
-  [inventory,suppliers,clients,settings,movements,maintenance,documents]=await Promise.all(
-    ['inventory','supplier_profiles','client_profiles','settings','movements','maintenance_events','document_refs'].map(loadCollection)
-  );
+  // Existing/core IMS data. These are loaded independently so one optional
+  // collection cannot blank the entire application.
+  const results = await Promise.all([
+    safeLoadCollection('inventory'),
+    safeLoadCollection('supplier_profiles'),
+    safeLoadCollection('client_profiles'),
+    safeLoadCollection('settings'),
+    safeLoadCollection('movements'),
+    safeLoadCollection('maintenance_events')
+  ]);
 
-  // Firestore rules are not filters:
-  // - Admin cannot list users.
-  // - Manager may read Admin profiles only, so use a role-filtered query.
-  // - Superadmin may read the full users collection.
-  if (ROLE === 'superadmin') {
-    users = await loadCollection('users');
-  } else if (ROLE === 'manager') {
-    const snap = await getDocs(query(collection(db,'users'), where('role','==','admin')));
-    users = snap.docs.map(d => ({id:d.id, ...d.data()}));
-  } else {
+  [inventory,suppliers,clients,settings,movements,maintenance] = results;
+
+  // New refined collections may not exist / be allowed until the matching
+  // Firestore rules are deployed. Treat them as optional during migration.
+  documents = await safeLoadCollection('document_refs');
+
+  // Firestore rules are not filters.
+  try {
+    if (ROLE === 'superadmin') {
+      users = await loadCollection('users');
+    } else if (ROLE === 'manager') {
+      const snap = await getDocs(
+        query(collection(db,'users'), where('role','==','admin'))
+      );
+      users = snap.docs.map(d => ({id:d.id, ...d.data()}));
+    } else {
+      users = [];
+    }
+  } catch(err) {
+    console.warn('IMS: user directory unavailable for this role:', err);
     users = [];
   }
 
-  const newLogs=await loadCollection('operational_logs');
-  logs=[...newLogs,...legacyOperationalLogs()].sort((a,b)=>String(b.date).localeCompare(String(a.date)));
+  const newLogs = await safeLoadCollection('operational_logs');
+  logs = [...newLogs, ...legacyOperationalLogs()]
+    .sort((a,b)=>String(b.date).localeCompare(String(a.date)));
+
   await loadAuditVisible();
 }
 
