@@ -7,17 +7,12 @@
 <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
-/* User Management only: keep Create Account and Account Directory fitted on phones. */
+/* User Management only: stack Create Account above Account Directory on all screens. */
 #appContent > .grid:has(#userForm) {
   grid-template-columns: minmax(0, 1fr);
 }
 #appContent > .grid:has(#userForm) > section {
   min-width: 0;
-}
-@media (min-width: 1024px) {
-  #appContent > .grid:has(#userForm) {
-    grid-template-columns: minmax(260px, 1fr) minmax(0, 2fr);
-  }
 }
 @media (max-width: 639px) {
   #appContent > .grid:has(#userForm) {
