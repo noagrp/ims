@@ -16,3 +16,9 @@ const app = initializeApp(firebaseConfig);
 
 export const auth = getAuth(app);
 export const db = getFirestore(app);
+
+// Role workspaces share one enhancement layer so Admin, Manager and Superadmin
+// keep the same full-width responsive layout and inventory capabilities.
+if (window.IMS_ROLE) {
+    import('./ims-enhancements.js').catch(err => console.error('IMS enhancements failed to load:', err));
+}
