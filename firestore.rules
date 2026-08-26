@@ -29,9 +29,6 @@ service cloud.firestore {
     function isSuperAdmin() { return hasRole('superadmin'); }
     function managerOrSuper() { return isManager() || isSuperAdmin(); }
 
-    // =========================================================
-    // USERS
-    // =========================================================
     match /users/{userId} {
       allow read: if
         (isAuthenticated() && userId == request.auth.uid) ||
@@ -44,8 +41,7 @@ service cloud.firestore {
           request.resource.data.uid == userId &&
           request.resource.data.role in ['admin','manager','superadmin'] &&
           request.resource.data.status == 'active'
-        )
-        ||
+        ) ||
         (
           isManager() &&
           request.resource.data.uid == userId &&
@@ -62,8 +58,7 @@ service cloud.firestore {
           request.resource.data.uid == resource.data.uid &&
           request.resource.data.status in ['active','inactive'] &&
           request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
-        )
-        ||
+        ) ||
         (
           isSuperAdmin() &&
           request.resource.data.email == resource.data.email &&
@@ -76,9 +71,6 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    // =========================================================
-    // INVENTORY
-    // =========================================================
     match /inventory/{itemId} {
       allow read: if isActiveUser();
 
@@ -100,12 +92,12 @@ service cloud.firestore {
             )
           ) &&
           request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-            'status','currentLocation','stockBalances','remark',
-            'lifecycleHistory','specificationId','specification','lastEditedBy','lastEditedAt'
+            'status','currentLocation','stockBalances','remark','lifecycleHistory',
+            'brandId','brand','modelId','model','specificationId','specification',
+            'lastEditedBy','lastEditedAt'
           ]) &&
           request.resource.data.lastEditedBy == userData().email
-        )
-        ||
+        ) ||
         (
           managerOrSuper() &&
           request.resource.data.itemCode == resource.data.itemCode &&
@@ -117,8 +109,9 @@ service cloud.firestore {
             )
           ) &&
           request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-            'name','category','specificationId','specification','status','currentLocation','stockBalances','remark',
-            'lifecycleHistory','supplierId','supplierName','lastEditedBy','lastEditedAt'
+            'name','category','brandId','brand','modelId','model','specificationId','specification',
+            'status','currentLocation','stockBalances','remark','lifecycleHistory',
+            'supplierId','supplierName','lastEditedBy','lastEditedAt'
           ]) &&
           request.resource.data.lastEditedBy == userData().email
         );
@@ -126,34 +119,24 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    // =========================================================
-    // OPERATIONAL LOGS
-    // =========================================================
     match /operational_logs/{logId} {
       allow read: if isActiveUser();
-
       allow create: if
         isActiveUser() &&
         request.resource.data.performedBy == userData().email &&
         request.resource.data.performedByRole == userData().role &&
         request.resource.data.date is string;
-
       allow update, delete: if false;
     }
 
-    // =========================================================
-    // MOVEMENTS
-    // =========================================================
     match /movements/{movementId} {
       allow read: if isActiveUser();
-
       allow create: if
         isActiveUser() &&
         request.resource.data.createdBy == userData().email &&
         request.resource.data.createdByRole == userData().role &&
         request.resource.data.status == 'in_transit';
 
-      // Transit arrival or tightly-scoped commercial metadata enrichment.
       allow update: if
         (
           isActiveUser() &&
@@ -162,8 +145,7 @@ service cloud.firestore {
           request.resource.data.arrivedBy == userData().email &&
           request.resource.data.diff(resource.data).affectedKeys()
             .hasOnly(['status','arrivedAt','arrivedBy'])
-        )
-        ||
+        ) ||
         (
           isActiveUser() &&
           resource.data.status == 'in_transit' &&
@@ -190,25 +172,15 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    // =========================================================
-    // MAINTENANCE / INSPECTION
-    // =========================================================
     match /maintenance_events/{eventId} {
       allow read: if isActiveUser();
-
       allow create: if
         isActiveUser() &&
         request.resource.data.createdBy == userData().email &&
         request.resource.data.createdByRole == userData().role &&
         request.resource.data.eventType in [
-          'Inspection',
-          'Preventive Maintenance',
-          'Repair',
-          'Calibration',
-          'Certification / Recertification',
-          'Testing',
-          'Service',
-          'Other'
+          'Inspection','Preventive Maintenance','Repair','Calibration',
+          'Certification / Recertification','Testing','Service','Other'
         ];
 
       allow update: if
@@ -225,13 +197,8 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    // =========================================================
-    // DOCUMENT REFERENCES
-    // Current JS uses: refNumber, docType, itemCode
-    // =========================================================
     match /document_refs/{documentId} {
       allow read: if isActiveUser();
-
       allow create: if
         isActiveUser() &&
         request.resource.data.createdBy == userData().email &&
@@ -250,11 +217,9 @@ service cloud.firestore {
             request.resource.data.docType == resource.data.docType &&
             request.resource.data.itemId == resource.data.itemId &&
             request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-              'status','supersededBy','supersededAt',
-              'supersededByUser','supersedeReason'
+              'status','supersededBy','supersededAt','supersededByUser','supersedeReason'
             ])
-          )
-          ||
+          ) ||
           (
             resource.data.status == 'current' &&
             request.resource.data.status == 'current' &&
@@ -270,17 +235,12 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    // =========================================================
-    // SUPPLIERS
-    // =========================================================
     match /supplier_profiles/{profileId} {
       allow read: if isActiveUser();
-
       allow create: if
         isActiveUser() &&
         request.resource.data.createdBy == userData().email &&
         request.resource.data.status == 'active';
-
       allow update: if
         managerOrSuper() &&
         (
@@ -292,21 +252,15 @@ service cloud.firestore {
         ) &&
         request.resource.data.status in ['active','inactive'] &&
         request.resource.data.updatedBy == userData().email;
-
       allow delete: if false;
     }
 
-    // =========================================================
-    // CLIENTS
-    // =========================================================
     match /client_profiles/{profileId} {
       allow read: if isActiveUser();
-
       allow create: if
         isActiveUser() &&
         request.resource.data.createdBy == userData().email &&
         request.resource.data.status == 'active';
-
       allow update: if
         managerOrSuper() &&
         (
@@ -318,26 +272,34 @@ service cloud.firestore {
         ) &&
         request.resource.data.status in ['active','inactive'] &&
         request.resource.data.updatedBy == userData().email;
-
       allow delete: if false;
     }
 
-    // =========================================================
-    // GLOBAL SETTINGS
-    // =========================================================
     match /settings/{settingId} {
       allow read: if isActiveUser();
 
       allow create: if
         managerOrSuper() &&
-        request.resource.data.type in ['warehouse','category','unit','specification'] &&
+        request.resource.data.type in ['warehouse','category','unit','brand','model','specification'] &&
         request.resource.data.status == 'active' &&
         request.resource.data.createdBy == userData().email &&
         (
-          request.resource.data.type != 'specification' ||
+          !(request.resource.data.type in ['brand','model','specification']) ||
           (
             request.resource.data.category is string &&
             request.resource.data.category.size() > 0
+          )
+        ) &&
+        (
+          request.resource.data.type != 'model' ||
+          !request.resource.data.keys().hasAll(['brand']) ||
+          request.resource.data.brand is string
+        ) &&
+        (
+          request.resource.data.type != 'specification' ||
+          (
+            (!request.resource.data.keys().hasAll(['brand']) || request.resource.data.brand is string) &&
+            (!request.resource.data.keys().hasAll(['model']) || request.resource.data.model is string)
           )
         );
 
@@ -345,6 +307,18 @@ service cloud.firestore {
         managerOrSuper() &&
         request.resource.data.type == resource.data.type &&
         request.resource.data.value == resource.data.value &&
+        (
+          !resource.data.keys().hasAll(['category']) ||
+          request.resource.data.category == resource.data.category
+        ) &&
+        (
+          !resource.data.keys().hasAll(['brand']) ||
+          request.resource.data.brand == resource.data.brand
+        ) &&
+        (
+          !resource.data.keys().hasAll(['model']) ||
+          request.resource.data.model == resource.data.model
+        ) &&
         (
           !resource.data.keys().hasAll(['normalizedValue']) ||
           request.resource.data.normalizedValue == resource.data.normalizedValue
@@ -358,9 +332,6 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    // =========================================================
-    // AUDIT TRACE
-    // =========================================================
     match /audit_traces/{traceId} {
       allow create: if
         isActiveUser() &&
@@ -368,8 +339,7 @@ service cloud.firestore {
         request.resource.data.performedByRole == userData().role;
 
       allow read: if
-        isSuperAdmin()
-        ||
+        isSuperAdmin() ||
         (
           isManager() &&
           resource.data.performedByRole != 'superadmin' &&
@@ -377,8 +347,7 @@ service cloud.firestore {
             resource.data.performedByRole == 'admin' ||
             resource.data.performedBy == userData().email
           )
-        )
-        ||
+        ) ||
         (
           isAdmin() &&
           resource.data.performedBy == userData().email
@@ -387,38 +356,28 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
-    // =========================================================
-    // LEGACY DOCUMENT COLLECTIONS
-    // =========================================================
     match /client_docs/{docId} {
       allow read: if isActiveUser();
-
       allow create: if
         isActiveUser() &&
         (
           request.resource.data.uploadedBy == userData().email ||
           request.resource.data.recordedBy == userData().email
         );
-
       allow update, delete: if false;
     }
 
     match /supplier_docs/{docId} {
       allow read: if isActiveUser();
-
       allow create: if
         isActiveUser() &&
         (
           request.resource.data.uploadedBy == userData().email ||
           request.resource.data.recordedBy == userData().email
         );
-
       allow update, delete: if false;
     }
 
-    // =========================================================
-    // LEGACY ATTACHMENTS - READ ONLY
-    // =========================================================
     match /attachments/{attachmentId} {
       allow read: if isActiveUser();
       allow create, update, delete: if false;
@@ -429,9 +388,6 @@ service cloud.firestore {
       }
     }
 
-    // =========================================================
-    // DEFAULT DENY
-    // =========================================================
     match /{document=**} {
       allow read, write: if false;
     }
