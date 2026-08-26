@@ -300,4 +300,71 @@ async function loadAll(){
   await loadAuditVisible();
 }
 
-onAuthStateChanged(auth,async user=>{if(!user){location.href='index.html';return;}const snap=await getDoc(doc(db,'users',user.uid));if(!snap.exists()||snap.data().role!==ROLE||snap.data().status==='inactive'){await signOut(auth);location.href='index.html';return;}me={uid:user.uid,email:snap.data().email||user.email||'',role:snap.data().role};shell();byId('currentUser').textContent=me.email;try{await loadAll();showTab('workspace');}catch(err){console.error(err);byId('appContent').innerHTML=`<div class="bg-red-950/50 border border-red-900 rounded-xl p-4 text-sm">Failed to load IMS data: ${esc(err.message)}</div>`;}});
+// Show something immediately so startup failures can never leave a blank page.
+document.body.innerHTML = `
+<div class="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center p-6">
+  <div class="text-center">
+    <div class="text-xl font-bold text-red-400">IMS</div>
+    <div class="text-sm text-slate-400 mt-2">Loading ${esc(ROLE)} workspace...</div>
+  </div>
+</div>`;
+
+onAuthStateChanged(auth, async user => {
+  try {
+    if (!user) {
+      location.href = 'index.html';
+      return;
+    }
+
+    const snap = await getDoc(doc(db, 'users', user.uid));
+
+    if (!snap.exists()) {
+      throw new Error('User profile record is missing in Firestore.');
+    }
+
+    const profile = snap.data();
+
+    if (profile.status === 'inactive') {
+      await signOut(auth);
+      location.href = 'index.html';
+      return;
+    }
+
+    if (profile.role !== ROLE) {
+      const correctPage =
+        profile.role === 'superadmin' ? 'superadmin.html' :
+        profile.role === 'manager' ? 'manager.html' :
+        profile.role === 'admin' ? 'admin.html' : 'index.html';
+      location.href = correctPage;
+      return;
+    }
+
+    me = {
+      uid: user.uid,
+      email: profile.email || user.email || '',
+      role: profile.role
+    };
+
+    shell();
+    byId('currentUser').textContent = me.email;
+
+    await loadAll();
+    showTab('workspace');
+
+  } catch (err) {
+    console.error('IMS startup failed:', err);
+    document.body.innerHTML = `
+      <div class="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center p-6">
+        <div class="w-full max-w-xl bg-red-950/40 border border-red-900 rounded-2xl p-5">
+          <div class="text-lg font-bold text-red-300">IMS failed to start</div>
+          <div class="text-sm text-slate-300 mt-3">${esc(err?.message || String(err))}</div>
+          <div class="text-xs text-slate-500 mt-3">
+            Role page: ${esc(ROLE)}. Check Firestore user-profile read permission and browser console.
+          </div>
+          <button onclick="location.href='index.html'" class="mt-4 bg-slate-700 px-4 py-2 rounded-lg text-sm">
+            Back to Login
+          </button>
+        </div>
+      </div>`;
+  }
+});
