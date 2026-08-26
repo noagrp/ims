@@ -6,6 +6,73 @@
 <title>IMS System - Manager</title>
 <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+/* User Management only: keep Create Account and Account Directory fitted on phones. */
+#appContent > .grid:has(#userForm) {
+  grid-template-columns: minmax(0, 1fr);
+}
+#appContent > .grid:has(#userForm) > section {
+  min-width: 0;
+}
+@media (min-width: 1024px) {
+  #appContent > .grid:has(#userForm) {
+    grid-template-columns: minmax(260px, 1fr) minmax(0, 2fr);
+  }
+}
+@media (max-width: 639px) {
+  #appContent > .grid:has(#userForm) {
+    gap: 1rem;
+  }
+  #appContent > .grid:has(#userForm) > section {
+    padding: 1rem;
+    overflow: hidden;
+  }
+  #appContent > .grid:has(#userForm) > section:has(#userForm) + section .overflow-x-auto {
+    overflow: visible;
+  }
+  #appContent > .grid:has(#userForm) > section:has(#userForm) + section table {
+    display: block;
+    width: 100%;
+    min-width: 0 !important;
+  }
+  #appContent > .grid:has(#userForm) > section:has(#userForm) + section thead {
+    display: none;
+  }
+  #appContent > .grid:has(#userForm) > section:has(#userForm) + section tbody {
+    display: block;
+  }
+  #appContent > .grid:has(#userForm) > section:has(#userForm) + section tr {
+    display: block;
+    margin-bottom: .75rem;
+    padding: .7rem .75rem;
+    border: 1px solid rgb(30 41 59);
+    border-radius: .75rem;
+  }
+  #appContent > .grid:has(#userForm) > section:has(#userForm) + section tr:last-child {
+    margin-bottom: 0;
+  }
+  #appContent > .grid:has(#userForm) > section:has(#userForm) + section td {
+    display: grid;
+    grid-template-columns: 82px minmax(0, 1fr);
+    gap: .65rem;
+    padding: .4rem 0;
+    text-align: left !important;
+    overflow-wrap: anywhere;
+  }
+  #appContent > .grid:has(#userForm) > section:has(#userForm) + section td::before {
+    color: rgb(100 116 139);
+    font-weight: 600;
+  }
+  #appContent > .grid:has(#userForm) > section:has(#userForm) + section td:nth-child(1)::before { content: "Email"; }
+  #appContent > .grid:has(#userForm) > section:has(#userForm) + section td:nth-child(2)::before { content: "Role"; }
+  #appContent > .grid:has(#userForm) > section:has(#userForm) + section td:nth-child(3)::before { content: "Status"; }
+  #appContent > .grid:has(#userForm) > section:has(#userForm) + section td:nth-child(4)::before { content: "Created"; }
+  #appContent > .grid:has(#userForm) > section:has(#userForm) + section td:nth-child(5)::before { content: "Actions"; }
+  #appContent > .grid:has(#userForm) > section:has(#userForm) + section td button {
+    margin: 0 .25rem .25rem 0;
+  }
+}
+</style>
 </head>
 <body class="bg-slate-950">
 <script>window.IMS_ROLE='manager';</script>
