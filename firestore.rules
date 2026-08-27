@@ -29,6 +29,11 @@ service cloud.firestore {
     function isSuperAdmin() { return hasRole('superadmin'); }
     function managerOrSuper() { return isManager() || isSuperAdmin(); }
 
+    function sameCreator() {
+      return request.resource.data.createdBy == resource.data.createdBy &&
+        request.resource.data.createdAt == resource.data.createdAt;
+    }
+
     match /users/{userId} {
       allow read: if
         (isAuthenticated() && userId == request.auth.uid) ||
@@ -85,11 +90,7 @@ service cloud.firestore {
           request.resource.data.name == resource.data.name &&
           request.resource.data.category == resource.data.category &&
           (
-            !resource.data.keys().hasAll(['createdBy','createdAt']) ||
-            (
-              request.resource.data.createdBy == resource.data.createdBy &&
-              request.resource.data.createdAt == resource.data.createdAt
-            )
+            !resource.data.keys().hasAll(['createdBy','createdAt']) || sameCreator()
           ) &&
           request.resource.data.diff(resource.data).affectedKeys().hasOnly([
             'status','currentLocation','stockBalances','remark','lifecycleHistory',
@@ -102,11 +103,7 @@ service cloud.firestore {
           managerOrSuper() &&
           request.resource.data.itemCode == resource.data.itemCode &&
           (
-            !resource.data.keys().hasAll(['createdBy','createdAt']) ||
-            (
-              request.resource.data.createdBy == resource.data.createdBy &&
-              request.resource.data.createdAt == resource.data.createdAt
-            )
+            !resource.data.keys().hasAll(['createdBy','createdAt']) || sameCreator()
           ) &&
           request.resource.data.diff(resource.data).affectedKeys().hasOnly([
             'name','category','brandId','brand','modelId','model','specificationId','specification',
@@ -131,11 +128,49 @@ service cloud.firestore {
 
     match /movements/{movementId} {
       allow read: if isActiveUser();
+
+      // Standard movements are created in transit and later marked arrived.
       allow create: if
-        isActiveUser() &&
-        request.resource.data.createdBy == userData().email &&
-        request.resource.data.createdByRole == userData().role &&
-        request.resource.data.status == 'in_transit';
+        (
+          isActiveUser() &&
+          request.resource.data.createdBy == userData().email &&
+          request.resource.data.createdByRole == userData().role &&
+          request.resource.data.status == 'in_transit'
+        ) ||
+        // Lifecycle exits are completed immediately but remain permanent records.
+        (
+          isActiveUser() &&
+          request.resource.data.createdBy == userData().email &&
+          request.resource.data.createdByRole == userData().role &&
+          request.resource.data.completedBy == userData().email &&
+          request.resource.data.status == 'completed' &&
+          request.resource.data.qty is number &&
+          request.resource.data.qty > 0 &&
+          request.resource.data.createdAt is string &&
+          request.resource.data.completedAt is string &&
+          (
+            (
+              request.resource.data.action == 'SELL_OWNERSHIP' &&
+              request.resource.data.toType == 'sold' &&
+              request.resource.data.toStatus == 'Sold' &&
+              request.resource.data.clientTransactionType == 'Sale' &&
+              request.resource.data.buyerName is string &&
+              request.resource.data.currency is string &&
+              request.resource.data.unitPrice is number &&
+              request.resource.data.unitPrice >= 0 &&
+              request.resource.data.totalAmount is number &&
+              request.resource.data.totalAmount >= 0
+            ) ||
+            (
+              request.resource.data.action == 'WRITE_OFF' &&
+              request.resource.data.toType == 'writeoff' &&
+              request.resource.data.toStatus == 'Written Off' &&
+              request.resource.data.writeOffReason in [
+                'Damaged','Spoiled','Beyond Repair','Lost','Obsolete','Other'
+              ]
+            )
+          )
+        );
 
       allow update: if
         (
@@ -244,11 +279,7 @@ service cloud.firestore {
       allow update: if
         managerOrSuper() &&
         (
-          !resource.data.keys().hasAll(['createdBy','createdAt']) ||
-          (
-            request.resource.data.createdBy == resource.data.createdBy &&
-            request.resource.data.createdAt == resource.data.createdAt
-          )
+          !resource.data.keys().hasAll(['createdBy','createdAt']) || sameCreator()
         ) &&
         request.resource.data.status in ['active','inactive'] &&
         request.resource.data.updatedBy == userData().email;
@@ -264,11 +295,7 @@ service cloud.firestore {
       allow update: if
         managerOrSuper() &&
         (
-          !resource.data.keys().hasAll(['createdBy','createdAt']) ||
-          (
-            request.resource.data.createdBy == resource.data.createdBy &&
-            request.resource.data.createdAt == resource.data.createdAt
-          )
+          !resource.data.keys().hasAll(['createdBy','createdAt']) || sameCreator()
         ) &&
         request.resource.data.status in ['active','inactive'] &&
         request.resource.data.updatedBy == userData().email;
@@ -308,20 +335,16 @@ service cloud.firestore {
         request.resource.data.type == resource.data.type &&
         request.resource.data.value == resource.data.value &&
         (
-          !resource.data.keys().hasAll(['category']) ||
-          request.resource.data.category == resource.data.category
+          !resource.data.keys().hasAll(['category']) || request.resource.data.category == resource.data.category
         ) &&
         (
-          !resource.data.keys().hasAll(['brand']) ||
-          request.resource.data.brand == resource.data.brand
+          !resource.data.keys().hasAll(['brand']) || request.resource.data.brand == resource.data.brand
         ) &&
         (
-          !resource.data.keys().hasAll(['model']) ||
-          request.resource.data.model == resource.data.model
+          !resource.data.keys().hasAll(['model']) || request.resource.data.model == resource.data.model
         ) &&
         (
-          !resource.data.keys().hasAll(['normalizedValue']) ||
-          request.resource.data.normalizedValue == resource.data.normalizedValue
+          !resource.data.keys().hasAll(['normalizedValue']) || request.resource.data.normalizedValue == resource.data.normalizedValue
         ) &&
         request.resource.data.status in ['active','inactive'] &&
         request.resource.data.updatedBy == userData().email &&
@@ -349,8 +372,7 @@ service cloud.firestore {
           )
         ) ||
         (
-          isAdmin() &&
-          resource.data.performedBy == userData().email
+          isAdmin() && resource.data.performedBy == userData().email
         );
 
       allow update, delete: if false;
