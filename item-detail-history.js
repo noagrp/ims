@@ -4,6 +4,7 @@ import { collection, doc, getDoc, getDocs, limit, orderBy, query, where } from '
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function fmt(v){if(!v)return'';const d=new Date(v);if(Number.isNaN(d.getTime()))return String(v);return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;}
 function friendly(s){return String(s||'').toLowerCase().replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase());}
+function money(x){return x.totalAmount!==undefined&&x.totalAmount!==null&&x.totalAmount!==''?`${x.currency||'MYR'} ${Number(x.totalAmount||0).toFixed(2)}`:'';}
 
 function historyMount(){
   const root=document.getElementById('itemDetailMount');
@@ -35,7 +36,7 @@ async function loadHistory(itemId){
       .sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')))
       .slice(0,30);
     const target=historyMount();if(!target)return;
-    target.innerHTML=merged.map(x=>`<div class="bg-slate-950 rounded-xl p-3 text-xs"><div class="font-semibold">${esc(x.activityLabel||friendly(x.activity))}</div><div class="text-slate-500">${esc(fmt(x.date))} · ${esc(x.performedBy||'')}</div><div>${esc(x.fromName||'')} ${x.toName?`→ ${esc(x.toName)}`:''} ${x.qty!==''&&x.qty!==undefined?`· ${esc(x.qty)} ${esc(x.unit||'')}`:''}</div></div>`).join('')||'<div class="text-xs text-slate-500">No operational logs.</div>';
+    target.innerHTML=merged.map(x=>`<div class="bg-slate-950 rounded-xl p-3 text-xs"><div class="font-semibold">${esc(x.activityLabel||friendly(x.activity))}</div><div class="text-slate-500">${esc(fmt(x.date))} · ${esc(x.performedBy||'')}</div><div>${esc(x.fromName||'')} ${x.toName?`→ ${esc(x.toName)}`:''} ${x.qty!==''&&x.qty!==undefined?`· ${esc(x.qty)} ${esc(x.unit||'')}`:''}</div>${x.periodFrom||x.periodTo?`<div class="text-slate-500 mt-1">Period: ${esc(x.periodFrom||'')} → ${esc(x.periodTo||'')}</div>`:''}${money(x)?`<div class="text-emerald-400 font-semibold mt-1">Total: ${esc(money(x))}${x.unitPrice!==undefined?` · Unit Price: ${esc(`${x.currency||'MYR'} ${Number(x.unitPrice||0).toFixed(2)}`)}`:''}</div>`:''}</div>`).join('')||'<div class="text-xs text-slate-500">No operational logs.</div>';
   }catch(err){
     console.warn('IMS targeted item history unavailable:',err);
     const target=historyMount();if(target&&!target.children.length)target.innerHTML='<div class="text-xs text-slate-500">Item history unavailable.</div>';
