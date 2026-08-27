@@ -5,10 +5,12 @@ const ROLE=window.IMS_ROLE||'admin';
 const CAN_MASTER=['manager','superadmin'].includes(ROLE);
 const byId=id=>document.getElementById(id);
 const norm=s=>String(s??'').trim().replace(/\s+/g,' ').toLowerCase();
-const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]));
 const cls='w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2.5 text-sm';
 const field=(t,h)=>`<label class="block text-xs text-slate-400"><span class="block mb-1">${t}</span>${h}</label>`;
 const now=()=>new Date().toISOString();
+let classificationRendering=false;
+let classificationSaving=false;
 
 async function load(name){
   try{const s=await getDocs(collection(db,name));return s.docs.map(d=>({id:d.id,...d.data()}));}
@@ -93,22 +95,48 @@ document.addEventListener('submit',e=>{
 },true);
 
 async function classificationManager(){
-  const c=byId('appContent');if(!c||byId('imsClassificationManager')||!/Global Settings/i.test(byId('pageTitle')?.textContent||''))return;
-  const s=await load('settings'),cats=s.filter(x=>x.type==='category'&&x.status!=='inactive'),brands=s.filter(x=>x.type==='brand'),models=s.filter(x=>x.type==='model'),specs=s.filter(x=>x.type==='specification');
-  const activeBrands=brands.filter(x=>x.status!=='inactive'),activeModels=models.filter(x=>x.status!=='inactive');
-  const x=document.createElement('section');x.id='imsClassificationManager';x.className='bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xl mt-5';
-  x.innerHTML=`<h2 class="font-bold mb-1">Brand / Model / Specification</h2><p class="text-xs text-slate-500 mb-4">Optional configurable classification. Values are added as master records; existing values are not deleted or silently renamed.</p>
-  ${CAN_MASTER?`<div class="space-y-4">
-   <form id="imsBrandForm" class="grid sm:grid-cols-[220px_1fr_auto] gap-2 items-end">${field('Category',`<select id="imsBrandCat" required class="${cls}"><option value="">-- Category --</option>${cats.map(a=>`<option>${esc(a.value)}</option>`).join('')}</select>`)}${field('Brand',`<input id="imsBrandVal" required class="${cls}" placeholder="e.g. manufacturer / brand">`)}<button class="bg-emerald-700 px-4 py-2.5 rounded-lg text-xs font-bold">Add Brand</button></form>
-   <form id="imsModelForm" class="grid sm:grid-cols-2 lg:grid-cols-[200px_220px_1fr_auto] gap-2 items-end">${field('Category',`<select id="imsModelCat" required class="${cls}"><option value="">-- Category --</option>${cats.map(a=>`<option>${esc(a.value)}</option>`).join('')}</select>`)}${field('Brand (optional)',`<select id="imsModelBrand" class="${cls}"><option value="">-- Any / none --</option>${activeBrands.map(a=>`<option>${esc(a.value)}</option>`).join('')}</select>`)}${field('Model',`<input id="imsModelVal" required class="${cls}" placeholder="Model / series">`)}<button class="bg-cyan-700 px-4 py-2.5 rounded-lg text-xs font-bold">Add Model</button></form>
-   <form id="imsSpecForm" class="grid sm:grid-cols-2 lg:grid-cols-[180px_180px_180px_1fr_auto] gap-2 items-end">${field('Category',`<select id="imsSpecCat" required class="${cls}"><option value="">-- Category --</option>${cats.map(a=>`<option>${esc(a.value)}</option>`).join('')}</select>`)}${field('Brand (optional)',`<select id="imsSpecBrand" class="${cls}"><option value="">-- Any / none --</option>${activeBrands.map(a=>`<option>${esc(a.value)}</option>`).join('')}</select>`)}${field('Model (optional)',`<select id="imsSpecModel" class="${cls}"><option value="">-- Any / none --</option>${activeModels.map(a=>`<option>${esc(a.value)}</option>`).join('')}</select>`)}${field('Specification',`<input id="imsSpecVal" required class="${cls}" placeholder="Technical specification / variant">`)}<button class="bg-amber-700 px-4 py-2.5 rounded-lg text-xs font-bold">Add Specification</button></form>
-  </div>`:''}
-  <div class="mt-5 grid md:grid-cols-3 gap-3"><div><div class="text-xs font-bold mb-2">Brands</div>${brands.map(a=>masterRow(a)).join('')||empty()}</div><div><div class="text-xs font-bold mb-2">Models</div>${models.map(a=>masterRow(a)).join('')||empty()}</div><div><div class="text-xs font-bold mb-2">Specifications</div>${specs.map(a=>masterRow(a)).join('')||empty()}</div></div>`;
-  c.appendChild(x);
-  const create=async(type,data)=>{const ref=await addDoc(collection(db,'settings'),{type,...data,status:'active',createdAt:now(),createdBy:auth.currentUser?.email||''});await audit('CREATE_MASTER_VALUE','setting',`${type}: ${data.value}`,ref.id,null,{type,...data,status:'active'},'New master value; no existing record was deleted.');x.remove();classificationManager();};
-  byId('imsBrandForm')?.addEventListener('submit',e=>{e.preventDefault();create('brand',{category:byId('imsBrandCat').value.trim(),value:byId('imsBrandVal').value.trim()});});
-  byId('imsModelForm')?.addEventListener('submit',e=>{e.preventDefault();create('model',{category:byId('imsModelCat').value.trim(),brand:byId('imsModelBrand').value.trim(),value:byId('imsModelVal').value.trim()});});
-  byId('imsSpecForm')?.addEventListener('submit',e=>{e.preventDefault();create('specification',{category:byId('imsSpecCat').value.trim(),brand:byId('imsSpecBrand').value.trim(),model:byId('imsSpecModel').value.trim(),value:byId('imsSpecVal').value.trim()});});
+  const c=byId('appContent');
+  if(!c||byId('imsClassificationManager')||classificationRendering||!/Global Settings/i.test(byId('pageTitle')?.textContent||''))return;
+  classificationRendering=true;
+  try{
+    const s=await load('settings');
+    if(!byId('appContent')||byId('imsClassificationManager')||!/Global Settings/i.test(byId('pageTitle')?.textContent||''))return;
+    const cats=s.filter(x=>x.type==='category'&&x.status!=='inactive'),brands=s.filter(x=>x.type==='brand'),models=s.filter(x=>x.type==='model'),specs=s.filter(x=>x.type==='specification');
+    const activeBrands=brands.filter(x=>x.status!=='inactive'),activeModels=models.filter(x=>x.status!=='inactive');
+    const x=document.createElement('section');x.id='imsClassificationManager';x.className='bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xl mt-5';
+    x.innerHTML=`<h2 class="font-bold mb-1">Brand / Model / Specification</h2><p class="text-xs text-slate-500 mb-4">Optional configurable classification. Values are added as master records; existing values are not deleted or silently renamed.</p>
+    ${CAN_MASTER?`<div class="space-y-4">
+     <form id="imsBrandForm" class="grid sm:grid-cols-[220px_1fr_auto] gap-2 items-end">${field('Category',`<select id="imsBrandCat" required class="${cls}"><option value="">-- Category --</option>${cats.map(a=>`<option>${esc(a.value)}</option>`).join('')}</select>`)}${field('Brand',`<input id="imsBrandVal" required class="${cls}" placeholder="e.g. manufacturer / brand">`)}<button class="bg-emerald-700 px-4 py-2.5 rounded-lg text-xs font-bold">Add Brand</button></form>
+     <form id="imsModelForm" class="grid sm:grid-cols-2 lg:grid-cols-[200px_220px_1fr_auto] gap-2 items-end">${field('Category',`<select id="imsModelCat" required class="${cls}"><option value="">-- Category --</option>${cats.map(a=>`<option>${esc(a.value)}</option>`).join('')}</select>`)}${field('Brand (optional)',`<select id="imsModelBrand" class="${cls}"><option value="">-- Any / none --</option>${activeBrands.map(a=>`<option>${esc(a.value)}</option>`).join('')}</select>`)}${field('Model',`<input id="imsModelVal" required class="${cls}" placeholder="Model / series">`)}<button class="bg-cyan-700 px-4 py-2.5 rounded-lg text-xs font-bold">Add Model</button></form>
+     <form id="imsSpecForm" class="grid sm:grid-cols-2 lg:grid-cols-[180px_180px_180px_1fr_auto] gap-2 items-end">${field('Category',`<select id="imsSpecCat" required class="${cls}"><option value="">-- Category --</option>${cats.map(a=>`<option>${esc(a.value)}</option>`).join('')}</select>`)}${field('Brand (optional)',`<select id="imsSpecBrand" class="${cls}"><option value="">-- Any / none --</option>${activeBrands.map(a=>`<option>${esc(a.value)}</option>`).join('')}</select>`)}${field('Model (optional)',`<select id="imsSpecModel" class="${cls}"><option value="">-- Any / none --</option>${activeModels.map(a=>`<option>${esc(a.value)}</option>`).join('')}</select>`)}${field('Specification',`<input id="imsSpecVal" required class="${cls}" placeholder="Technical specification / variant">`)}<button class="bg-amber-700 px-4 py-2.5 rounded-lg text-xs font-bold">Add Specification</button></form>
+    </div>`:''}
+    <div class="mt-5 grid md:grid-cols-3 gap-3"><div><div class="text-xs font-bold mb-2">Brands</div>${brands.map(a=>masterRow(a)).join('')||empty()}</div><div><div class="text-xs font-bold mb-2">Models</div>${models.map(a=>masterRow(a)).join('')||empty()}</div><div><div class="text-xs font-bold mb-2">Specifications</div>${specs.map(a=>masterRow(a)).join('')||empty()}</div></div>`;
+    byId('appContent').appendChild(x);
+
+    const create=async(type,data,form)=>{
+      if(classificationSaving)return;
+      classificationSaving=true;
+      const button=form?.querySelector('button[type="submit"],button');
+      if(button){button.disabled=true;button.classList.add('opacity-60','cursor-not-allowed');}
+      try{
+        const current=await load('settings');
+        const duplicate=current.find(r=>r.type===type&&r.status!=='inactive'&&norm(r.value)===norm(data.value)&&norm(r.category||'')===norm(data.category||'')&&norm(r.brand||'')===norm(data.brand||'')&&norm(r.model||'')===norm(data.model||''));
+        if(duplicate){alert(`${type.charAt(0).toUpperCase()+type.slice(1)} already exists. Nothing was saved.`);return;}
+        const ref=await addDoc(collection(db,'settings'),{type,...data,status:'active',createdAt:now(),createdBy:auth.currentUser?.email||''});
+        await audit('CREATE_MASTER_VALUE','setting',`${type}: ${data.value}`,ref.id,null,{type,...data,status:'active'},'New master value; duplicate checked before save.');
+        byId('imsClassificationManager')?.remove();
+        await classificationManager();
+      } finally {
+        classificationSaving=false;
+        if(button&&document.body.contains(button)){button.disabled=false;button.classList.remove('opacity-60','cursor-not-allowed');}
+      }
+    };
+    byId('imsBrandForm')?.addEventListener('submit',e=>{e.preventDefault();if(classificationSaving)return;create('brand',{category:byId('imsBrandCat').value.trim(),value:byId('imsBrandVal').value.trim()},e.currentTarget);});
+    byId('imsModelForm')?.addEventListener('submit',e=>{e.preventDefault();if(classificationSaving)return;create('model',{category:byId('imsModelCat').value.trim(),brand:byId('imsModelBrand').value.trim(),value:byId('imsModelVal').value.trim()},e.currentTarget);});
+    byId('imsSpecForm')?.addEventListener('submit',e=>{e.preventDefault();if(classificationSaving)return;create('specification',{category:byId('imsSpecCat').value.trim(),brand:byId('imsSpecBrand').value.trim(),model:byId('imsSpecModel').value.trim(),value:byId('imsSpecVal').value.trim()},e.currentTarget);});
+  } finally {
+    classificationRendering=false;
+  }
 }
 function masterRow(a){return `<div class="bg-slate-950 border border-slate-800 rounded-xl p-3 mb-2"><div class="text-[10px] text-slate-500">${esc([a.category,a.brand,a.model].filter(Boolean).join(' • '))}</div><div class="text-sm">${esc(a.value)}</div><div class="text-[10px] ${a.status==='inactive'?'text-slate-600':'text-emerald-500'}">${esc(a.status||'active')}</div></div>`;}
 function empty(){return '<div class="text-xs text-slate-500">None yet.</div>';}
