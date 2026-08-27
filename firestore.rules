@@ -94,7 +94,7 @@ service cloud.firestore {
           ) &&
           request.resource.data.diff(resource.data).affectedKeys().hasOnly([
             'status','currentLocation','stockBalances','remark','lifecycleHistory',
-            'brandId','brand','modelId','model','specificationId','specification',
+            'brandId','brand','modelId','model','gradeId','grade','specificationId','specification',
             'lastEditedBy','lastEditedAt'
           ]) &&
           request.resource.data.lastEditedBy == userData().email
@@ -106,7 +106,7 @@ service cloud.firestore {
             !resource.data.keys().hasAll(['createdBy','createdAt']) || sameCreator()
           ) &&
           request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-            'name','category','brandId','brand','modelId','model','specificationId','specification',
+            'name','category','brandId','brand','modelId','model','gradeId','grade','specificationId','specification',
             'status','currentLocation','stockBalances','remark','lifecycleHistory',
             'supplierId','supplierName','lastEditedBy','lastEditedAt'
           ]) &&
@@ -307,11 +307,11 @@ service cloud.firestore {
 
       allow create: if
         managerOrSuper() &&
-        request.resource.data.type in ['warehouse','category','unit','brand','model','specification'] &&
+        request.resource.data.type in ['warehouse','category','unit','brand','model','grade','specification'] &&
         request.resource.data.status == 'active' &&
         request.resource.data.createdBy == userData().email &&
         (
-          !(request.resource.data.type in ['brand','model','specification']) ||
+          !(request.resource.data.type in ['brand','model','grade','specification']) ||
           (
             request.resource.data.category is string &&
             request.resource.data.category.size() > 0
@@ -323,10 +323,18 @@ service cloud.firestore {
           request.resource.data.brand is string
         ) &&
         (
-          request.resource.data.type != 'specification' ||
+          request.resource.data.type != 'grade' ||
           (
             (!request.resource.data.keys().hasAll(['brand']) || request.resource.data.brand is string) &&
             (!request.resource.data.keys().hasAll(['model']) || request.resource.data.model is string)
+          )
+        ) &&
+        (
+          request.resource.data.type != 'specification' ||
+          (
+            (!request.resource.data.keys().hasAll(['brand']) || request.resource.data.brand is string) &&
+            (!request.resource.data.keys().hasAll(['model']) || request.resource.data.model is string) &&
+            (!request.resource.data.keys().hasAll(['grade']) || request.resource.data.grade is string)
           )
         );
 
@@ -342,6 +350,9 @@ service cloud.firestore {
         ) &&
         (
           !resource.data.keys().hasAll(['model']) || request.resource.data.model == resource.data.model
+        ) &&
+        (
+          !resource.data.keys().hasAll(['grade']) || request.resource.data.grade == resource.data.grade
         ) &&
         (
           !resource.data.keys().hasAll(['normalizedValue']) || request.resource.data.normalizedValue == resource.data.normalizedValue
