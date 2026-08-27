@@ -68,4 +68,5 @@
   else enhanceDates(document);
 
   import('./recent-items.js').catch(err=>console.warn('IMS recent-items enhancement unavailable:',err));
+  import('./stock-logs-dashboard.js').catch(err=>console.warn('IMS stock/log dashboard enhancement unavailable:',err));
 })();
