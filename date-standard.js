@@ -68,6 +68,7 @@
   import('./recent-items.js').catch(err=>console.warn('IMS recent-items enhancement unavailable:',err));
   import('./scalable-stock-monitor.js').catch(err=>console.warn('IMS scalable stock monitor unavailable:',err));
   import('./scalable-logs.js').catch(err=>console.warn('IMS scalable logs unavailable:',err));
+  import('./item-detail-history.js').catch(err=>console.warn('IMS targeted item history unavailable:',err));
   import('./layout-refinements.js').catch(err=>console.warn('IMS layout refinements unavailable:',err));
   import('./lifecycle-actions.js').catch(err=>console.warn('IMS lifecycle actions unavailable:',err));
   import('./item-open-tracker.js').catch(err=>console.warn('IMS item-open tracking unavailable:',err));
