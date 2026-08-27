@@ -71,4 +71,5 @@
   import('./stock-logs-dashboard.js').catch(err=>console.warn('IMS stock/log dashboard enhancement unavailable:',err));
   import('./layout-refinements.js').catch(err=>console.warn('IMS layout refinements unavailable:',err));
   import('./lifecycle-actions.js').catch(err=>console.warn('IMS lifecycle actions unavailable:',err));
+  import('./item-open-tracker.js').catch(err=>console.warn('IMS item-open tracking unavailable:',err));
 })();
