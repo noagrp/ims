@@ -30,17 +30,6 @@ async function docRef(item,context,docType,refNumber,eventId,user){
   await setDoc(r,{itemId:item.id,itemCode:item.itemCode,itemNameSnapshot:item.name,categorySnapshot:item.category||'',supplierId:item.supplierId||'',supplierNameSnapshot:item.supplierName||'',context,docType:String(docType||'Other').trim(),refNumber:String(refNumber).trim(),eventId,status:'current',createdAt:now(),createdBy:user.email,createdByRole:user.role});
 }
 
-function injectPurchase(){
-  const form=byId('registerForm');if(!form||byId('imsPurchaseCommercial'))return;
-  const docs=byId('regPO')?.closest('.sm\\:col-span-2');
-  const block=document.createElement('div');
-  block.id='imsPurchaseCommercial';block.className='sm:col-span-2 border-t border-slate-800 pt-3';
-  block.innerHTML=`<div class="text-xs font-semibold text-emerald-400 mb-2">Purchase / Commercial</div><div class="grid sm:grid-cols-3 gap-2">${field('Currency',`<input id="regCurrency" class="${cls}" value="MYR">`)}${field('Unit Price',`<input type="number" id="regUnitPrice" min="0" step="0.01" class="${cls}" placeholder="0.00">`)}${field('Total Amount',`<input type="number" id="regTotalAmount" min="0" step="0.01" class="${cls}" placeholder="0.00">`)}</div><div class="text-[10px] text-slate-500 mt-1">Total defaults to Quantity × Unit Price and can be edited to match the supplier invoice.</div>`;
-  if(docs)form.insertBefore(block,docs);else form.appendChild(block);
-  const calc=()=>{const t=byId('regTotalAmount');if(t&&!t.dataset.manual)t.value=(Number(byId('itemQty')?.value||0)*Number(byId('regUnitPrice')?.value||0)).toFixed(2);};
-  byId('itemQty')?.addEventListener('input',calc);byId('regUnitPrice')?.addEventListener('input',calc);byId('regTotalAmount')?.addEventListener('input',()=>byId('regTotalAmount').dataset.manual='1');
-}
-
 function rentalFields(){
   const wrap=byId('moveDestinationWrap'),status=byId('clientPositionStatus');if(!wrap||!status)return;
   const old=byId('imsRentalCommercial');if(status.value!=='Rental'){old?.remove();return;}
@@ -50,32 +39,6 @@ function rentalFields(){
   wrap.appendChild(block);
   const calc=()=>{const t=byId('rentalTotalAmount');if(t&&!t.dataset.manual)t.value=(Number(byId('moveQty')?.value||0)*Number(byId('rentalUnitPrice')?.value||0)).toFixed(2);};
   byId('moveQty')?.addEventListener('input',calc);byId('rentalUnitPrice')?.addEventListener('input',calc);byId('rentalTotalAmount')?.addEventListener('input',()=>byId('rentalTotalAmount').dataset.manual='1');
-}
-
-async function registerCommercial(e){
-  if(e.target?.id!=='registerForm')return;
-  e.preventDefault();e.stopImmediatePropagation();
-  try{
-    const who=await me();
-    const code=byId('itemCode').value.trim(),name=byId('itemName').value.trim(),qty=Number(byId('itemQty').value),unit=byId('itemUnit').value,category=byId('itemCategory').value,position=byId('initialPosition').value;
-    const supplier=byId('itemSupplier'),sid=supplier?.value||'',supplierName=supplier?.selectedOptions?.[0]?.textContent?.trim()||'';
-    const loc=byId('initialLocation')?.value.trim()||'';
-    if(!code||!name||!category||!qty||!unit||!loc)throw new Error('Complete item code, name, category, quantity, unit and initial location.');
-    if(position==='supplier'&&!sid)throw new Error('Select the supplier for an item initially at supplier.');
-    const currency=byId('regCurrency')?.value.trim()||'MYR',unitPrice=Number(byId('regUnitPrice')?.value||0),totalAmount=Number(byId('regTotalAmount')?.value||0);
-    if(unitPrice<0||totalAmount<0)throw new Error('Price and total amount cannot be negative.');
-    const ref=doc(collection(db,'inventory')),status=position==='supplier'?'At Supplier':'At Warehouse';
-    const newItem={type:byId('itemType').value,trackingType:byId('trackingType').value,itemCode:code,name,category,quantity:qty,unit,status,currentLocation:loc,supplierId:sid,supplierName:position==='supplier'?supplierName:(sid?supplierName:''),stockBalances:[{qty,locationType:position,locationId:position==='supplier'?sid:'',locationName:loc,status}],purchaseCurrency:currency,purchaseUnitPrice:unitPrice,purchaseTotalAmount:totalAmount,remark:byId('itemRemark')?.value.trim()||'',createdBy:who.email,createdAt:now(),lastEditedBy:null,lastEditedAt:null};
-    ['brand','model','specification'].forEach(k=>{const el=byId(`item${k[0].toUpperCase()+k.slice(1)}`);if(el?.value){newItem[k]=el.selectedOptions?.[0]?.dataset?.name||el.selectedOptions?.[0]?.textContent||el.value;newItem[`${k}Id`]=el.value;}});
-    await setDoc(ref,newItem);
-    const item={id:ref.id,...newItem};
-    const docs=[['Our PO',byId('regPO')?.value],['Supplier Invoice',byId('regSupplierInvoice')?.value],['Supplier DO',byId('regSupplierDO')?.value]].filter(x=>String(x[1]||'').trim());
-    const oth=byId('regOtherDoc')?.value.trim()||'';if(oth){const [t,...r]=oth.split('|');docs.push([t.trim()||'Other',r.join('|').trim()||oth]);}
-    for(const [t,r] of docs)await docRef(item,'Supplier / Registration',t,r,ref.id,who);
-    await addDoc(collection(db,'operational_logs'),{logVersion:2,date:now(),activity:'REGISTER_ITEM',activityLabel:'Register Item',status,fromType:'',fromName:'',toType:position,toName:loc,qty,unit,itemId:item.id,itemCode:code,itemName:name,category,supplierId:sid,supplierName:newItem.supplierName,clientId:'',clientName:'',currency,unitPrice,totalAmount,clientTransactionType:'Purchase',performedBy:who.email,performedByRole:who.role,remark:newItem.remark,documents:docs.map(([docType,refNumber])=>({docType,refNumber}))});
-    await addDoc(collection(db,'audit_traces'),{traceVersion:3,actionType:'CREATE_ITEM',module:'Main Workspace',targetType:'inventory',targetName:code,targetId:item.id,summary:`Create Item: ${code}`,beforeValue:null,afterValue:{name,category,qty,unit,status,location:loc,supplier:newItem.supplierName,purchaseCurrency:currency,purchaseUnitPrice:unitPrice,purchaseTotalAmount:totalAmount},changedFields:[],remark:newItem.remark,metadata:{commercial:true},performedBy:who.email,performedByRole:who.role,performedAt:now()});
-    alert('Item registered.');location.reload();
-  }catch(err){console.error('IMS commercial registration failed:',err);alert(err?.message||String(err));}
 }
 
 async function rentalMovement(e){
@@ -113,8 +76,6 @@ async function rentalMovement(e){
 }
 
 document.addEventListener('change',e=>{if(e.target?.id==='clientPositionStatus')setTimeout(rentalFields,0);},true);
-document.addEventListener('submit',e=>{if(e.target?.id==='registerForm')registerCommercial(e);else if(e.target?.id==='moveForm')rentalMovement(e);},true);
+document.addEventListener('submit',e=>{if(e.target?.id==='moveForm')rentalMovement(e);},true);
 
-let timer;
-new MutationObserver(()=>{clearTimeout(timer);timer=setTimeout(()=>{injectPurchase();rentalFields();},20);}).observe(document.body,{childList:true,subtree:true});
-injectPurchase();rentalFields();
+let timer;new MutationObserver(()=>{clearTimeout(timer);timer=setTimeout(rentalFields,20);}).observe(document.body,{childList:true,subtree:true});rentalFields();
