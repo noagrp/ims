@@ -20,7 +20,7 @@ let auditSort={field:'performedAt',dir:'desc'};
 
 const nowISO=()=>new Date().toISOString();
 const norm=s=>String(s??'').trim().replace(/\s+/g,' ').toLowerCase();
-const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]));
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const byId=id=>document.getElementById(id);
 const active=(type)=>settings.filter(x=>x.type===type && x.status!=='inactive');
 const displayDate=v=>v?new Date(v).toLocaleString():'';
