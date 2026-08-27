@@ -66,4 +66,6 @@
   observer.observe(document.documentElement,{childList:true,subtree:true,characterData:true});
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>enhanceDates(document));
   else enhanceDates(document);
+
+  import('./recent-items.js').catch(err=>console.warn('IMS recent-items enhancement unavailable:',err));
 })();
