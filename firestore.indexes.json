@@ -93,22 +93,48 @@
         { "fieldPath": "status", "order": "ASCENDING" },
         { "fieldPath": "itemCode", "order": "ASCENDING" },
         { "fieldPath": "supplierName", "order": "ASCENDING" },
+        { "fieldPath": "date", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "operational_logs",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "itemCode", "order": "ASCENDING" },
         { "fieldPath": "clientName", "order": "ASCENDING" },
         { "fieldPath": "date", "order": "DESCENDING" }
       ]
     },
     {
-      "collectionGroup": "inventory",
+      "collectionGroup": "operational_logs",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "lastEditedAt", "order": "DESCENDING" }
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "supplierName", "order": "ASCENDING" },
+        { "fieldPath": "clientName", "order": "ASCENDING" },
+        { "fieldPath": "date", "order": "DESCENDING" }
       ]
     },
     {
-      "collectionGroup": "inventory",
+      "collectionGroup": "operational_logs",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "createdAt", "order": "DESCENDING" }
+        { "fieldPath": "itemCode", "order": "ASCENDING" },
+        { "fieldPath": "supplierName", "order": "ASCENDING" },
+        { "fieldPath": "clientName", "order": "ASCENDING" },
+        { "fieldPath": "date", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "operational_logs",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "itemCode", "order": "ASCENDING" },
+        { "fieldPath": "supplierName", "order": "ASCENDING" },
+        { "fieldPath": "clientName", "order": "ASCENDING" },
+        { "fieldPath": "date", "order": "DESCENDING" }
       ]
     }
   ],
