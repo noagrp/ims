@@ -1,7 +1,7 @@
 import { auth, db } from './firebase-config.js';
 import { collection, doc, getDoc, getDocs, query, setDoc, where } from 'https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js';
-import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js';
 
+const BACKFILL_KEY='ims-client-position-backfill-v2';
 const safeKey=s=>String(s??'').trim().toLowerCase().replace(/[^a-z0-9_-]+/g,'-').replace(/^-+|-+$/g,'').slice(0,80)||'client';
 
 function clientBalances(item){
@@ -18,14 +18,16 @@ async function alreadyLogged(itemId,clientId,clientName,status){
   });
 }
 
-async function run(user){
-  if(!user)return;
+export async function backfillCurrentClientPositions(){
+  if(localStorage.getItem(BACKFILL_KEY)==='done')return 0;
+  const user=auth.currentUser;
+  if(!user)return 0;
   const profileSnap=await getDoc(doc(db,'users',user.uid));
-  if(!profileSnap.exists()||profileSnap.data().status!=='active')return;
+  if(!profileSnap.exists()||profileSnap.data().status!=='active')return 0;
   const profile=profileSnap.data();
   const email=profile.email||user.email||'';
   const role=profile.role||'';
-  if(!email||!role)return;
+  if(!email||!role)return 0;
 
   const invSnap=await getDocs(collection(db,'inventory'));
   let created=0;
@@ -44,44 +46,20 @@ async function run(user){
       if(existing.exists())continue;
 
       const eventDate=item.lastEditedAt||item.createdAt||new Date().toISOString();
-      const rec={
-        logVersion:2,
-        migrationVersion:1,
-        migrated:true,
-        migrationType:'CURRENT_CLIENT_POSITION',
-        date:String(eventDate),
-        activity:'CURRENT_POSITION_BACKFILL',
-        activityLabel:'Current Position Migration',
-        status,
-        fromType:'unknown',
-        fromName:'Previous / Unknown',
-        toType:'client',
-        toName:clientName,
-        qty:Number(bal.qty||0),
-        unit:item.unit||'',
-        itemId:item.id,
-        itemCode:item.itemCode||'',
-        itemName:item.name||item.itemName||'',
-        category:item.category||'',
-        supplierId:item.supplierId||'',
-        supplierName:item.supplierName||'',
-        clientId,
-        clientName,
-        performedBy:email,
-        performedByRole:role,
+      await setDoc(ref,{
+        logVersion:2,migrationVersion:2,migrated:true,migrationType:'CURRENT_CLIENT_POSITION',
+        date:String(eventDate),activity:'CURRENT_POSITION_BACKFILL',activityLabel:'Current Position Migration',status,
+        fromType:'unknown',fromName:'Previous / Unknown',toType:'client',toName:clientName,qty:Number(bal.qty||0),unit:item.unit||'',
+        itemId:item.id,itemCode:item.itemCode||'',itemName:item.name||item.itemName||'',category:item.category||'',
+        supplierId:item.supplierId||'',supplierName:item.supplierName||'',clientId,clientName,
+        performedBy:email,performedByRole:role,
         remark:'Backfilled from current stock balance; original arrival event was not available in operational logs.'
-      };
-      await setDoc(ref,rec);
+      });
       created++;
     }
   }
 
+  localStorage.setItem(BACKFILL_KEY,'done');
   if(created)console.info(`IMS: backfilled ${created} current client position log(s).`);
+  return created;
 }
-
-let done=false;
-onAuthStateChanged(auth,user=>{
-  if(done||!user)return;
-  done=true;
-  run(user).catch(err=>console.warn('IMS client-position log backfill unavailable:',err));
-});
