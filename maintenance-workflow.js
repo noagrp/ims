@@ -2,236 +2,51 @@ import { auth, db } from './firebase-config.js';
 import { addDoc, collection, doc, getDoc, getDocs, runTransaction, setDoc, updateDoc } from 'https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js';
 
 const byId=id=>document.getElementById(id);
-const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]));
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const cls='w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2.5 text-sm';
 const now=()=>new Date().toISOString();
 const today=()=>now().slice(0,10);
 const TYPES=['Inspection','Preventive Maintenance','Repair','Calibration','Certification / Recertification','Testing','Service','Other'];
-const DEFAULT_TASKS={
-  'Inspection':['Inspect condition','Test / verify','Record result'],
-  'Preventive Maintenance':['Inspect condition','Service / replace consumables','Functional test'],
-  'Repair':['Diagnose issue','Repair / replace','Functional test'],
-  'Calibration':['Perform calibration','Verify tolerance','Record certificate / result'],
-  'Certification / Recertification':['Inspect / test','Certification review','Record certificate'],
-  'Testing':['Prepare test','Perform test','Record result'],
-  'Service':['Inspect condition','Perform service','Functional test'],
-  'Other':['Perform work','Verify result']
-};
-const STATUS_PRIORITY=['In Transit','Maintenance','At Client','Not Available','At Supplier','Available'];
-let inventory=[],settings=[],maintenance=[],me=null,busy=false,lastMount=null;
+const DEFAULT_TASKS={Inspection:['Inspect condition','Test / verify','Record result'],'Preventive Maintenance':['Inspect condition','Service / replace consumables','Functional test'],Repair:['Diagnose issue','Repair / replace','Functional test'],Calibration:['Perform calibration','Verify tolerance','Record certificate / result'],'Certification / Recertification':['Inspect / test','Certification review','Record certificate'],Testing:['Prepare test','Perform test','Record result'],Service:['Inspect condition','Perform service','Functional test'],Other:['Perform work','Verify result']};
+const PRIORITY=['In Transit','Maintenance','At Client','Not Available','At Supplier','Available'];
+let inventory=[],settings=[],maintenance=[],me=null,busy=false,lastMount=null,rowSeq=0;
 
-function balances(item){
-  return (Array.isArray(item.stockBalances)?item.stockBalances:[])
-    .filter(x=>Number(x.qty||0)>0)
-    .map(x=>({
-      qty:Number(x.qty||0),
-      locationType:x.locationType||'warehouse',
-      locationId:x.locationId||'',
-      locationName:x.locationName||x.location||'Unknown',
-      status:x.status||'Not Available'
-    }));
-}
-function maintBalances(item){return balances(item).filter(x=>x.locationType==='maintenance'&&x.status==='Maintenance');}
-function summary(b){
-  const p=b.filter(x=>Number(x.qty)>0);
-  if(!p.length)return{status:'Not Available',location:'No Stock'};
-  const status=STATUS_PRIORITY.find(s=>p.some(x=>x.status===s))||'Not Available';
-  return{status,location:p.length===1?p[0].locationName:`${p.length} Locations`};
-}
-function latestJob(itemId){return maintenance.filter(x=>x.itemId===itemId).sort((a,b)=>String(b.createdAt||'').localeCompare(String(a.createdAt||'')))[0]||null;}
+function balances(item){return (Array.isArray(item.stockBalances)?item.stockBalances:[]).filter(x=>Number(x.qty||0)>0).map(x=>({qty:Number(x.qty||0),locationType:x.locationType||'warehouse',locationId:x.locationId||'',locationName:x.locationName||x.location||'Unknown',status:x.status||'Not Available'}));}
+function summary(b){const p=b.filter(x=>x.qty>0);if(!p.length)return{status:'Not Available',location:'No Stock'};return{status:PRIORITY.find(s=>p.some(x=>x.status===s))||'Not Available',location:p.length===1?p[0].locationName:`${p.length} Locations`};}
+function maintBalances(i){return balances(i).filter(b=>b.locationType==='maintenance'&&b.status==='Maintenance');}
+function sourceAllowed(b){return (b.locationType==='warehouse'&&(b.status==='Available'||b.status==='Not Available'))||(b.locationType==='client'&&b.status==='At Client');}
+function sendableItems(){return inventory.filter(i=>balances(i).some(sourceAllowed));}
 function activeItems(){return inventory.filter(i=>maintBalances(i).length);}
-function itemLabel(item){return item.alias?`${item.alias} · ${item.itemCode}`:item.itemCode;}
-async function load(){
-  const u=auth.currentUser;
-  if(!u)throw new Error('Sign in required.');
-  const ps=await getDoc(doc(db,'users',u.uid));
-  if(!ps.exists()||ps.data().status!=='active')throw new Error('Active user profile required.');
-  me={...ps.data(),email:ps.data().email||u.email||''};
-  const [a,b,c]=await Promise.all([
-    getDocs(collection(db,'inventory')),
-    getDocs(collection(db,'settings')),
-    getDocs(collection(db,'maintenance_events'))
-  ]);
-  inventory=a.docs.map(d=>({id:d.id,...d.data()}));
-  settings=b.docs.map(d=>({id:d.id,...d.data()}));
-  maintenance=c.docs.map(d=>({id:d.id,...d.data()}));
-}
+function label(i){return `${i.alias||'No Alias'} · ${i.itemCode||'No IMS ID'} · ${i.name||''}`;}
+function latestJob(itemId){return maintenance.filter(x=>x.itemId===itemId).sort((a,b)=>String(b.createdAt||'').localeCompare(String(a.createdAt||'')))[0]||null;}
+async function load(){const u=auth.currentUser;if(!u)throw new Error('Sign in required.');const p=await getDoc(doc(db,'users',u.uid));if(!p.exists()||p.data().status!=='active')throw new Error('Active user profile required.');me={...p.data(),email:p.data().email||u.email||''};const [a,b,c]=await Promise.all([getDocs(collection(db,'inventory')),getDocs(collection(db,'settings')),getDocs(collection(db,'maintenance_events'))]);inventory=a.docs.map(d=>({id:d.id,...d.data()}));settings=b.docs.map(d=>({id:d.id,...d.data()}));maintenance=c.docs.map(d=>({id:d.id,...d.data()}));}
 async function log(rec){await addDoc(collection(db,'operational_logs'),{logVersion:2,date:now(),performedBy:me.email,performedByRole:me.role,...rec});}
-async function audit(action,item,job,beforeValue,afterValue,remark='',targetId='',metadata={}){
-  await addDoc(collection(db,'audit_traces'),{
-    traceVersion:3,
-    actionType:action,
-    module:'Maintenance',
-    targetType:'maintenance',
-    targetName:item.alias||item.itemCode,
-    targetId:targetId||job?.id||'',
-    summary:`${action.replace(/_/g,' ')}: ${item.alias||item.itemCode}`,
-    beforeValue,
-    afterValue,
-    changedFields:['maintenance'],
-    remark,
-    metadata:{itemId:item.id,itemCode:item.itemCode,itemAlias:item.alias||'',maintenanceEventId:job?.id||'',...metadata},
-    performedBy:me.email,
-    performedByRole:me.role,
-    performedAt:now()
-  });
-}
-function baseLog(item,extra={}){
-  return{
-    itemId:item.id,itemCode:item.itemCode,itemAlias:item.alias||'',itemName:item.name,
-    category:item.category||'',supplierId:item.supplierId||'',supplierName:item.supplierName||'',
-    clientId:'',clientName:'',unit:item.unit||'',...extra
-  };
-}
-function hideMaintenanceFromMove(){
-  document.querySelectorAll('#bmAction option[value="RETURN_MAINTENANCE"]').forEach(x=>x.remove());
-  const hiddenIds=new Set(inventory.filter(i=>balances(i).every(b=>b.status==='Maintenance'||b.status==='In Transit')).map(i=>i.id));
-  document.querySelectorAll('.bmItem').forEach(sel=>[...sel.options].forEach(o=>{if(hiddenIds.has(o.value))o.remove();}));
-}
-function shellHtml(){
-  const items=activeItems();
-  return `<form id="maintenanceWorkflowForm" class="space-y-3"><div class="text-[11px] text-slate-500">Maintenance items must complete the maintenance result flow before normal use. Pass returns to a selected warehouse as Available. Fail can remain under Maintenance or return to a selected warehouse as Not Available.</div><label class="block text-xs text-slate-400">Item in Maintenance<select id="mwItem" class="${cls} mt-1"><option value="">-- Select item --</option>${items.map(i=>`<option value="${i.id}">${esc(itemLabel(i))} — ${esc(i.name)} (${maintBalances(i).reduce((a,b)=>a+b.qty,0)} ${esc(i.unit||'')})</option>`).join('')}</select></label><div id="mwBody"></div></form>`;
-}
-function openHtml(){
-  return `<div class="border border-slate-800 rounded-xl p-3 space-y-3"><div class="font-semibold text-sm">Open Maintenance Job</div><div class="grid sm:grid-cols-2 gap-2"><label class="text-xs text-slate-400">Maintenance Type<select id="mwType" class="${cls} mt-1">${TYPES.map(x=>`<option>${esc(x)}</option>`).join('')}</select></label><label class="text-xs text-slate-400">Start Date<input id="mwStart" type="date" value="${today()}" class="${cls} mt-1"></label></div><label class="text-xs text-slate-400">Provider<input id="mwProvider" class="${cls} mt-1" placeholder="Workshop / provider"></label><label class="text-xs text-slate-400">Tasks — one per line<textarea id="mwTasks" rows="4" class="${cls} mt-1">${DEFAULT_TASKS.Inspection.join('\n')}</textarea></label><label class="text-xs text-slate-400">Remark<textarea id="mwRemark" rows="2" class="${cls} mt-1"></textarea></label><button id="mwOpen" type="button" class="w-full bg-amber-600 hover:bg-amber-500 py-2.5 rounded-lg text-sm font-bold">Open Maintenance</button></div>`;
-}
-function taskRows(job,readonly=false){
-  const tasks=Array.isArray(job.tasks)?job.tasks:[];
-  return tasks.map((t,n)=>`<div class="grid grid-cols-[auto_minmax(0,1fr)_145px] gap-2 items-center border border-slate-800 rounded-lg p-2"><input class="mwTaskDone" data-i="${n}" type="checkbox" ${t.done?'checked':''} ${readonly?'disabled':''}><div class="text-xs">${esc(t.name)}</div><input class="mwTaskDate ${cls}" data-i="${n}" type="date" value="${esc(t.date||'')}" ${readonly?'disabled':''}></div>`).join('')||'<div class="text-xs text-slate-500">No tasks.</div>';
-}
-function resultHtml(job){
-  const result=job.maintenanceResult||'';
-  if(!result)return `<div class="border-t border-slate-800 pt-3 space-y-2"><div class="font-semibold text-xs">Maintenance Result</div><textarea id="mwResultRemark" rows="2" class="${cls}" placeholder="Result detail; failure reason is required for Fail"></textarea><div class="grid grid-cols-2 gap-2"><button id="mwPass" type="button" class="bg-emerald-700 hover:bg-emerald-600 py-2 rounded-lg text-xs font-bold">Pass</button><button id="mwFail" type="button" class="bg-red-700 hover:bg-red-600 py-2 rounded-lg text-xs font-bold">Fail</button></div></div>`;
-  return `<div class="border-t border-slate-800 pt-3 space-y-1"><div class="font-semibold text-xs">Maintenance Result</div><div class="text-sm font-bold ${result==='Pass'?'text-emerald-400':'text-red-400'}">${esc(result)}</div><div class="text-xs text-slate-500">${esc(job.resultRemark||'')}</div>${job.failedDisposition?`<div class="text-xs text-amber-400">Disposition: ${esc(job.failedDisposition)}</div>`:''}</div>`;
-}
-function releaseHtml(item,job){
-  if(!job.maintenanceResult)return '';
-  const mbs=maintBalances(item);
-  const warehouses=settings.filter(x=>x.type==='warehouse'&&x.status!=='inactive');
-  const result=job.maintenanceResult;
-  return `<div class="border-t border-slate-800 pt-3 space-y-2"><div class="font-semibold text-xs text-cyan-300">${result==='Pass'?'Return to Warehouse → Available':'Failed Item Disposition'}</div>${result==='Fail'?`<button id="mwKeepMaintenance" type="button" class="w-full bg-amber-700 hover:bg-amber-600 py-2 rounded-lg text-xs font-bold">Keep Under Maintenance</button><div class="text-[10px] text-slate-500">Or return the failed item to a warehouse. It will arrive as Not Available and cannot be dispatched normally.</div>`:''}<div class="grid sm:grid-cols-2 gap-2"><label class="text-xs text-slate-400">Maintenance Source<select id="mwReleaseSource" class="${cls} mt-1">${mbs.map((b,n)=>`<option value="${n}">${esc(b.locationName)} — ${b.qty} ${esc(item.unit||'')}</option>`).join('')}</select></label><label class="text-xs text-slate-400">Warehouse<select id="mwWarehouse" class="${cls} mt-1"><option value="">-- Warehouse --</option>${warehouses.map(w=>`<option value="${w.id}" data-name="${esc(w.value)}">${esc(w.value)}</option>`).join('')}</select></label></div><div class="grid sm:grid-cols-2 gap-2"><label class="text-xs text-slate-400">Quantity<input id="mwReleaseQty" type="number" min="0.0001" step="any" value="${item.trackingType==='serialized'?1:(mbs[0]?.qty||1)}" ${item.trackingType==='serialized'?'readonly':''} class="${cls} mt-1"></label><label class="text-xs text-slate-400">Remark<input id="mwReleaseRemark" class="${cls} mt-1" placeholder="Optional disposition / return remark"></label></div><button id="mwRelease" type="button" class="w-full bg-cyan-700 hover:bg-cyan-600 py-2.5 rounded-lg text-sm font-bold">${result==='Pass'?'Start Return to Warehouse — Available':'Start Return to Warehouse — Not Available'}</button></div>`;
-}
-function jobHtml(item,job){
-  const completed=job.eventStatus==='Completed';
-  return `<div class="border border-slate-800 rounded-xl p-3 space-y-3"><div class="flex justify-between gap-3"><div><div class="font-semibold text-sm">${esc(job.eventType||'Maintenance')}</div><div class="text-[10px] text-slate-500">Opened ${esc(job.maintenanceFrom||job.eventDate||job.createdAt?.slice(0,10)||'')} · ${esc(job.provider||'No provider')}</div></div><span class="text-xs ${completed?'text-emerald-400':'text-amber-400'}">${completed?'Completed':'Open'}</span></div><div class="space-y-2">${taskRows(job,completed)}</div>${completed?`<div class="text-xs text-emerald-400">Completed on ${esc(job.completedDate||job.completedAt?.slice(0,10)||'—')}</div>${resultHtml(job)}${releaseHtml(item,job)}`:`<div class="grid sm:grid-cols-[1fr_auto] gap-2"><div class="text-[10px] text-slate-500 self-center">Tick a task and enter its completion date. Save progress whenever needed.</div><button id="mwSaveProgress" type="button" class="bg-slate-700 hover:bg-slate-600 px-4 py-2 rounded-lg text-xs font-bold">Save Progress</button></div><div class="border-t border-slate-800 pt-3 grid sm:grid-cols-[1fr_auto] gap-2"><label class="text-xs text-slate-400">Completion Date<input id="mwCompleteDate" type="date" value="${today()}" class="${cls} mt-1"></label><button id="mwComplete" type="button" class="bg-emerald-700 hover:bg-emerald-600 px-4 py-2 rounded-lg text-xs font-bold self-end">Complete Maintenance</button></div>`}</div>`;
-}
-async function renderSelected(){
-  const body=byId('mwBody'),item=inventory.find(x=>x.id===byId('mwItem')?.value);
-  if(!body)return;
-  if(!item){body.innerHTML='';return;}
-  const job=latestJob(item.id);
-  body.innerHTML=job?jobHtml(item,job):openHtml();
-  if(!job){
-    byId('mwType').onchange=()=>{byId('mwTasks').value=(DEFAULT_TASKS[byId('mwType').value]||DEFAULT_TASKS.Other).join('\n');};
-    byId('mwOpen').onclick=()=>openJob(item);
-  }else if(job.eventStatus==='Completed'){
-    if(!job.maintenanceResult){byId('mwPass').onclick=()=>setResult(item,job,'Pass');byId('mwFail').onclick=()=>setResult(item,job,'Fail');}
-    else{
-      if(byId('mwRelease'))byId('mwRelease').onclick=()=>release(item,job);
-      if(job.maintenanceResult==='Fail'&&byId('mwKeepMaintenance'))byId('mwKeepMaintenance').onclick=()=>keepMaintenance(item,job);
-    }
-  }else{
-    byId('mwSaveProgress').onclick=()=>saveProgress(item,job,false);
-    byId('mwComplete').onclick=()=>saveProgress(item,job,true);
-  }
-}
-function collectTasks(job){return (Array.isArray(job.tasks)?job.tasks:[]).map((t,n)=>({name:t.name,done:document.querySelector(`.mwTaskDone[data-i="${n}"]`)?.checked||false,date:document.querySelector(`.mwTaskDate[data-i="${n}"]`)?.value||''}));}
-async function openJob(item){
-  if(busy)return;
-  const tasks=byId('mwTasks').value.split('\n').map(x=>x.trim()).filter(Boolean);
-  if(!tasks.length)return alert('Add at least one maintenance task.');
-  const start=byId('mwStart').value;
-  if(!start)return alert('Enter the maintenance start date.');
-  busy=true;
-  try{
-    const ref=doc(collection(db,'maintenance_events'));
-    const rec={eventId:ref.id,itemId:item.id,itemCode:item.itemCode,itemAliasSnapshot:item.alias||'',itemNameSnapshot:item.name,eventType:byId('mwType').value,maintenanceType:byId('mwType').value,eventStatus:'Open',maintenanceFrom:start,provider:byId('mwProvider').value.trim(),remark:byId('mwRemark').value.trim(),tasks:tasks.map(name=>({name,done:false,date:''})),createdBy:me.email,createdByRole:me.role,createdAt:now()};
-    await setDoc(ref,rec);
-    await log(baseLog(item,{activity:'MAINTENANCE_OPEN',activityLabel:'Open Maintenance',status:'Maintenance',fromType:'maintenance',fromName:maintBalances(item)[0]?.locationName||'Maintenance',toType:'maintenance',toName:maintBalances(item)[0]?.locationName||'Maintenance',qty:maintBalances(item).reduce((a,b)=>a+b.qty,0),remark:rec.remark,maintenanceEventId:ref.id}));
-    await audit('OPEN_MAINTENANCE',item,{id:ref.id},null,{type:rec.eventType,start,tasks:rec.tasks.map(x=>x.name)},rec.remark);
-    await load();await renderSelected();
-  }catch(err){alert('Open maintenance failed: '+(err?.message||err));}finally{busy=false;}
-}
-async function saveProgress(item,job,complete){
-  if(busy)return;
-  const tasks=collectTasks(job);
-  for(const t of tasks){if(t.done&&!t.date)return alert(`Enter a date for completed task: ${t.name}`);if(!t.done&&t.date)return alert(`Tick the task or clear its date: ${t.name}`);}
-  if(complete&&!tasks.every(t=>t.done&&t.date))return alert('Complete every task with a date before completing maintenance.');
-  const completedDate=complete?byId('mwCompleteDate').value:'';
-  if(complete&&!completedDate)return alert('Enter the completion date.');
-  busy=true;
-  try{
-    const patch={tasks,eventStatus:complete?'Completed':'Open',updatedAt:now(),updatedBy:me.email};
-    if(complete)Object.assign(patch,{completedDate,completedAt:now(),completedBy:me.email});
-    await updateDoc(doc(db,'maintenance_events',job.id),patch);
-    await log(baseLog(item,{activity:complete?'MAINTENANCE_COMPLETE':'MAINTENANCE_PROGRESS',activityLabel:complete?'Complete Maintenance':'Maintenance Progress',status:'Maintenance',fromType:'maintenance',fromName:maintBalances(item)[0]?.locationName||'Maintenance',toType:'maintenance',toName:maintBalances(item)[0]?.locationName||'Maintenance',qty:maintBalances(item).reduce((a,b)=>a+b.qty,0),remark:complete?`Completed ${completedDate}`:'Task progress updated',maintenanceEventId:job.id}));
-    await audit(complete?'COMPLETE_MAINTENANCE':'UPDATE_MAINTENANCE',item,job,{status:job.eventStatus,tasks:job.tasks},{status:patch.eventStatus,tasks,completedDate});
-    await load();await renderSelected();
-  }catch(err){alert('Maintenance update failed: '+(err?.message||err));}finally{busy=false;}
-}
-async function setResult(item,job,result){
-  if(busy)return;
-  const remark=byId('mwResultRemark')?.value.trim()||'';
-  if(result==='Fail'&&!remark)return alert('Enter the failure detail / reason.');
-  busy=true;
-  try{
-    const patch={maintenanceResult:result,resultRemark:remark,resultAt:now(),resultBy:me.email,failedDisposition:'',updatedAt:now(),updatedBy:me.email};
-    await updateDoc(doc(db,'maintenance_events',job.id),patch);
-    await log(baseLog(item,{activity:'MAINTENANCE_RESULT',activityLabel:`Maintenance Result — ${result}`,status:'Maintenance',fromType:'maintenance',fromName:job.provider||maintBalances(item)[0]?.locationName||'Maintenance',toType:'maintenance',toName:job.provider||maintBalances(item)[0]?.locationName||'Maintenance',qty:maintBalances(item).reduce((a,b)=>a+b.qty,0),remark:remark||`Maintenance ${result}`,maintenanceResult:result,maintenanceEventId:job.id}));
-    await audit('SET_MAINTENANCE_RESULT',item,job,{maintenanceResult:job.maintenanceResult||''},{maintenanceResult:result},remark);
-    await load();await renderSelected();
-  }catch(err){alert('Maintenance result failed: '+(err?.message||err));}finally{busy=false;}
-}
-async function keepMaintenance(item,job){
-  if(busy||job.maintenanceResult!=='Fail')return;
-  busy=true;
-  try{
-    const remark=job.resultRemark||'Failed maintenance remains under maintenance.';
-    const patch={failedDisposition:'Keep in Maintenance',failedDispositionAt:now(),failedDispositionBy:me.email,updatedAt:now(),updatedBy:me.email};
-    await updateDoc(doc(db,'maintenance_events',job.id),patch);
-    await log(baseLog(item,{activity:'MAINTENANCE_FAIL_KEEP',activityLabel:'Failed Maintenance — Keep Under Maintenance',status:'Maintenance',fromType:'maintenance',fromName:maintBalances(item)[0]?.locationName||'Maintenance',toType:'maintenance',toName:maintBalances(item)[0]?.locationName||'Maintenance',qty:maintBalances(item).reduce((a,b)=>a+b.qty,0),remark,maintenanceResult:'Fail',maintenanceEventId:job.id}));
-    await audit('KEEP_FAILED_ITEM_IN_MAINTENANCE',item,job,{maintenanceResult:'Fail'},{maintenanceResult:'Fail',disposition:'Keep in Maintenance'},remark);
-    await load();await renderSelected();
-  }catch(err){alert('Maintenance disposition failed: '+(err?.message||err));}finally{busy=false;}
-}
-async function release(item,job){
-  if(busy)return;
-  if(job.maintenanceResult!=='Pass'&&job.maintenanceResult!=='Fail')return alert('Set the maintenance result before release.');
-  const srcIndex=Number(byId('mwReleaseSource').value),src=maintBalances(item)[srcIndex],qty=Number(byId('mwReleaseQty').value||0),wh=byId('mwWarehouse'),toId=wh.value,toName=wh.selectedOptions?.[0]?.dataset?.name||'',remark=byId('mwReleaseRemark').value.trim();
-  if(!src||qty<=0||qty>src.qty||!toId||!toName)return alert('Select a valid source, quantity and warehouse.');
-  if(item.trackingType==='serialized'&&qty!==1)return alert('Serialized items must return as quantity 1.');
-  const finalStatus=job.maintenanceResult==='Pass'?'Available':'Not Available';
-  busy=true;
-  try{
-    const movementRef=doc(collection(db,'movements')),movementId=movementRef.id,createdAt=now();
-    await runTransaction(db,async tx=>{
-      const itemRef=doc(db,'inventory',item.id),snap=await tx.get(itemRef);
-      if(!snap.exists())throw new Error('Item missing.');
-      const cur=snap.data(),bal=balances(cur),source=bal.find(b=>b.locationType==='maintenance'&&b.status==='Maintenance'&&b.locationName===src.locationName&&(!src.locationId||b.locationId===src.locationId));
-      if(!source||source.qty<qty)throw new Error('Maintenance stock changed. Refresh and retry.');
-      source.qty-=qty;
-      bal.push({qty,locationType:'transit',locationId:movementId,locationName:`Transit to ${toName}`,status:'In Transit'});
-      const clean=bal.filter(b=>b.qty>0),sum=summary(clean);
-      tx.update(itemRef,{stockBalances:clean,status:sum.status,currentLocation:sum.location,lastEditedBy:me.email,lastEditedAt:createdAt});
-      tx.set(movementRef,{movementId,itemId:item.id,itemCode:item.itemCode,itemAliasSnapshot:item.alias||'',itemNameSnapshot:item.name,categorySnapshot:item.category||'',supplierId:item.supplierId||'',supplierNameSnapshot:item.supplierName||'',action:'RETURN_MAINTENANCE',actionLabel:'Return from Maintenance',fromType:'maintenance',fromId:src.locationId||'',fromName:src.locationName,toType:'warehouse',toId,toName,toStatus:finalStatus,qty,unit:item.unit||'',mode:'Maintenance Release',detail:`Maintenance ${job.maintenanceResult} · job ${job.id}`,remark,documents:[],status:'in_transit',maintenanceResult:job.maintenanceResult,maintenanceEventId:job.id,createdAt,createdBy:me.email,createdByRole:me.role});
-    });
-    await updateDoc(doc(db,'maintenance_events',job.id),{failedDisposition:job.maintenanceResult==='Fail'?'Return to Warehouse — Not Available':'Return to Warehouse — Available',releaseMovementId:movementId,releaseToWarehouseId:toId,releaseToWarehouseName:toName,releaseAt:createdAt,releaseBy:me.email,updatedAt:createdAt,updatedBy:me.email});
-    await log(baseLog(item,{activity:'RETURN_MAINTENANCE',activityLabel:'Return from Maintenance',status:'In Transit',fromType:'maintenance',fromName:src.locationName,toType:'warehouse',toName,qty,movementId,remark,maintenanceResult:job.maintenanceResult,maintenanceEventId:job.id,toStatus:finalStatus}));
-    await audit('RETURN_MAINTENANCE',item,job,{status:'Maintenance',location:src.locationName,maintenanceResult:job.maintenanceResult},{status:'In Transit',destination:toName,arrivalStatus:finalStatus,qty},remark,movementId,{arrivalStatus:finalStatus});
-    alert(`Return to warehouse started. On arrival the item will be ${finalStatus}.`);
-    location.reload();
-  }catch(err){alert('Maintenance release failed: '+(err?.message||err));}finally{busy=false;}
-}
-async function mount(){
-  const core=byId('maintenanceForm');
-  if(!core||core.dataset.maintenanceWorkflow==='1'||core===lastMount)return;
-  lastMount=core;
-  try{await load();}catch(err){console.warn('IMS maintenance workflow unavailable:',err);return;}
-  const replacement=document.createElement('div');replacement.innerHTML=shellHtml();
-  const form=replacement.firstElementChild;form.dataset.maintenanceWorkflow='1';core.replaceWith(form);
-  byId('mwItem').onchange=renderSelected;
-  hideMaintenanceFromMove();
-}
-let timer;
-new MutationObserver(()=>{clearTimeout(timer);timer=setTimeout(()=>{mount();hideMaintenanceFromMove();},35);}).observe(document.body,{childList:true,subtree:true});
-mount();
+function baseLog(item,extra={}){return{itemId:item.id,itemCode:item.itemCode,itemAlias:item.alias||'',itemName:item.name,category:item.category||'',supplierId:item.supplierId||'',supplierName:item.supplierName||'',clientId:'',clientName:'',unit:item.unit||'',...extra};}
+async function audit(action,item,beforeValue,afterValue,remark='',targetId='',metadata={}){await addDoc(collection(db,'audit_traces'),{traceVersion:3,actionType:action,module:'Maintenance',targetType:'maintenance',targetName:item.alias||item.itemCode,targetId,summary:`${action.replace(/_/g,' ')}: ${item.alias||item.itemCode} · ${item.itemCode} · ${item.name||''}`,beforeValue,afterValue,changedFields:['maintenance'],remark,metadata:{itemId:item.id,itemCode:item.itemCode,itemAlias:item.alias||'',...metadata},performedBy:me.email,performedByRole:me.role,performedAt:now()});}
+function warehouses(){return settings.filter(x=>x.type==='warehouse'&&x.status!=='inactive');}
+
+function sendItemOptions(){return '<option value="">-- Select Item --</option>'+sendableItems().map(i=>`<option value="${i.id}">${esc(label(i))}</option>`).join('');}
+function sendSourceOptions(itemId){const i=inventory.find(x=>x.id===itemId);if(!i)return '<option value="">-- Select Source --</option>';return '<option value="">-- Select Source --</option>'+balances(i).map((b,n)=>({b,n})).filter(x=>sourceAllowed(x.b)).map(({b,n})=>`<option value="${n}">${esc(b.locationName)} · ${b.qty} ${esc(i.unit||'')} · ${esc(b.status)}</option>`).join('');}
+function sendRowHtml(){rowSeq++;return `<div class="mwSendRow border border-slate-800 rounded-xl p-3"><div class="grid sm:grid-cols-2 xl:grid-cols-[2fr_1.6fr_.65fr_auto] gap-2 items-end"><label class="text-xs text-slate-400">Alias · IMS Item ID · Item Name<select class="mwSendItem ${cls} mt-1">${sendItemOptions()}</select></label><label class="text-xs text-slate-400">Source Warehouse / Location<select class="mwSendSource ${cls} mt-1"><option value="">-- Select Source --</option></select></label><label class="text-xs text-slate-400">Qty<input class="mwSendQty ${cls} mt-1" type="number" min="0.0001" step="any" value="1"></label><button type="button" class="mwSendRemove bg-slate-800 hover:bg-red-800 px-3 py-2.5 rounded-lg text-xs">Remove</button></div><div class="mwSendInfo text-[10px] text-slate-500 mt-1"></div></div>`;}
+function bindSendRow(row){const item=row.querySelector('.mwSendItem'),src=row.querySelector('.mwSendSource');item.onchange=()=>{src.innerHTML=sendSourceOptions(item.value);sendInfo(row);};src.onchange=()=>sendInfo(row);row.querySelector('.mwSendQty').oninput=()=>sendInfo(row);row.querySelector('.mwSendRemove').onclick=()=>{if(document.querySelectorAll('.mwSendRow').length===1)return alert('At least one maintenance line is required.');row.remove();};}
+function sendInfo(row){const i=inventory.find(x=>x.id===row.querySelector('.mwSendItem').value),raw=row.querySelector('.mwSendSource').value,idx=raw===''?NaN:Number(raw),b=i&&Number.isInteger(idx)?balances(i)[idx]:null;row.querySelector('.mwSendInfo').textContent=i&&b?`${i.alias||'No Alias'} · ${i.itemCode} · ${i.name||''} · ${b.locationName} · ${b.qty} ${i.unit||''} available`:'';}
+function addSendRow(){const w=byId('mwSendRows');w.insertAdjacentHTML('beforeend',sendRowHtml());bindSendRow(w.lastElementChild);}
+function collectSendLines(){return [...document.querySelectorAll('.mwSendRow')].map((r,n)=>{const item=inventory.find(x=>x.id===r.querySelector('.mwSendItem').value),raw=r.querySelector('.mwSendSource').value,idx=raw===''?NaN:Number(raw),balance=item&&Number.isInteger(idx)?balances(item)[idx]:null;return{lineNo:n+1,item,balance,qty:Number(r.querySelector('.mwSendQty').value||0)};}).filter(x=>x.item&&x.balance&&sourceAllowed(x.balance));}
+async function sendBatch(){if(busy)return;const provider=byId('mwSendProvider').value.trim(),remark=byId('mwSendRemark').value.trim(),lines=collectSendLines();if(!provider)return alert('Enter the maintenance provider / workshop.');if(!lines.length)return alert('Add at least one valid item and source location.');const used=new Map();for(const l of lines){if(l.qty<=0||l.qty>l.balance.qty)return alert(`Line ${l.lineNo}: invalid quantity.`);if(l.item.trackingType==='serialized'&&l.qty!==1)return alert(`Line ${l.lineNo}: serialized item quantity must be 1.`);const k=`${l.item.id}|${l.balance.locationType}|${l.balance.locationId}|${l.balance.locationName}|${l.balance.status}`,sum=(used.get(k)||0)+l.qty;used.set(k,sum);if(sum>l.balance.qty)return alert(`${l.item.alias||l.item.itemCode}: combined quantity exceeds source stock.`);}busy=true;try{const batchId=doc(collection(db,'movements')).id,createdAt=now(),refs=lines.map(()=>doc(collection(db,'movements')));await runTransaction(db,async tx=>{const state=new Map();for(const id of [...new Set(lines.map(l=>l.item.id))]){const s=await tx.get(doc(db,'inventory',id));if(!s.exists())throw new Error('Item missing.');state.set(id,{balances:balances(s.data())});}for(let n=0;n<lines.length;n++){const l=lines[n],st=state.get(l.item.id),src=st.balances.find(b=>b.locationType===l.balance.locationType&&b.locationId===l.balance.locationId&&b.locationName===l.balance.locationName&&b.status===l.balance.status);if(!src||src.qty<l.qty)throw new Error(`${l.item.alias||l.item.itemCode}: source stock changed.`);src.qty-=l.qty;const mr=refs[n];st.balances.push({qty:l.qty,locationType:'transit',locationId:mr.id,locationName:`Transit to ${provider}`,status:'In Transit'});tx.set(mr,{movementId:mr.id,movementBatchId:batchId,itemId:l.item.id,itemCode:l.item.itemCode,itemAlias:l.item.alias||'',itemNameSnapshot:l.item.name,action:'SEND_MAINTENANCE',actionLabel:'Send to Maintenance',fromType:l.balance.locationType,fromId:l.balance.locationId||'',fromName:l.balance.locationName,toType:'maintenance',toId:'',toName:provider,toStatus:'Maintenance',qty:l.qty,unit:l.item.unit||'',mode:'Maintenance',detail:'Batch maintenance intake',remark,status:'in_transit',createdAt,createdBy:me.email,createdByRole:me.role});}for(const [id,st] of state){const clean=st.balances.filter(b=>b.qty>0),sum=summary(clean);tx.update(doc(db,'inventory',id),{stockBalances:clean,status:sum.status,currentLocation:sum.location,lastEditedBy:me.email,lastEditedAt:createdAt});}});for(let n=0;n<lines.length;n++){const l=lines[n],mr=refs[n];await log(baseLog(l.item,{activity:'SEND_MAINTENANCE',activityLabel:'Send to Maintenance',status:'In Transit',fromType:l.balance.locationType,fromName:l.balance.locationName,toType:'maintenance',toName:provider,qty:l.qty,movementId:mr.id,movementBatchId:batchId,remark}));await audit('SEND_MAINTENANCE',l.item,{status:l.balance.status,location:l.balance.locationName},{status:'In Transit',destination:provider,arrivalStatus:'Maintenance',qty:l.qty},remark,mr.id,{movementBatchId:batchId});}alert(`${lines.length} maintenance line(s) started.`);location.reload();}catch(err){alert('Send to maintenance failed: '+(err?.message||err));}finally{busy=false;}}
+
+function shellHtml(){const items=activeItems();return `<div id="maintenanceWorkflowForm" class="space-y-5" data-maintenance-workflow="1"><section class="border border-slate-800 rounded-2xl p-4 space-y-3"><div><div class="font-bold">Send to Maintenance — Multi Item / Multi Unit / Multi Location</div><div class="text-[10px] text-slate-500">Each row may use a different Alias, IMS Item ID, item, quantity, warehouse or client location.</div></div><div class="grid sm:grid-cols-2 gap-2"><label class="text-xs text-slate-400">Maintenance Provider / Workshop<input id="mwSendProvider" class="${cls} mt-1" placeholder="Provider / workshop"></label><label class="text-xs text-slate-400">Remark<input id="mwSendRemark" class="${cls} mt-1"></label></div><div class="flex justify-end"><button id="mwAddSendRow" type="button" class="bg-slate-700 px-3 py-2 rounded-lg text-xs font-bold">+ Add Item / Location</button></div><div id="mwSendRows" class="space-y-2"></div><button id="mwSendBatch" type="button" class="w-full bg-amber-700 hover:bg-amber-600 py-2.5 rounded-lg text-sm font-bold">Start Maintenance Movements</button></section><section class="border border-slate-800 rounded-2xl p-4 space-y-3"><div><div class="font-bold">Maintenance Job / Result / Return</div><div class="text-[10px] text-slate-500">Alias is shown first, with IMS Item ID and Item Name. Pass returns as Available. Fail may remain Maintenance or return as Not Available.</div></div><label class="block text-xs text-slate-400">Alias · IMS Item ID · Item Name<select id="mwItem" class="${cls} mt-1"><option value="">-- Select Item in Maintenance --</option>${items.map(i=>`<option value="${i.id}">${esc(label(i))} · ${maintBalances(i).reduce((a,b)=>a+b.qty,0)} ${esc(i.unit||'')}</option>`).join('')}</select></label><div id="mwBody"></div></section></div>`;}
+function openHtml(){return `<div class="border border-slate-800 rounded-xl p-3 space-y-3"><div class="font-semibold text-sm">Open Maintenance Job</div><div class="grid sm:grid-cols-2 gap-2"><label class="text-xs text-slate-400">Maintenance Type<select id="mwType" class="${cls} mt-1">${TYPES.map(x=>`<option>${esc(x)}</option>`).join('')}</select></label><label class="text-xs text-slate-400">Start Date<input id="mwStart" type="date" value="${today()}" class="${cls} mt-1"></label></div><label class="text-xs text-slate-400">Provider<input id="mwProvider" class="${cls} mt-1"></label><label class="text-xs text-slate-400">Tasks<textarea id="mwTasks" rows="4" class="${cls} mt-1">${DEFAULT_TASKS.Inspection.join('\n')}</textarea></label><label class="text-xs text-slate-400">Remark<textarea id="mwRemark" rows="2" class="${cls} mt-1"></textarea></label><button id="mwOpen" type="button" class="w-full bg-amber-600 py-2.5 rounded-lg text-sm font-bold">Open Maintenance</button></div>`;}
+function taskRows(job,readonly=false){return (job.tasks||[]).map((t,n)=>`<div class="grid grid-cols-[auto_minmax(0,1fr)_145px] gap-2 items-center border border-slate-800 rounded-lg p-2"><input class="mwTaskDone" data-i="${n}" type="checkbox" ${t.done?'checked':''} ${readonly?'disabled':''}><div class="text-xs">${esc(t.name)}</div><input class="mwTaskDate ${cls}" data-i="${n}" type="date" value="${esc(t.date||'')}" ${readonly?'disabled':''}></div>`).join('');}
+function resultHtml(job){if(!job.maintenanceResult)return `<div class="border-t border-slate-800 pt-3 space-y-2"><textarea id="mwResultRemark" rows="2" class="${cls}" placeholder="Result detail; failure reason required for Fail"></textarea><div class="grid grid-cols-2 gap-2"><button id="mwPass" type="button" class="bg-emerald-700 py-2 rounded-lg text-xs font-bold">Pass</button><button id="mwFail" type="button" class="bg-red-700 py-2 rounded-lg text-xs font-bold">Fail</button></div></div>`;return `<div class="border-t border-slate-800 pt-3"><div class="font-bold ${job.maintenanceResult==='Pass'?'text-emerald-400':'text-red-400'}">${esc(job.maintenanceResult)}</div><div class="text-xs text-slate-500">${esc(job.resultRemark||'')}</div></div>`;}
+function releaseHtml(item,job){if(!job.maintenanceResult)return'';return `<div class="border-t border-slate-800 pt-3 space-y-2">${job.maintenanceResult==='Fail'?`<button id="mwKeepMaintenance" type="button" class="w-full bg-amber-700 py-2 rounded-lg text-xs font-bold">Keep Under Maintenance</button>`:''}<div class="grid sm:grid-cols-2 gap-2"><label class="text-xs text-slate-400">Maintenance Source<select id="mwReleaseSource" class="${cls} mt-1">${maintBalances(item).map((b,n)=>`<option value="${n}">${esc(b.locationName)} · ${b.qty} ${esc(item.unit||'')}</option>`).join('')}</select></label><label class="text-xs text-slate-400">Return Warehouse<select id="mwWarehouse" class="${cls} mt-1"><option value="">-- Warehouse --</option>${warehouses().map(w=>`<option value="${w.id}" data-name="${esc(w.value)}">${esc(w.value)}</option>`).join('')}</select></label></div><label class="text-xs text-slate-400">Quantity<input id="mwReleaseQty" type="number" min="0.0001" step="any" value="${item.trackingType==='serialized'?1:(maintBalances(item)[0]?.qty||1)}" ${item.trackingType==='serialized'?'readonly':''} class="${cls} mt-1"></label><label class="text-xs text-slate-400">Remark<input id="mwReleaseRemark" class="${cls} mt-1"></label><button id="mwRelease" type="button" class="w-full bg-cyan-700 py-2.5 rounded-lg text-sm font-bold">${job.maintenanceResult==='Pass'?'Return — Available':'Return — Not Available'}</button></div>`;}
+function jobHtml(item,job){const complete=job.eventStatus==='Completed';return `<div class="border border-slate-800 rounded-xl p-3 space-y-3"><div><div class="font-semibold">${esc(label(item))}</div><div class="text-xs text-slate-500">${esc(job.eventType||'Maintenance')} · ${esc(job.provider||'')}</div></div><div class="space-y-2">${taskRows(job,complete)}</div>${complete?`${resultHtml(job)}${releaseHtml(item,job)}`:`<div class="flex justify-end gap-2"><button id="mwSaveProgress" type="button" class="bg-slate-700 px-4 py-2 rounded-lg text-xs">Save Progress</button><button id="mwComplete" type="button" class="bg-emerald-700 px-4 py-2 rounded-lg text-xs">Complete</button></div><input id="mwCompleteDate" type="date" value="${today()}" class="${cls}">`}</div>`;}
+function collectTasks(job){return (job.tasks||[]).map((t,n)=>({name:t.name,done:document.querySelector(`.mwTaskDone[data-i="${n}"]`)?.checked||false,date:document.querySelector(`.mwTaskDate[data-i="${n}"]`)?.value||''}));}
+async function renderSelected(){const item=inventory.find(x=>x.id===byId('mwItem')?.value),body=byId('mwBody');if(!body)return;if(!item){body.innerHTML='';return;}const job=latestJob(item.id);body.innerHTML=job?jobHtml(item,job):openHtml();if(!job){byId('mwType').onchange=()=>byId('mwTasks').value=(DEFAULT_TASKS[byId('mwType').value]||DEFAULT_TASKS.Other).join('\n');byId('mwOpen').onclick=()=>openJob(item);}else if(job.eventStatus==='Completed'){if(!job.maintenanceResult){byId('mwPass').onclick=()=>setResult(item,job,'Pass');byId('mwFail').onclick=()=>setResult(item,job,'Fail');}else{byId('mwRelease').onclick=()=>release(item,job);if(job.maintenanceResult==='Fail')byId('mwKeepMaintenance').onclick=()=>keepMaintenance(item,job);}}else{byId('mwSaveProgress').onclick=()=>saveProgress(item,job,false);byId('mwComplete').onclick=()=>saveProgress(item,job,true);}}
+async function openJob(item){if(busy)return;const tasks=byId('mwTasks').value.split('\n').map(x=>x.trim()).filter(Boolean);if(!tasks.length)return alert('Add at least one task.');busy=true;try{const ref=doc(collection(db,'maintenance_events')),rec={eventId:ref.id,itemId:item.id,itemCode:item.itemCode,itemAliasSnapshot:item.alias||'',itemNameSnapshot:item.name,eventType:byId('mwType').value,eventStatus:'Open',maintenanceFrom:byId('mwStart').value,provider:byId('mwProvider').value.trim(),remark:byId('mwRemark').value.trim(),tasks:tasks.map(name=>({name,done:false,date:''})),createdBy:me.email,createdByRole:me.role,createdAt:now()};await setDoc(ref,rec);await log(baseLog(item,{activity:'MAINTENANCE_OPEN',activityLabel:'Open Maintenance',status:'Maintenance',fromType:'maintenance',fromName:maintBalances(item)[0]?.locationName||'Maintenance',toType:'maintenance',toName:maintBalances(item)[0]?.locationName||'Maintenance',qty:maintBalances(item).reduce((a,b)=>a+b.qty,0),maintenanceEventId:ref.id,remark:rec.remark}));await audit('OPEN_MAINTENANCE',item,null,{type:rec.eventType,tasks:rec.tasks.map(x=>x.name)},rec.remark,ref.id);await load();await remountBody(item.id);}catch(err){alert('Open maintenance failed: '+(err?.message||err));}finally{busy=false;}}
+async function saveProgress(item,job,complete){if(busy)return;const tasks=collectTasks(job);if(complete&&!tasks.every(t=>t.done&&t.date))return alert('Complete every task with a date.');busy=true;try{const patch={tasks,eventStatus:complete?'Completed':'Open',updatedAt:now(),updatedBy:me.email};if(complete)Object.assign(patch,{completedDate:byId('mwCompleteDate').value,completedAt:now(),completedBy:me.email});await updateDoc(doc(db,'maintenance_events',job.id),patch);await log(baseLog(item,{activity:complete?'MAINTENANCE_COMPLETE':'MAINTENANCE_PROGRESS',activityLabel:complete?'Complete Maintenance':'Maintenance Progress',status:'Maintenance',fromType:'maintenance',fromName:maintBalances(item)[0]?.locationName||'Maintenance',toType:'maintenance',toName:maintBalances(item)[0]?.locationName||'Maintenance',qty:maintBalances(item).reduce((a,b)=>a+b.qty,0),maintenanceEventId:job.id,remark:complete?'Maintenance completed':'Progress updated'}));await load();await remountBody(item.id);}catch(err){alert('Maintenance update failed: '+(err?.message||err));}finally{busy=false;}}
+async function setResult(item,job,result){if(busy)return;const remark=byId('mwResultRemark').value.trim();if(result==='Fail'&&!remark)return alert('Enter failure reason.');busy=true;try{await updateDoc(doc(db,'maintenance_events',job.id),{maintenanceResult:result,resultRemark:remark,resultAt:now(),resultBy:me.email,updatedAt:now(),updatedBy:me.email});await log(baseLog(item,{activity:'MAINTENANCE_RESULT',activityLabel:`Maintenance Result — ${result}`,status:'Maintenance',fromType:'maintenance',fromName:job.provider||'Maintenance',toType:'maintenance',toName:job.provider||'Maintenance',qty:maintBalances(item).reduce((a,b)=>a+b.qty,0),maintenanceEventId:job.id,maintenanceResult:result,remark}));await load();await remountBody(item.id);}catch(err){alert('Maintenance result failed: '+(err?.message||err));}finally{busy=false;}}
+async function keepMaintenance(item,job){if(busy)return;busy=true;try{await updateDoc(doc(db,'maintenance_events',job.id),{failedDisposition:'Keep in Maintenance',failedDispositionAt:now(),failedDispositionBy:me.email,updatedAt:now(),updatedBy:me.email});await log(baseLog(item,{activity:'MAINTENANCE_FAIL_KEEP',activityLabel:'Failed Maintenance — Keep Under Maintenance',status:'Maintenance',fromType:'maintenance',fromName:job.provider||'Maintenance',toType:'maintenance',toName:job.provider||'Maintenance',qty:maintBalances(item).reduce((a,b)=>a+b.qty,0),maintenanceEventId:job.id,maintenanceResult:'Fail',remark:job.resultRemark||''}));await load();await remountBody(item.id);}finally{busy=false;}}
+async function release(item,job){if(busy)return;const src=maintBalances(item)[Number(byId('mwReleaseSource').value)],qty=Number(byId('mwReleaseQty').value||0),wh=byId('mwWarehouse'),toId=wh.value,toName=wh.selectedOptions?.[0]?.dataset?.name||'',remark=byId('mwReleaseRemark').value.trim(),finalStatus=job.maintenanceResult==='Pass'?'Available':'Not Available';if(!src||qty<=0||qty>src.qty||!toId)return alert('Select valid source, quantity and warehouse.');busy=true;try{const mr=doc(collection(db,'movements')),createdAt=now();await runTransaction(db,async tx=>{const ref=doc(db,'inventory',item.id),s=await tx.get(ref);if(!s.exists())throw new Error('Item missing.');const bal=balances(s.data()),source=bal.find(b=>b.locationType==='maintenance'&&b.status==='Maintenance'&&b.locationName===src.locationName&&b.locationId===src.locationId);if(!source||source.qty<qty)throw new Error('Maintenance stock changed.');source.qty-=qty;bal.push({qty,locationType:'transit',locationId:mr.id,locationName:`Transit to ${toName}`,status:'In Transit'});const clean=bal.filter(b=>b.qty>0),sum=summary(clean);tx.update(ref,{stockBalances:clean,status:sum.status,currentLocation:sum.location,lastEditedBy:me.email,lastEditedAt:createdAt});tx.set(mr,{movementId:mr.id,itemId:item.id,itemCode:item.itemCode,itemAlias:item.alias||'',itemNameSnapshot:item.name,action:'RETURN_MAINTENANCE',actionLabel:'Return from Maintenance',fromType:'maintenance',fromId:src.locationId||'',fromName:src.locationName,toType:'warehouse',toId,toName,toStatus:finalStatus,qty,unit:item.unit||'',mode:'Maintenance Release',remark,status:'in_transit',maintenanceResult:job.maintenanceResult,maintenanceEventId:job.id,createdAt,createdBy:me.email,createdByRole:me.role});});await updateDoc(doc(db,'maintenance_events',job.id),{failedDisposition:job.maintenanceResult==='Fail'?'Return to Warehouse — Not Available':'Return to Warehouse — Available',releaseMovementId:mr.id,updatedAt:createdAt,updatedBy:me.email});await log(baseLog(item,{activity:'RETURN_MAINTENANCE',activityLabel:'Return from Maintenance',status:'In Transit',fromType:'maintenance',fromName:src.locationName,toType:'warehouse',toName,qty,movementId:mr.id,maintenanceEventId:job.id,maintenanceResult:job.maintenanceResult,toStatus:finalStatus,remark}));alert(`Return started. Arrival status: ${finalStatus}.`);location.reload();}catch(err){alert('Maintenance return failed: '+(err?.message||err));}finally{busy=false;}}
+async function remountBody(id){const sel=byId('mwItem');if(sel){sel.value=id;await renderSelected();}}
+async function mount(){const core=byId('maintenanceForm');if(!core||core===lastMount||byId('maintenanceWorkflowForm'))return;lastMount=core;try{await load();}catch(err){console.warn('Maintenance workflow unavailable:',err);return;}const w=document.createElement('div');w.innerHTML=shellHtml();core.replaceWith(w.firstElementChild);byId('mwAddSendRow').onclick=addSendRow;byId('mwSendBatch').onclick=sendBatch;byId('mwItem').onchange=renderSelected;addSendRow();}
+let timer;new MutationObserver(()=>{clearTimeout(timer);timer=setTimeout(mount,35);}).observe(document.body,{childList:true,subtree:true});mount();
