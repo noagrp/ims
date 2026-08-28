@@ -1,0 +1,6 @@
+import { db } from './firebase-config.js';
+import { collection, getDocs } from 'https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js';
+let items=[];async function load(){const s=await getDocs(collection(db,'inventory'));items=s.docs.map(d=>({id:d.id,...d.data()}));}
+function balances(i){return (Array.isArray(i.stockBalances)?i.stockBalances:[]).filter(b=>Number(b.qty||0)>0);}
+function decorate(){document.querySelectorAll('.openDirItem').forEach(btn=>{const i=items.find(x=>x.id===btn.dataset.id),tr=btn.closest('tr');if(!i||!tr)return;const bs=balances(i),statuses=[...new Set(bs.map(b=>b.status||''))].filter(Boolean);const notAvailable=bs.filter(b=>b.status==='Not Available').reduce((a,b)=>a+Number(b.qty||0),0);const available=bs.filter(b=>b.locationType==='warehouse'&&(b.status==='Available'||b.status==='At Warehouse')).reduce((a,b)=>a+Number(b.qty||0),0);const cells=tr.querySelectorAll('td');if(cells.length>=11){cells[8].textContent=String(available);cells[9].textContent=statuses.join(' / ')||i.status||'';if(notAvailable>0)cells[9].classList.add('text-red-400','font-semibold');}});}
+let t;new MutationObserver(()=>{clearTimeout(t);t=setTimeout(decorate,25);}).observe(document.body,{childList:true,subtree:true});load().then(decorate).catch(()=>{});
