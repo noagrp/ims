@@ -1,5 +1,4 @@
 rules_version = '2';
-
 service cloud.firestore {
   match /databases/{database}/documents {
     function isAuthenticated() { return request.auth != null; }
@@ -11,129 +10,75 @@ service cloud.firestore {
     function isManager() { return hasRole('manager'); }
     function isSuperAdmin() { return hasRole('superadmin'); }
     function managerOrSuper() { return isManager() || isSuperAdmin(); }
-    function sameCreator() {
-      return request.resource.data.createdBy == resource.data.createdBy &&
-             request.resource.data.createdAt == resource.data.createdAt;
-    }
+    function sameCreator() { return request.resource.data.createdBy == resource.data.createdBy && request.resource.data.createdAt == resource.data.createdAt; }
 
     match /users/{userId} {
       allow read: if (isAuthenticated() && userId == request.auth.uid) || isSuperAdmin() || (isManager() && resource.data.role == 'admin');
-      allow create: if
-        (isSuperAdmin() && request.resource.data.uid == userId && request.resource.data.role in ['admin','manager','superadmin'] && request.resource.data.status == 'active') ||
-        (isManager() && request.resource.data.uid == userId && request.resource.data.role == 'admin' && request.resource.data.status == 'active');
-      allow update: if
-        (isManager() && resource.data.role == 'admin' && request.resource.data.role == 'admin' && request.resource.data.email == resource.data.email && request.resource.data.uid == resource.data.uid && request.resource.data.status in ['active','inactive'] && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])) ||
-        (isSuperAdmin() && request.resource.data.email == resource.data.email && request.resource.data.uid == resource.data.uid && request.resource.data.role in ['admin','manager','superadmin'] && request.resource.data.status in ['active','inactive'] && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['role','status']));
+      allow create: if (isSuperAdmin() && request.resource.data.uid == userId && request.resource.data.role in ['admin','manager','superadmin'] && request.resource.data.status == 'active') || (isManager() && request.resource.data.uid == userId && request.resource.data.role == 'admin' && request.resource.data.status == 'active');
+      allow update: if (isManager() && resource.data.role == 'admin' && request.resource.data.role == 'admin' && request.resource.data.email == resource.data.email && request.resource.data.uid == resource.data.uid && request.resource.data.status in ['active','inactive'] && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])) || (isSuperAdmin() && request.resource.data.email == resource.data.email && request.resource.data.uid == resource.data.uid && request.resource.data.role in ['admin','manager','superadmin'] && request.resource.data.status in ['active','inactive'] && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['role','status']));
       allow delete: if false;
     }
 
     match /inventory/{itemId} {
       allow read: if isActiveUser();
-      allow create: if isSuperAdmin() || (isActiveUser() && request.resource.data.createdBy == userData().email);
+      allow create: if isSuperAdmin() || (isActiveUser() && request.resource.data.createdBy == userData().email && request.resource.data.itemCode is string && request.resource.data.itemCode.size() > 0);
       allow update: if isSuperAdmin() ||
         (isAdmin() && request.resource.data.itemCode == resource.data.itemCode && request.resource.data.name == resource.data.name && request.resource.data.category == resource.data.category && (!resource.data.keys().hasAll(['createdBy','createdAt']) || sameCreator()) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','currentLocation','stockBalances','remark','brandId','brand','modelId','model','gradeId','grade','specificationId','specification','lastEditedBy','lastEditedAt']) && request.resource.data.lastEditedBy == userData().email) ||
-        (managerOrSuper() && request.resource.data.itemCode == resource.data.itemCode && (!resource.data.keys().hasAll(['createdBy','createdAt']) || sameCreator()) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name','category','brandId','brand','modelId','model','gradeId','grade','specificationId','specification','status','currentLocation','stockBalances','remark','supplierId','supplierName','lastEditedBy','lastEditedAt']) && request.resource.data.lastEditedBy == userData().email);
-      // TEMPORARY testing reset. Keep until the next full test is completed.
-      allow delete: if isSuperAdmin();
+        (managerOrSuper() && request.resource.data.itemCode == resource.data.itemCode && (!resource.data.keys().hasAll(['createdBy','createdAt']) || sameCreator()) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name','alias','category','brandId','brand','modelId','model','gradeId','grade','specificationId','specification','status','currentLocation','stockBalances','remark','supplierId','supplierName','lastEditedBy','lastEditedAt']) && request.resource.data.lastEditedBy == userData().email);
+      allow delete: if false;
+    }
+
+    match /registration_batches/{batchId} {
+      allow read: if isActiveUser();
+      allow create: if isActiveUser() && request.resource.data.createdBy == userData().email && request.resource.data.createdByRole == userData().role && request.resource.data.quantity is number && request.resource.data.quantity > 0;
+      allow update, delete: if false;
     }
 
     match /operational_logs/{logId} {
       allow read: if isActiveUser();
       allow create: if isSuperAdmin() || (isActiveUser() && request.resource.data.performedBy == userData().email && request.resource.data.performedByRole == userData().role && request.resource.data.date is string);
-      allow update: if isSuperAdmin();
-      // TEMPORARY testing reset.
-      allow delete: if isSuperAdmin();
+      allow update, delete: if false;
     }
 
     match /movements/{movementId} {
       allow read: if isActiveUser();
-      allow create: if isSuperAdmin() ||
-        (isActiveUser() && request.resource.data.createdBy == userData().email && request.resource.data.createdByRole == userData().role && request.resource.data.status == 'in_transit') ||
-        (isActiveUser() && request.resource.data.createdBy == userData().email && request.resource.data.createdByRole == userData().role && request.resource.data.completedBy == userData().email && request.resource.data.status == 'completed' && request.resource.data.qty is number && request.resource.data.qty > 0 && request.resource.data.createdAt is string && request.resource.data.completedAt is string && request.resource.data.action == 'CANCEL_INVOICE' && request.resource.data.invoiceStatus == 'Cancelled' && request.resource.data.reversesMovementId is string);
-
+      allow create: if isSuperAdmin() || (isActiveUser() && request.resource.data.createdBy == userData().email && request.resource.data.createdByRole == userData().role && request.resource.data.status == 'in_transit') || (isActiveUser() && request.resource.data.createdBy == userData().email && request.resource.data.createdByRole == userData().role && request.resource.data.completedBy == userData().email && request.resource.data.status == 'completed' && request.resource.data.qty is number && request.resource.data.qty > 0 && request.resource.data.createdAt is string && request.resource.data.completedAt is string && request.resource.data.action == 'CANCEL_INVOICE' && request.resource.data.invoiceStatus == 'Cancelled' && request.resource.data.reversesMovementId is string);
       allow update: if isSuperAdmin() ||
+        (isActiveUser() && resource.data.status == 'in_transit' && request.resource.data.status == 'in_transit' && resource.data.action == 'RETURN_MAINTENANCE' && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['toStatus','maintenanceResult']) && request.resource.data.toStatus in ['Available','Not Available'] && request.resource.data.maintenanceResult in ['Pass','Fail']) ||
         (isActiveUser() && resource.data.status == 'in_transit' && request.resource.data.status == 'arrived' && request.resource.data.arrivedBy == userData().email && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','arrivedAt','arrivedBy'])) ||
         (isActiveUser() && resource.data.status in ['arrived','completed'] && request.resource.data.status == 'cancelled' && request.resource.data.cancelledBy == userData().email && request.resource.data.invoiceStatus == 'Cancelled' && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','invoiceStatus','cancelledAt','cancelledBy','cancelReason','reversedByMovementId']));
-
-      // TEMPORARY testing reset.
-      allow delete: if isSuperAdmin();
+      allow delete: if false;
     }
 
     match /maintenance_events/{eventId} {
       allow read: if isActiveUser();
       allow create: if isSuperAdmin() || (isActiveUser() && request.resource.data.createdBy == userData().email && request.resource.data.createdByRole == userData().role && request.resource.data.eventType in ['Inspection','Preventive Maintenance','Repair','Calibration','Certification / Recertification','Testing','Service','Other']);
-      allow update: if isSuperAdmin() || (isActiveUser() && request.resource.data.itemId == resource.data.itemId && request.resource.data.eventId == resource.data.eventId && request.resource.data.createdBy == resource.data.createdBy && request.resource.data.createdByRole == resource.data.createdByRole && request.resource.data.createdAt == resource.data.createdAt && request.resource.data.eventStatus in ['Open','Completed'] && request.resource.data.updatedBy == userData().email && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['tasks','eventStatus','updatedAt','updatedBy','completedDate','completedAt','completedBy']));
-      // TEMPORARY testing reset.
-      allow delete: if isSuperAdmin();
+      allow update: if isSuperAdmin() || (isActiveUser() && request.resource.data.itemId == resource.data.itemId && request.resource.data.eventId == resource.data.eventId && request.resource.data.createdBy == resource.data.createdBy && request.resource.data.createdByRole == resource.data.createdByRole && request.resource.data.createdAt == resource.data.createdAt && request.resource.data.updatedBy == userData().email && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['tasks','eventStatus','updatedAt','updatedBy','completedDate','completedAt','completedBy','maintenanceResult','resultRemark','resultAt','resultBy','failedDisposition','failedDispositionAt','failedDispositionBy']) && (!request.resource.data.keys().hasAll(['maintenanceResult']) || request.resource.data.maintenanceResult in ['Pass','Fail']));
+      allow delete: if false;
     }
 
     match /document_refs/{documentId} {
       allow read: if isActiveUser();
       allow create: if isSuperAdmin() || (isActiveUser() && request.resource.data.createdBy == userData().email && request.resource.data.createdByRole == userData().role && request.resource.data.status == 'current' && request.resource.data.refNumber is string && request.resource.data.docType is string);
-      allow update: if isSuperAdmin() || (managerOrSuper() && (
-        (resource.data.status == 'current' && request.resource.data.status == 'superseded' && request.resource.data.refNumber == resource.data.refNumber && request.resource.data.docType == resource.data.docType && request.resource.data.itemId == resource.data.itemId && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','supersededBy','supersededAt','supersededByUser','supersedeReason'])) ||
-        (resource.data.status == 'current' && request.resource.data.status == 'current' && request.resource.data.refNumber == resource.data.refNumber && request.resource.data.docType == resource.data.docType && request.resource.data.itemId == resource.data.itemId && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['replaces','correctionReason']))
-      ));
-      // TEMPORARY testing reset.
-      allow delete: if isSuperAdmin();
+      allow update: if isSuperAdmin() || (managerOrSuper() && ((resource.data.status == 'current' && request.resource.data.status == 'superseded' && request.resource.data.refNumber == resource.data.refNumber && request.resource.data.docType == resource.data.docType && request.resource.data.itemId == resource.data.itemId && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','supersededBy','supersededAt','supersededByUser','supersedeReason'])) || (resource.data.status == 'current' && request.resource.data.status == 'current' && request.resource.data.refNumber == resource.data.refNumber && request.resource.data.docType == resource.data.docType && request.resource.data.itemId == resource.data.itemId && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['replaces','correctionReason']))));
+      allow delete: if false;
     }
 
     match /supplier_profiles/{profileId} {
-      allow read: if isActiveUser();
-      allow create: if isSuperAdmin() || (isActiveUser() && request.resource.data.createdBy == userData().email && request.resource.data.status == 'active');
-      allow update: if isSuperAdmin() || (managerOrSuper() && (!resource.data.keys().hasAll(['createdBy','createdAt']) || sameCreator()) && request.resource.data.status in ['active','inactive'] && request.resource.data.updatedBy == userData().email);
-      allow delete: if false;
+      allow read: if isActiveUser(); allow create: if isSuperAdmin() || (isActiveUser() && request.resource.data.createdBy == userData().email && request.resource.data.status == 'active'); allow update: if isSuperAdmin() || (managerOrSuper() && (!resource.data.keys().hasAll(['createdBy','createdAt']) || sameCreator()) && request.resource.data.status in ['active','inactive'] && request.resource.data.updatedBy == userData().email); allow delete: if false;
     }
-
     match /client_profiles/{profileId} {
-      allow read: if isActiveUser();
-      allow create: if isSuperAdmin() || (isActiveUser() && request.resource.data.createdBy == userData().email && request.resource.data.status == 'active');
-      allow update: if isSuperAdmin() || (managerOrSuper() && (!resource.data.keys().hasAll(['createdBy','createdAt']) || sameCreator()) && request.resource.data.status in ['active','inactive'] && request.resource.data.updatedBy == userData().email);
-      allow delete: if false;
+      allow read: if isActiveUser(); allow create: if isSuperAdmin() || (isActiveUser() && request.resource.data.createdBy == userData().email && request.resource.data.status == 'active'); allow update: if isSuperAdmin() || (managerOrSuper() && (!resource.data.keys().hasAll(['createdBy','createdAt']) || sameCreator()) && request.resource.data.status in ['active','inactive'] && request.resource.data.updatedBy == userData().email); allow delete: if false;
     }
-
     match /settings/{settingId} {
-      allow read: if isActiveUser();
-      allow create: if isSuperAdmin() || (managerOrSuper() && request.resource.data.type in ['warehouse','category','unit','brand','model','grade','specification'] && request.resource.data.status == 'active' && request.resource.data.createdBy == userData().email && (!(request.resource.data.type in ['brand','model','grade','specification']) || (request.resource.data.category is string && request.resource.data.category.size() > 0)));
-      allow update: if isSuperAdmin() || (managerOrSuper() && request.resource.data.type == resource.data.type && request.resource.data.value == resource.data.value && (!resource.data.keys().hasAll(['category']) || request.resource.data.category == resource.data.category) && (!resource.data.keys().hasAll(['brand']) || request.resource.data.brand == resource.data.brand) && (!resource.data.keys().hasAll(['model']) || request.resource.data.model == resource.data.model) && (!resource.data.keys().hasAll(['grade']) || request.resource.data.grade == resource.data.grade) && (!resource.data.keys().hasAll(['normalizedValue']) || request.resource.data.normalizedValue == resource.data.normalizedValue) && request.resource.data.status in ['active','inactive'] && request.resource.data.updatedBy == userData().email && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','updatedAt','updatedBy']));
-      allow delete: if false;
+      allow read: if isActiveUser(); allow create: if isSuperAdmin() || (managerOrSuper() && request.resource.data.type in ['warehouse','category','unit','brand','model','grade','specification'] && request.resource.data.status == 'active' && request.resource.data.createdBy == userData().email && (!(request.resource.data.type in ['brand','model','grade','specification']) || (request.resource.data.category is string && request.resource.data.category.size() > 0))); allow update: if isSuperAdmin() || (managerOrSuper() && request.resource.data.type == resource.data.type && request.resource.data.value == resource.data.value && (!resource.data.keys().hasAll(['category']) || request.resource.data.category == resource.data.category) && (!resource.data.keys().hasAll(['brand']) || request.resource.data.brand == resource.data.brand) && (!resource.data.keys().hasAll(['model']) || request.resource.data.model == resource.data.model) && (!resource.data.keys().hasAll(['grade']) || request.resource.data.grade == resource.data.grade) && (!resource.data.keys().hasAll(['normalizedValue']) || request.resource.data.normalizedValue == resource.data.normalizedValue) && request.resource.data.status in ['active','inactive'] && request.resource.data.updatedBy == userData().email && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','updatedAt','updatedBy'])); allow delete: if false;
     }
-
     match /audit_traces/{traceId} {
-      allow create: if isSuperAdmin() || (isActiveUser() && request.resource.data.performedBy == userData().email && request.resource.data.performedByRole == userData().role);
-      allow read: if isSuperAdmin() || (isManager() && resource.data.performedByRole != 'superadmin' && (resource.data.performedByRole == 'admin' || resource.data.performedBy == userData().email)) || (isAdmin() && resource.data.performedBy == userData().email);
-      allow update: if isSuperAdmin();
-      // TEMPORARY testing reset.
-      allow delete: if isSuperAdmin();
+      allow create: if isSuperAdmin() || (isActiveUser() && request.resource.data.performedBy == userData().email && request.resource.data.performedByRole == userData().role); allow read: if isSuperAdmin() || (isManager() && resource.data.performedByRole != 'superadmin' && (resource.data.performedByRole == 'admin' || resource.data.performedBy == userData().email)) || (isAdmin() && resource.data.performedBy == userData().email); allow update, delete: if false;
     }
-
-    match /client_docs/{docId} {
-      allow read: if isActiveUser();
-      allow create: if isSuperAdmin() || (isActiveUser() && (request.resource.data.uploadedBy == userData().email || request.resource.data.recordedBy == userData().email));
-      allow update: if isSuperAdmin();
-      // TEMPORARY testing reset.
-      allow delete: if isSuperAdmin();
-    }
-
-    match /supplier_docs/{docId} {
-      allow read: if isActiveUser();
-      allow create: if isSuperAdmin() || (isActiveUser() && (request.resource.data.uploadedBy == userData().email || request.resource.data.recordedBy == userData().email));
-      allow update: if isSuperAdmin();
-      // TEMPORARY testing reset.
-      allow delete: if isSuperAdmin();
-    }
-
-    match /attachments/{attachmentId} {
-      allow read: if isActiveUser();
-      allow create, update, delete: if false;
-      match /chunks/{chunkId} {
-        allow read: if isActiveUser();
-        allow create, update, delete: if false;
-      }
-    }
-
-    match /{document=**} {
-      allow read, write: if false;
-    }
+    match /client_docs/{docId} { allow read: if isActiveUser(); allow create: if isSuperAdmin() || (isActiveUser() && (request.resource.data.uploadedBy == userData().email || request.resource.data.recordedBy == userData().email)); allow update, delete: if false; }
+    match /supplier_docs/{docId} { allow read: if isActiveUser(); allow create: if isSuperAdmin() || (isActiveUser() && (request.resource.data.uploadedBy == userData().email || request.resource.data.recordedBy == userData().email)); allow update, delete: if false; }
+    match /attachments/{attachmentId} { allow read: if isActiveUser(); allow create, update, delete: if false; match /chunks/{chunkId} { allow read: if isActiveUser(); allow create, update, delete: if false; } }
+    match /{document=**} { allow read, write: if false; }
   }
 }
