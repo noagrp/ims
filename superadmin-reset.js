@@ -15,7 +15,6 @@ const RESET_COLLECTIONS=[
   'document_refs',
   'operational_logs',
   'audit_traces',
-  'attachments',
   'supplier_profiles',
   'client_profiles',
   'settings'
@@ -31,42 +30,12 @@ async function activeSuperadmin(){
   return s.data();
 }
 
-async function attachmentChunkCount(){
-  const parents=await getDocs(collection(db,'attachments'));
-  let count=0;
-  for(const parent of parents.docs){
-    const chunks=await getDocs(collection(db,'attachments',parent.id,'chunks'));
-    count+=chunks.size;
-  }
-  return count;
-}
-
 async function countDocs(name){
   const s=await getDocs(collection(db,name));
   return s.size;
 }
 
-async function deleteAttachmentTree(){
-  const parents=await getDocs(collection(db,'attachments'));
-  let chunksDeleted=0;
-  let attachmentsDeleted=0;
-
-  // Firestore does not cascade-delete subcollections. Delete chunks first.
-  for(const parent of parents.docs){
-    const chunks=await getDocs(collection(db,'attachments',parent.id,'chunks'));
-    for(const chunk of chunks.docs){
-      await deleteDoc(doc(db,'attachments',parent.id,'chunks',chunk.id));
-      chunksDeleted++;
-    }
-    await deleteDoc(doc(db,'attachments',parent.id));
-    attachmentsDeleted++;
-  }
-
-  return {attachmentsDeleted,chunksDeleted};
-}
-
 async function deleteCollection(name){
-  if(name==='attachments')return deleteAttachmentTree();
   const s=await getDocs(collection(db,name));
   let deleted=0;
   for(const d of s.docs){
@@ -94,11 +63,11 @@ function ensureControl(){
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
       <div>
         <h2 class="font-bold text-red-300">Clean Testing Reset</h2>
-        <p class="text-xs text-slate-400 mt-1">Superadmin only. Completely clears IMS test data, including nested attachment chunks, settings, suppliers and clients. Only Firestore user profiles and Firebase Auth accounts are kept.</p>
+        <p class="text-xs text-slate-400 mt-1">Superadmin only. Completely clears current IMS test data, including settings, suppliers and clients. Only Firestore user profiles and Firebase Auth accounts are kept.</p>
       </div>
       <button id="imsResetDataBtn" type="button" class="bg-red-700 hover:bg-red-600 px-4 py-2.5 rounded-lg text-xs font-bold">Clean Reset All Test Data</button>
     </div>
-    <div class="text-[10px] text-slate-500 mt-2">This is a testing-mode reset. No legacy/current business data is intentionally preserved. Firestore does not cascade-delete subcollections, so attachment chunks are explicitly deleted before attachment records.</div>`;
+    <div class="text-[10px] text-slate-500 mt-2">This is a testing-mode reset. No current business test data is intentionally preserved.</div>`;
 
   app.appendChild(box);
   byId('imsResetDataBtn').onclick=resetData;
@@ -115,19 +84,12 @@ async function resetData(){
       total+=counts[name];
     }
 
-    const chunkCount=await attachmentChunkCount();
-    counts['attachments/chunks']=chunkCount;
-    total+=chunkCount;
-
     if(!total){
       alert('There is no IMS test data to delete. User profiles and Firebase Auth accounts remain untouched.');
       return;
     }
 
-    const summary=[
-      ...RESET_COLLECTIONS.map(n=>`${n}: ${counts[n]}`),
-      `attachments/chunks: ${counts['attachments/chunks']}`
-    ].join('\n');
+    const summary=RESET_COLLECTIONS.map(n=>`${n}: ${counts[n]}`).join('\n');
 
     if(!confirm(`CLEAN TESTING RESET\n\nThis will permanently delete ${total} IMS test record(s):\n${summary}\n\nONLY PRESERVED:\n• Firestore users collection\n• Firebase Auth accounts\n\nContinue?`))return;
 
@@ -145,20 +107,10 @@ async function resetData(){
       btn.textContent='Cleaning...';
     }
 
-    const deleted={};
     let deletedTotal=0;
-
-    // Delete operational/history data first, master/config data last.
     for(const name of RESET_COLLECTIONS){
       const result=await deleteCollection(name);
-      if(name==='attachments'){
-        deleted.attachments=result.attachmentsDeleted;
-        deleted['attachments/chunks']=result.chunksDeleted;
-        deletedTotal+=result.attachmentsDeleted+result.chunksDeleted;
-      }else{
-        deleted[name]=result.deleted;
-        deletedTotal+=result.deleted;
-      }
+      deletedTotal+=result.deleted;
     }
 
     alert(`Clean testing reset completed.\nDeleted ${deletedTotal} Firestore record(s).\n\nOnly user profiles and Firebase Auth accounts were preserved.`);
