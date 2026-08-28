@@ -62,7 +62,7 @@ service cloud.firestore {
     match /maintenance_events/{eventId} {
       allow read: if isActiveUser();
       allow create: if isSuperAdmin() || (isActiveUser() && request.resource.data.createdBy == userData().email && request.resource.data.createdByRole == userData().role && request.resource.data.eventType in ['Inspection','Preventive Maintenance','Repair','Calibration','Certification / Recertification','Testing','Service','Other']);
-      allow update: if isSuperAdmin() || (isActiveUser() && resource.data.createdBy == userData().email && request.resource.data.createdBy == resource.data.createdBy && request.resource.data.createdByRole == resource.data.createdByRole && request.resource.data.itemId == resource.data.itemId && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['maintenanceFrom','maintenanceTo']) && request.resource.data.maintenanceFrom is string && request.resource.data.maintenanceTo is string);
+      allow update: if isSuperAdmin() || (isActiveUser() && request.resource.data.itemId == resource.data.itemId && request.resource.data.eventId == resource.data.eventId && request.resource.data.createdBy == resource.data.createdBy && request.resource.data.createdByRole == resource.data.createdByRole && request.resource.data.createdAt == resource.data.createdAt && request.resource.data.eventStatus in ['Open','Completed'] && request.resource.data.updatedBy == userData().email && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['tasks','eventStatus','updatedAt','updatedBy','completedDate','completedAt','completedBy']));
       // TEMPORARY testing reset.
       allow delete: if isSuperAdmin();
     }
