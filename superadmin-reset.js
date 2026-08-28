@@ -2,11 +2,181 @@ import { auth, db } from './firebase-config.js';
 import { collection, deleteDoc, doc, getDoc, getDocs } from 'https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js';
 
 const byId=id=>document.getElementById(id);
-const RESET_COLLECTIONS=['registration_batches','inventory','movements','maintenance_events','client_docs','supplier_docs','document_refs','operational_logs','audit_traces'];
 
-async function activeSuperadmin(){const u=auth.currentUser;if(!u)throw new Error('You must be signed in.');const s=await getDoc(doc(db,'users',u.uid));if(!s.exists()||s.data().status!=='active'||s.data().role!=='superadmin')throw new Error('Active Superadmin account required.');return s.data();}
-async function countDocs(name){const s=await getDocs(collection(db,name));return s.docs.length;}
-async function deleteCollection(name){const s=await getDocs(collection(db,name));let deleted=0;for(const d of s.docs){await deleteDoc(doc(db,name,d.id));deleted++;}return deleted;}
-function ensureControl(){const old=byId('imsTempReset');if(window.IMS_ROLE!=='superadmin'||byId('pageTitle')?.textContent!=='Global Settings'){old?.remove();return;}if(old)return;const app=byId('appContent');if(!app)return;const box=document.createElement('section');box.id='imsTempReset';box.className='bg-red-950/30 border border-red-900 rounded-2xl p-4 sm:p-5 mt-5';box.innerHTML=`<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3"><div><h2 class="font-bold text-red-300">Temporary Testing Reset</h2><p class="text-xs text-slate-400 mt-1">Superadmin only. Deletes operational/testing data. Users are never deleted by this reset. Settings, suppliers and clients are preserved.</p></div><button id="imsResetDataBtn" type="button" class="bg-red-700 hover:bg-red-600 px-4 py-2.5 rounded-lg text-xs font-bold">Delete Test Data</button></div><div class="text-[10px] text-slate-500 mt-2">Deletes: registration batches, inventory, movements, maintenance, document records, logs and audit traces. Superadmin delete authority remains available under the standing Firestore rule.</div>`;app.appendChild(box);byId('imsResetDataBtn').onclick=resetData;}
-async function resetData(){try{await activeSuperadmin();const counts={};let total=0;for(const name of RESET_COLLECTIONS){counts[name]=await countDocs(name);total+=counts[name];}if(!total){alert('There is no operational test data to delete.');return;}const summary=RESET_COLLECTIONS.map(n=>`${n}: ${counts[n]}`).join('\n');if(!confirm(`TEMPORARY TEST RESET\n\nThis will permanently delete ${total} operational record(s):\n${summary}\n\nPreserved by this reset:\n• users\n• Firebase Auth accounts\n• settings\n• suppliers\n• clients\n\nContinue?`))return;const phrase=prompt('Type DELETE TEST DATA to confirm.','');if(phrase!=='DELETE TEST DATA'){alert('Reset cancelled. Confirmation text did not match.');return;}if(!confirm('Final confirmation: permanently delete all listed TEST operational data now?'))return;const btn=byId('imsResetDataBtn');if(btn){btn.disabled=true;btn.textContent='Deleting...';}const deleted={};for(const name of RESET_COLLECTIONS)deleted[name]=await deleteCollection(name);alert(`Test data reset completed.\nDeleted ${Object.values(deleted).reduce((a,b)=>a+b,0)} record(s).\n\nUsers were not deleted by this reset.`);location.reload();}catch(err){console.error('IMS test reset failed:',err);alert('Reset failed: '+(err?.message||err));const btn=byId('imsResetDataBtn');if(btn){btn.disabled=false;btn.textContent='Delete Test Data';}}}
-let t;new MutationObserver(()=>{clearTimeout(t);t=setTimeout(ensureControl,30);}).observe(document.body,{childList:true,subtree:true});ensureControl();
+// Testing-mode reset: keep only user profiles / Firebase Auth so Superadmin
+// does not lock itself out. Everything else in the current IMS data model is test data.
+const RESET_COLLECTIONS=[
+  'registration_batches',
+  'inventory',
+  'movements',
+  'maintenance_events',
+  'client_docs',
+  'supplier_docs',
+  'document_refs',
+  'operational_logs',
+  'audit_traces',
+  'attachments',
+  'supplier_profiles',
+  'client_profiles',
+  'settings'
+];
+
+async function activeSuperadmin(){
+  const u=auth.currentUser;
+  if(!u)throw new Error('You must be signed in.');
+  const s=await getDoc(doc(db,'users',u.uid));
+  if(!s.exists()||s.data().status!=='active'||s.data().role!=='superadmin'){
+    throw new Error('Active Superadmin account required.');
+  }
+  return s.data();
+}
+
+async function attachmentChunkCount(){
+  const parents=await getDocs(collection(db,'attachments'));
+  let count=0;
+  for(const parent of parents.docs){
+    const chunks=await getDocs(collection(db,'attachments',parent.id,'chunks'));
+    count+=chunks.size;
+  }
+  return count;
+}
+
+async function countDocs(name){
+  const s=await getDocs(collection(db,name));
+  return s.size;
+}
+
+async function deleteAttachmentTree(){
+  const parents=await getDocs(collection(db,'attachments'));
+  let chunksDeleted=0;
+  let attachmentsDeleted=0;
+
+  // Firestore does not cascade-delete subcollections. Delete chunks first.
+  for(const parent of parents.docs){
+    const chunks=await getDocs(collection(db,'attachments',parent.id,'chunks'));
+    for(const chunk of chunks.docs){
+      await deleteDoc(doc(db,'attachments',parent.id,'chunks',chunk.id));
+      chunksDeleted++;
+    }
+    await deleteDoc(doc(db,'attachments',parent.id));
+    attachmentsDeleted++;
+  }
+
+  return {attachmentsDeleted,chunksDeleted};
+}
+
+async function deleteCollection(name){
+  if(name==='attachments')return deleteAttachmentTree();
+  const s=await getDocs(collection(db,name));
+  let deleted=0;
+  for(const d of s.docs){
+    await deleteDoc(doc(db,name,d.id));
+    deleted++;
+  }
+  return {deleted};
+}
+
+function ensureControl(){
+  const old=byId('imsTempReset');
+  if(window.IMS_ROLE!=='superadmin'||byId('pageTitle')?.textContent!=='Global Settings'){
+    old?.remove();
+    return;
+  }
+  if(old)return;
+
+  const app=byId('appContent');
+  if(!app)return;
+
+  const box=document.createElement('section');
+  box.id='imsTempReset';
+  box.className='bg-red-950/30 border border-red-900 rounded-2xl p-4 sm:p-5 mt-5';
+  box.innerHTML=`
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div>
+        <h2 class="font-bold text-red-300">Clean Testing Reset</h2>
+        <p class="text-xs text-slate-400 mt-1">Superadmin only. Completely clears IMS test data, including nested attachment chunks, settings, suppliers and clients. Only Firestore user profiles and Firebase Auth accounts are kept.</p>
+      </div>
+      <button id="imsResetDataBtn" type="button" class="bg-red-700 hover:bg-red-600 px-4 py-2.5 rounded-lg text-xs font-bold">Clean Reset All Test Data</button>
+    </div>
+    <div class="text-[10px] text-slate-500 mt-2">This is a testing-mode reset. No legacy/current business data is intentionally preserved. Firestore does not cascade-delete subcollections, so attachment chunks are explicitly deleted before attachment records.</div>`;
+
+  app.appendChild(box);
+  byId('imsResetDataBtn').onclick=resetData;
+}
+
+async function resetData(){
+  try{
+    await activeSuperadmin();
+
+    const counts={};
+    let total=0;
+    for(const name of RESET_COLLECTIONS){
+      counts[name]=await countDocs(name);
+      total+=counts[name];
+    }
+
+    const chunkCount=await attachmentChunkCount();
+    counts['attachments/chunks']=chunkCount;
+    total+=chunkCount;
+
+    if(!total){
+      alert('There is no IMS test data to delete. User profiles and Firebase Auth accounts remain untouched.');
+      return;
+    }
+
+    const summary=[
+      ...RESET_COLLECTIONS.map(n=>`${n}: ${counts[n]}`),
+      `attachments/chunks: ${counts['attachments/chunks']}`
+    ].join('\n');
+
+    if(!confirm(`CLEAN TESTING RESET\n\nThis will permanently delete ${total} IMS test record(s):\n${summary}\n\nONLY PRESERVED:\n• Firestore users collection\n• Firebase Auth accounts\n\nContinue?`))return;
+
+    const phrase=prompt('Type CLEAN RESET to confirm.','');
+    if(phrase!=='CLEAN RESET'){
+      alert('Reset cancelled. Confirmation text did not match.');
+      return;
+    }
+
+    if(!confirm('Final confirmation: permanently clear ALL IMS test data now?'))return;
+
+    const btn=byId('imsResetDataBtn');
+    if(btn){
+      btn.disabled=true;
+      btn.textContent='Cleaning...';
+    }
+
+    const deleted={};
+    let deletedTotal=0;
+
+    // Delete operational/history data first, master/config data last.
+    for(const name of RESET_COLLECTIONS){
+      const result=await deleteCollection(name);
+      if(name==='attachments'){
+        deleted.attachments=result.attachmentsDeleted;
+        deleted['attachments/chunks']=result.chunksDeleted;
+        deletedTotal+=result.attachmentsDeleted+result.chunksDeleted;
+      }else{
+        deleted[name]=result.deleted;
+        deletedTotal+=result.deleted;
+      }
+    }
+
+    alert(`Clean testing reset completed.\nDeleted ${deletedTotal} Firestore record(s).\n\nOnly user profiles and Firebase Auth accounts were preserved.`);
+    location.reload();
+  }catch(err){
+    console.error('IMS clean testing reset failed:',err);
+    alert('Reset failed: '+(err?.message||err));
+    const btn=byId('imsResetDataBtn');
+    if(btn){
+      btn.disabled=false;
+      btn.textContent='Clean Reset All Test Data';
+    }
+  }
+}
+
+let t;
+new MutationObserver(()=>{
+  clearTimeout(t);
+  t=setTimeout(ensureControl,30);
+}).observe(document.body,{childList:true,subtree:true});
+ensureControl();
