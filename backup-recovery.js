@@ -2,7 +2,7 @@ import { auth, db } from './firebase-config.js';
 import { addDoc, collection, doc, getDoc, getDocs, setDoc, Timestamp } from 'https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js';
 
 const byId=id=>document.getElementById(id);
-const BACKUP_VERSION=3;
+const BACKUP_VERSION=4;
 const COLLECTIONS=[
   'registration_batches',
   'inventory',
@@ -13,7 +13,6 @@ const COLLECTIONS=[
   'document_refs',
   'operational_logs',
   'audit_traces',
-  'attachments',
   'supplier_profiles',
   'client_profiles',
   'settings',
@@ -57,16 +56,6 @@ async function readCollection(name){
   return snap.docs.map(d=>({id:d.id,data:encodeValue(d.data())}));
 }
 
-async function readAttachmentChunks(){
-  const parents=await getDocs(collection(db,'attachments'));
-  const result={};
-  for(const parent of parents.docs){
-    const chunks=await getDocs(collection(db,'attachments',parent.id,'chunks'));
-    result[parent.id]={chunks:chunks.docs.map(d=>({id:d.id,data:encodeValue(d.data())}))};
-  }
-  return result;
-}
-
 async function writeAudit(user,action,afterValue,remark='',metadata={}){
   await addDoc(collection(db,'audit_traces'),{
     traceVersion:3,
@@ -99,15 +88,12 @@ async function createBackup(){
       createdBy:user.email,
       restoreMode:'replace matching document IDs; preserve documents absent from backup',
       firebaseAuthIncluded:false,
-      collections:{},
-      subcollections:{attachments:{}}
+      collections:{}
     };
     for(const name of COLLECTIONS)payload.collections[name]=await readCollection(name);
-    payload.subcollections.attachments=await readAttachmentChunks();
     payload.counts=Object.fromEntries(COLLECTIONS.map(name=>[name,payload.collections[name].length]));
-    payload.counts['attachments/chunks']=Object.values(payload.subcollections.attachments).reduce((n,x)=>n+(x.chunks?.length||0),0);
     downloadJson(`IMS_Full_Backup_${payload.createdAt.slice(0,10)}.json`,payload);
-    alert(`Full IMS backup created.\n\nTop-level records: ${Object.values(payload.counts).reduce((a,b)=>a+Number(b||0),0)}\n\nFirestore data and user profiles are included. Firebase Authentication passwords/accounts are not exportable by this browser backup and remain in Firebase Auth.`);
+    alert(`Full IMS backup created.\n\nRecords: ${Object.values(payload.counts).reduce((a,b)=>a+Number(b||0),0)}\n\nFirestore IMS data and user profiles are included. Firebase Authentication passwords/accounts are not exportable by this browser backup and remain in Firebase Auth.`);
   }finally{
     if(btn){btn.disabled=false;btn.textContent='Download Full Backup JSON';}
   }
@@ -116,14 +102,11 @@ async function createBackup(){
 function validateBackup(payload){
   if(!payload||Number(payload.imsBackupVersion)!==BACKUP_VERSION||!payload.collections||typeof payload.collections!=='object')throw new Error(`This is not a valid IMS full backup version ${BACKUP_VERSION} file.`);
   for(const name of COLLECTIONS)if(!Array.isArray(payload.collections[name]))throw new Error(`Backup is incomplete: missing collection ${name}.`);
-  if(!payload.subcollections?.attachments||typeof payload.subcollections.attachments!=='object')throw new Error('Backup is incomplete: attachment chunks are missing.');
 }
 
 function backupSummary(payload){
   const rows=COLLECTIONS.map(name=>`${name}: ${payload.collections[name].length}`);
-  const chunkCount=Object.values(payload.subcollections.attachments||{}).reduce((n,x)=>n+(Array.isArray(x?.chunks)?x.chunks.length:0),0);
-  rows.push(`attachments/chunks: ${chunkCount}`);
-  return {text:rows.join('\n'),total:COLLECTIONS.reduce((n,name)=>n+payload.collections[name].length,0)+chunkCount,chunkCount};
+  return {text:rows.join('\n'),total:COLLECTIONS.reduce((n,name)=>n+payload.collections[name].length,0)};
 }
 
 async function restoreBackup(file){
@@ -149,13 +132,6 @@ async function restoreBackup(file){
         catch(err){errors.push(`${name}/${row.id}: ${err?.message||err}`);}
       }
     }
-    for(const [parentId,entry] of Object.entries(payload.subcollections.attachments||{})){
-      for(const row of Array.isArray(entry?.chunks)?entry.chunks:[]){
-        if(!row?.id||row.data===undefined){errors.push(`attachments/${parentId}/chunks: invalid record`);continue;}
-        try{await setDoc(doc(db,'attachments',parentId,'chunks',row.id),decodeValue(row.data));restored++;}
-        catch(err){errors.push(`attachments/${parentId}/chunks/${row.id}: ${err?.message||err}`);}
-      }
-    }
     await writeAudit(user,'RESTORE_SYSTEM_BACKUP',{restored,skippedCurrentSuperadmin:skipped,errors:errors.length,backupCreatedAt:payload.createdAt||''},'Complete IMS restore from backup JSON.',{fileName:file.name,backupVersion:payload.imsBackupVersion,mode:'replace matching IDs; preserve absent documents',firebaseAuthChanged:false});
     if(errors.length)console.error('IMS restore errors:',errors);
     alert(`IMS restore completed.\n\nRestored: ${restored}\nCurrent Superadmin profile preserved: ${skipped}\nErrors: ${errors.length}\n\nNewer documents that were not in the backup were kept. Firebase Auth accounts were unchanged.`);
@@ -174,7 +150,7 @@ function mount(){
   section.dataset.fullRecovery='1';
   section.innerHTML=`
     <h2 class="font-bold text-sm sm:text-base mb-4">System Backup / Recovery</h2>
-    <p class="text-xs text-slate-400 mb-3">Complete Firestore IMS recovery data. Includes operational records, masters, user profiles, registration batches, attachments and nested attachment chunks.</p>
+    <p class="text-xs text-slate-400 mb-3">Complete current Firestore IMS recovery data. Includes inventory, registration batches, movements, maintenance, documents, operational history, masters and user profiles.</p>
     <div class="flex flex-wrap gap-2">
       <button id="imsFullBackup" type="button" class="bg-cyan-700 hover:bg-cyan-600 px-4 py-2 rounded-lg text-xs font-bold">Download Full Backup JSON</button>
       <button id="imsFullRestore" type="button" class="bg-amber-700 hover:bg-amber-600 px-4 py-2 rounded-lg text-xs font-bold">Restore Full Backup JSON</button>
