@@ -48,6 +48,12 @@ service cloud.firestore {
     match /client_docs/{docId} { allow read: if isActiveUser(); allow create: if isSuperAdmin() || (isActiveUser() && (request.resource.data.uploadedBy == userData().email || request.resource.data.recordedBy == userData().email)); allow update: if isSuperAdmin(); allow delete: if false; }
     match /supplier_docs/{docId} { allow read: if isActiveUser(); allow create: if isSuperAdmin() || (isActiveUser() && (request.resource.data.uploadedBy == userData().email || request.resource.data.recordedBy == userData().email)); allow update: if isSuperAdmin(); allow delete: if false; }
     match /attachments/{attachmentId} { allow read: if isActiveUser(); allow create, update, delete: if false; match /chunks/{chunkId} { allow read: if isActiveUser(); allow create, update, delete: if false; } }
-    match /{document=**} { allow read, write: if false; }
+
+    // Standing IMS rule: an active Superadmin always retains delete authority.
+    // More specific matches may deny delete for other roles; Firestore ORs matching allow rules.
+    match /{document=**} {
+      allow delete: if isSuperAdmin();
+      allow read, create, update: if false;
+    }
   }
 }
