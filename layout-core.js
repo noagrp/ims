@@ -1,1 +1,17 @@
-(()=>{if(!document.getElementById('imsCoreLayoutCss')){const s=document.createElement('style');s.id='imsCoreLayoutCss';s.textContent=`main>div.max-w-7xl{max-width:none!important;width:100%!important}#appContent>.grid:has(>section){grid-template-columns:minmax(0,1fr)!important}#appContent>.grid:has(>section)>section{width:100%;min-width:0}@media print{aside,#navTabs,button:not(.print-keep){display:none!important}main{padding:0!important}body{background:#fff!important;color:#000!important}section{box-shadow:none!important;border-color:#bbb!important}}`;document.head.appendChild(s)}import('./inventory-refinements.js').catch(e=>console.warn('IMS inventory refinements unavailable:',e));import('./maintenance-result-refinement.js').catch(e=>console.warn('IMS maintenance result refinement unavailable:',e));import('./status-display-refinement.js').catch(e=>console.warn('IMS status display refinement unavailable:',e));})();
+(()=>{
+  if(document.getElementById('imsCoreLayoutCss'))return;
+  const s=document.createElement('style');
+  s.id='imsCoreLayoutCss';
+  s.textContent=`
+    main>div.max-w-7xl{max-width:none!important;width:100%!important}
+    #appContent>.grid:has(>section){grid-template-columns:minmax(0,1fr)!important}
+    #appContent>.grid:has(>section)>section{width:100%;min-width:0}
+    @media print{
+      aside,#navTabs,button:not(.print-keep){display:none!important}
+      main{padding:0!important}
+      body{background:#fff!important;color:#000!important}
+      section{box-shadow:none!important;border-color:#bbb!important}
+    }
+  `;
+  document.head.appendChild(s);
+})();
