@@ -31,9 +31,9 @@ service cloud.firestore {
       allow read: if isActiveUser();
       allow create: if isSuperAdmin() || (isActiveUser() && request.resource.data.createdBy == userData().email);
       allow update: if isSuperAdmin() ||
-        (isAdmin() && request.resource.data.itemCode == resource.data.itemCode && request.resource.data.name == resource.data.name && request.resource.data.category == resource.data.category && (!resource.data.keys().hasAll(['createdBy','createdAt']) || sameCreator()) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','currentLocation','stockBalances','remark','lifecycleHistory','brandId','brand','modelId','model','gradeId','grade','specificationId','specification','lastEditedBy','lastEditedAt']) && request.resource.data.lastEditedBy == userData().email) ||
-        (managerOrSuper() && request.resource.data.itemCode == resource.data.itemCode && (!resource.data.keys().hasAll(['createdBy','createdAt']) || sameCreator()) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name','category','brandId','brand','modelId','model','gradeId','grade','specificationId','specification','status','currentLocation','stockBalances','remark','lifecycleHistory','supplierId','supplierName','lastEditedBy','lastEditedAt']) && request.resource.data.lastEditedBy == userData().email);
-      // TEMPORARY testing reset. Remove before go-live.
+        (isAdmin() && request.resource.data.itemCode == resource.data.itemCode && request.resource.data.name == resource.data.name && request.resource.data.category == resource.data.category && (!resource.data.keys().hasAll(['createdBy','createdAt']) || sameCreator()) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','currentLocation','stockBalances','remark','brandId','brand','modelId','model','gradeId','grade','specificationId','specification','lastEditedBy','lastEditedAt']) && request.resource.data.lastEditedBy == userData().email) ||
+        (managerOrSuper() && request.resource.data.itemCode == resource.data.itemCode && (!resource.data.keys().hasAll(['createdBy','createdAt']) || sameCreator()) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name','category','brandId','brand','modelId','model','gradeId','grade','specificationId','specification','status','currentLocation','stockBalances','remark','supplierId','supplierName','lastEditedBy','lastEditedAt']) && request.resource.data.lastEditedBy == userData().email);
+      // TEMPORARY testing reset. Keep until the next full test is completed.
       allow delete: if isSuperAdmin();
     }
 
@@ -49,19 +49,10 @@ service cloud.firestore {
       allow read: if isActiveUser();
       allow create: if isSuperAdmin() ||
         (isActiveUser() && request.resource.data.createdBy == userData().email && request.resource.data.createdByRole == userData().role && request.resource.data.status == 'in_transit') ||
-        (isActiveUser() && request.resource.data.createdBy == userData().email && request.resource.data.createdByRole == userData().role && request.resource.data.completedBy == userData().email && request.resource.data.status == 'completed' && request.resource.data.qty is number && request.resource.data.qty > 0 && request.resource.data.createdAt is string && request.resource.data.completedAt is string && (
-          (request.resource.data.action == 'SELL_OWNERSHIP' && request.resource.data.toType == 'sold' && request.resource.data.toStatus == 'Sold' && request.resource.data.clientTransactionType == 'Sale') ||
-          (request.resource.data.action == 'WRITE_OFF' && request.resource.data.toType == 'writeoff' && request.resource.data.toStatus == 'Written Off' && request.resource.data.writeOffReason in ['Damaged','Spoiled','Beyond Repair','Lost','Obsolete','Other']) ||
-          (request.resource.data.action == 'CANCEL_INVOICE' && request.resource.data.invoiceStatus == 'Cancelled' && request.resource.data.reversesMovementId is string)
-        ));
+        (isActiveUser() && request.resource.data.createdBy == userData().email && request.resource.data.createdByRole == userData().role && request.resource.data.completedBy == userData().email && request.resource.data.status == 'completed' && request.resource.data.qty is number && request.resource.data.qty > 0 && request.resource.data.createdAt is string && request.resource.data.completedAt is string && request.resource.data.action == 'CANCEL_INVOICE' && request.resource.data.invoiceStatus == 'Cancelled' && request.resource.data.reversesMovementId is string);
 
       allow update: if isSuperAdmin() ||
         (isActiveUser() && resource.data.status == 'in_transit' && request.resource.data.status == 'arrived' && request.resource.data.arrivedBy == userData().email && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','arrivedAt','arrivedBy'])) ||
-        (isActiveUser() && resource.data.status == 'in_transit' && request.resource.data.status == resource.data.status && resource.data.createdBy == userData().email && request.resource.data.createdBy == resource.data.createdBy && request.resource.data.createdByRole == resource.data.createdByRole && request.resource.data.itemId == resource.data.itemId && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-          'clientTransactionType','periodFrom','periodTo','currency','rateBasis','unitPrice','totalAmount',
-          'invoiceGroupKey','invoiceNumber','invoiceDate','invoiceAmount','invoiceTotal','invoiceDescription',
-          'invoiceSide','invoicePartyId','invoicePartyName','invoiceStatus'
-        ])) ||
         (isActiveUser() && resource.data.status in ['arrived','completed'] && request.resource.data.status == 'cancelled' && request.resource.data.cancelledBy == userData().email && request.resource.data.invoiceStatus == 'Cancelled' && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','invoiceStatus','cancelledAt','cancelledBy','cancelReason','reversedByMovementId']));
 
       // TEMPORARY testing reset.
@@ -106,15 +97,6 @@ service cloud.firestore {
       allow create: if isSuperAdmin() || (managerOrSuper() && request.resource.data.type in ['warehouse','category','unit','brand','model','grade','specification'] && request.resource.data.status == 'active' && request.resource.data.createdBy == userData().email && (!(request.resource.data.type in ['brand','model','grade','specification']) || (request.resource.data.category is string && request.resource.data.category.size() > 0)));
       allow update: if isSuperAdmin() || (managerOrSuper() && request.resource.data.type == resource.data.type && request.resource.data.value == resource.data.value && (!resource.data.keys().hasAll(['category']) || request.resource.data.category == resource.data.category) && (!resource.data.keys().hasAll(['brand']) || request.resource.data.brand == resource.data.brand) && (!resource.data.keys().hasAll(['model']) || request.resource.data.model == resource.data.model) && (!resource.data.keys().hasAll(['grade']) || request.resource.data.grade == resource.data.grade) && (!resource.data.keys().hasAll(['normalizedValue']) || request.resource.data.normalizedValue == resource.data.normalizedValue) && request.resource.data.status in ['active','inactive'] && request.resource.data.updatedBy == userData().email && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','updatedAt','updatedBy']));
       allow delete: if false;
-    }
-
-    // Legacy invoice collection remains readable/restorable for old test data.
-    // New invoice records are derived from movements and are not created here.
-    match /invoices/{invoiceId} {
-      allow read: if isActiveUser();
-      allow create, update: if isSuperAdmin();
-      // TEMPORARY testing reset.
-      allow delete: if isSuperAdmin();
     }
 
     match /audit_traces/{traceId} {
