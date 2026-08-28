@@ -1,3 +1,4 @@
+import './backup-full.js';
 import { auth, db } from './firebase-config.js';
 import { collection, deleteDoc, doc, getDoc, getDocs } from 'https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js';
 
