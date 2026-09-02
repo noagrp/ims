@@ -2,7 +2,7 @@
   if(document.getElementById('imsCoreLayoutCss'))return;
 
   const IMS_LAYOUT=Object.freeze({
-    version:2,
+    version:3,
     majorFlow:'vertical',
     majorWidth:'full',
     fieldFlow:'responsive-row',
@@ -15,27 +15,24 @@
       container:'ims-container',
       fields:'ims-field-grid',
       wide:'ims-wide-data',
-      autoFields:'ims-auto-field-host',
-      fullRow:'ims-full-row'
+      generatedFields:'ims-generated-field-row'
     })
   });
 
   window.IMSLayout=IMS_LAYOUT;
-  document.documentElement.dataset.imsLayout='full-width-responsive-fields-v2';
+  document.documentElement.dataset.imsLayout='full-width-responsive-fields-v3';
 
   const s=document.createElement('style');
   s.id='imsCoreLayoutCss';
   s.textContent=`
     /* =========================================================
-       IMS GLOBAL LAYOUT CONTRACT — V2
+       IMS GLOBAL LAYOUT CONTRACT — V3
        =========================================================
-       CURRENT + FUTURE MODULES:
-       - Major containers use the complete content width.
-       - Major containers stack vertically, never as left/right peers.
-       - Small fields inside a container pack into responsive rows.
-       - Field rows wrap naturally on narrower devices.
-       - Structural content remains full-row within a field container.
-       - Wide tables/data scroll horizontally inside the container.
+       - Major containers: full width, stacked vertically.
+       - Fields inside a container: compact responsive rows.
+       - layout-core automatically groups consecutive direct fields.
+       - Structural blocks/headings/buttons retain their own full-width row.
+       - Wide tables/data: horizontal scroll inside full-width container.
        ========================================================= */
 
     main>div.max-w-7xl{
@@ -58,7 +55,7 @@
       box-sizing:border-box;
     }
 
-    /* Major containers: always top-to-bottom. */
+    /* Major containers are never side-by-side peers. */
     #appContent>.grid,
     #workspaceOperation>.grid,
     #workspaceOperation>.space-y-5>.grid,
@@ -67,11 +64,9 @@
       width:100%;
     }
 
-    /* Explicit field grids + automatically detected field hosts. */
-    #appContent form>section,
-    #appContent form section[data-ims-field-section],
+    /* Explicit and automatically generated compact field rows. */
     #appContent .ims-field-grid,
-    #appContent .ims-auto-field-host{
+    #appContent .ims-generated-field-row{
       display:grid!important;
       grid-template-columns:repeat(auto-fit,minmax(${IMS_LAYOUT.fieldMinWidth}px,1fr));
       gap:.75rem!important;
@@ -80,23 +75,7 @@
       min-width:0;
     }
 
-    /* Structural children stay across the whole field container. */
-    #appContent .ims-auto-field-host>.ims-full-row,
-    #appContent .ims-field-grid>.ims-full-row,
-    #appContent form>section>.ims-full-row{
-      grid-column:1/-1!important;
-      width:100%;
-      min-width:0;
-    }
-
-    /* Section headings/messages span the complete field row. */
-    #appContent form>section>div:first-child:not([id]),
-    #appContent form section[data-ims-field-section]>div:first-child:not([id]),
-    #appContent .ims-field-grid>[data-ims-field-heading]{
-      grid-column:1/-1;
-    }
-
-    /* Existing intentional inner grids remain usable for compact rows. */
+    /* Existing intentional module field grids remain intact. */
     #appContent form .grid{
       width:100%;
       min-width:0;
@@ -116,14 +95,11 @@
       width:100%;
     }
 
-    /* Textareas are wider fields without forcing one field per line. */
-    #appContent .ims-auto-field-host>label:has(textarea),
-    #appContent .ims-field-grid>label:has(textarea),
-    #appContent form>section>label:has(textarea){
+    #appContent .ims-generated-field-row>label:has(textarea),
+    #appContent .ims-field-grid>label:has(textarea){
       grid-column:span 2;
     }
 
-    /* Wide data remains structurally identical across devices. */
     #appContent .overflow-x-auto,
     #appContent .ims-wide-data{
       width:100%;
@@ -139,24 +115,19 @@
       main{padding-left:.75rem!important;padding-right:.75rem!important}
       #appContent section{padding-left:1rem;padding-right:1rem}
 
-      #appContent form>section,
-      #appContent form section[data-ims-field-section],
       #appContent .ims-field-grid,
-      #appContent .ims-auto-field-host{
+      #appContent .ims-generated-field-row{
         grid-template-columns:repeat(auto-fit,minmax(${IMS_LAYOUT.mobileFieldMinWidth}px,1fr));
       }
     }
 
     @media(max-width:360px){
-      #appContent form>section,
-      #appContent form section[data-ims-field-section],
       #appContent .ims-field-grid,
-      #appContent .ims-auto-field-host{
+      #appContent .ims-generated-field-row{
         grid-template-columns:minmax(0,1fr);
       }
-      #appContent .ims-auto-field-host>label:has(textarea),
-      #appContent .ims-field-grid>label:has(textarea),
-      #appContent form>section>label:has(textarea){grid-column:auto}
+      #appContent .ims-generated-field-row>label:has(textarea),
+      #appContent .ims-field-grid>label:has(textarea){grid-column:auto}
     }
 
     @media print{
@@ -170,28 +141,44 @@
   `;
   document.head.appendChild(s);
 
-  function normalizeFieldHosts(root=document){
-    const scope=root.querySelectorAll?root:document;
-    const nodes=[];
-    if(scope.matches?.('form,section,div'))nodes.push(scope);
-    nodes.push(...scope.querySelectorAll?.('#appContent form,#appContent section,#appContent div')||[]);
+  function eligibleHost(el){
+    if(!el?.children||!el.closest?.('#appContent'))return false;
+    if(el.classList.contains('ims-generated-field-row'))return false;
+    if(el.tagName==='TABLE'||el.tagName==='TBODY'||el.tagName==='TR')return false;
+    return el.matches('form,section,div');
+  }
 
-    nodes.forEach(host=>{
-      if(!host.closest('#appContent'))return;
-      const direct=[...host.children];
-      const labels=direct.filter(x=>x.tagName==='LABEL');
-      if(labels.length<2)return;
+  function wrapLabelRun(host,run){
+    if(run.length<2)return;
+    const row=document.createElement('div');
+    row.className='ims-generated-field-row';
+    row.dataset.imsGeneratedFieldRow='1';
+    host.insertBefore(row,run[0]);
+    run.forEach(label=>row.appendChild(label));
+  }
 
-      host.classList.add('ims-auto-field-host');
-      direct.forEach(child=>{
-        if(child.tagName==='LABEL')return;
-        child.classList.add('ims-full-row');
-      });
+  function normalizeHost(host){
+    if(!eligibleHost(host))return;
+    const children=[...host.children];
+    let run=[];
+    const flush=()=>{wrapLabelRun(host,run);run=[];};
+
+    children.forEach(child=>{
+      if(child.tagName==='LABEL')run.push(child);
+      else flush();
     });
+    flush();
+  }
+
+  function normalizeFieldRows(root=document){
+    const nodes=[];
+    if(root.nodeType===1&&eligibleHost(root))nodes.push(root);
+    if(root.querySelectorAll)nodes.push(...root.querySelectorAll('#appContent form,#appContent section,#appContent div'));
+    nodes.forEach(normalizeHost);
   }
 
   function clean(){
-    normalizeFieldHosts(document);
+    normalizeFieldRows(document);
 
     if(document.getElementById('pageTitle')?.textContent.trim()==='Main Workspace'){
       const cards=[...document.querySelectorAll('#appContent .statLog')];
@@ -207,7 +194,7 @@
   let t;
   new MutationObserver(records=>{
     records.forEach(r=>r.addedNodes.forEach(n=>{
-      if(n.nodeType===1)normalizeFieldHosts(n);
+      if(n.nodeType===1)normalizeFieldRows(n);
     }));
     clearTimeout(t);
     t=setTimeout(clean,20);
