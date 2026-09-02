@@ -13,10 +13,10 @@ const LEGACY_ACTIONS = Object.freeze([
   { selector:'button[onclick^="addManualDoc("]', permission:'documents.add' },
 
   // Supplier / client controls
-  { selector:'button[onclick^="editBusiness(\'supplier\'"]', permission:'supplier.edit' },
-  { selector:'button[onclick^="editBusiness(\'client\'"]', permission:'client.edit' },
-  { selector:'button[onclick^="toggleBusiness(\'supplier\'"]', permission:'supplier.status' },
-  { selector:'button[onclick^="toggleBusiness(\'client\'"]', permission:'client.status' },
+  { selector:`button[onclick^="editBusiness('supplier'"]`, permission:'supplier.edit' },
+  { selector:`button[onclick^="editBusiness('client'"]`, permission:'client.edit' },
+  { selector:`button[onclick^="toggleBusiness('supplier'"]`, permission:'supplier.status' },
+  { selector:`button[onclick^="toggleBusiness('client'"]`, permission:'client.status' },
 
   // Master data
   { selector:'.masterForm', permission:'masters.add' },
