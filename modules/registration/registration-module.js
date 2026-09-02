@@ -3,7 +3,7 @@ import { addDoc, collection, doc, getDoc, getDocs, setDoc } from 'https://www.gs
 import { can } from '../../ims-permissions.js';
 
 const byId=id=>document.getElementById(id);
-const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]));
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const norm=s=>String(s??'').trim().replace(/\s+/g,' ').toLowerCase();
 const nowISO=()=>new Date().toISOString();
 const inputCls='w-full min-w-0 bg-slate-950 border border-slate-700 rounded-lg px-3 py-2.5 text-sm';
@@ -20,7 +20,7 @@ function aliases(count){const list=lineValues('batchAliases',count,'Alias',true)
 function initialWrap(){const atSupplier=byId('initialPosition')?.value==='supplier',w=byId('initialLocationWrap');if(!w)return;if(atSupplier){const sid=byId('itemSupplier')?.value||'',s=suppliers.find(x=>x.id===sid);w.innerHTML=`<label class="block min-w-0 text-xs text-slate-400">Initial Supplier Location<input id="initialLocation" readonly class="${inputCls} mt-1" value="${esc(s?.companyName||s?.supplierName||'Select supplier above')}"></label>`;}else w.innerHTML=`<label class="block min-w-0 text-xs text-slate-400">Initial Warehouse / Location<select id="initialLocation" required class="${inputCls} mt-1">${options('warehouse','Warehouse / Location')}</select></label>`;}
 function applyItemType(){const t=active('item_type').find(x=>x.id===byId('itemType')?.value),q=byId('itemQty');if(!q)return;if(!t){q.disabled=false;q.value='1';return;}if(t.quantityMode==='single'){q.value='1';q.disabled=true;}else{q.disabled=false;q.value=String(Math.max(1,Number(t.defaultQty||1)));}}
 function field(label,body,accent=''){return`<label class="block min-w-0 text-xs ${accent||'text-slate-400'}">${label}${body}</label>`;}
-function section(title,body,cols='lg:grid-cols-4'){return`<section class="w-full border border-slate-800 rounded-2xl p-4"><div class="text-xs font-bold uppercase tracking-wide text-slate-500 mb-3">${title}</div><div class="grid grid-cols-1 sm:grid-cols-2 ${cols} gap-3 items-end">${body}</div></section>`;}
+function section(title,body,min=180){return`<section class="w-full border border-slate-800 rounded-2xl p-4"><div class="text-xs font-bold uppercase tracking-wide text-slate-500 mb-3">${title}</div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(${min}px,1fr));gap:.75rem;align-items:end;width:100%;min-width:0">${body}</div></section>`;}
 function formHtml(){return`<form id="registerForm" class="space-y-4" data-ims-registration-module="1">
 <div class="text-xs text-slate-500">Every physical unit receives its own permanent IMS Item Code. Alias is the main operational string. Alias, SN and COC may be entered one per line for multi-unit registration.</div>
 ${section('Quantity / Identity',`
@@ -31,7 +31,7 @@ ${field('Item Name',`<input id="itemName" required class="${inputCls} mt-1">`)}
 ${field('SN',`<textarea id="batchSerials" rows="2" class="${inputCls} mt-1" placeholder="One per unit when registering multiple"></textarea>`)}
 ${field('Alias',`<textarea id="batchAliases" rows="2" required class="${inputCls} mt-1" placeholder="One per unit"></textarea>`,'text-cyan-300 font-semibold')}
 ${field('COC',`<textarea id="batchCocs" rows="2" class="${inputCls} mt-1" placeholder="Certificate / COC reference; one per unit if used"></textarea>`)}
-`)}
+`,180)}
 ${section('Classification / Specification',`
 ${field('Category',`<select id="itemCategory" required class="${inputCls} mt-1">${options('category','Category')}</select>`)}
 ${field('Size',`<select id="itemSize" class="${inputCls} mt-1">${options('size','Size')}</select>`)}
@@ -43,17 +43,17 @@ ${field('Brand',`<select id="itemBrand" class="${inputCls} mt-1">${options('bran
 ${field('Model',`<select id="itemModel" class="${inputCls} mt-1">${options('model','Model')}</select>`)}
 ${field('Weight',`<input id="itemWeight" type="number" min="0" step="any" class="${inputCls} mt-1">`)}
 ${field('Weight Unit',`<select id="itemWeightUnit" class="${inputCls} mt-1">${options('weight_unit','Weight Unit')}</select>`)}
-`)}
+`,180)}
 ${section('Supplier / Initial Position',`
 ${field('Supplier',`<select id="itemSupplier" class="${inputCls} mt-1"><option value="">-- Supplier --</option>${suppliers.map(x=>`<option value="${x.id}">${esc(x.companyName||x.supplierName||'')}</option>`).join('')}</select>`)}
 ${field('Initial Position',`<select id="initialPosition" class="${inputCls} mt-1"><option value="warehouse">Available at Warehouse</option><option value="supplier">At Supplier</option></select>`)}
 <div id="initialLocationWrap" class="min-w-0"></div>
-`,'lg:grid-cols-3')}
+`,220)}
 ${section('Document References',`
 ${field('PO',`<input id="regPO" class="${inputCls} mt-1">`)}
 ${field('Invoice',`<input id="regInvoice" class="${inputCls} mt-1">`)}
 ${field('DO',`<input id="regDO" class="${inputCls} mt-1">`)}
-`,'lg:grid-cols-3')}
+`,220)}
 ${field('Remark',`<textarea id="itemRemark" rows="2" class="${inputCls} mt-1"></textarea>`)}
 <button id="registerSave" class="w-full bg-red-600 py-2.5 rounded-lg text-sm font-bold">Register Item(s)</button><div id="registrationResult"></div></form>`;}
 async function createDocRefs(item,user,refs,batchId){for(const [docType,refNumber] of Object.entries(refs)){if(!refNumber)continue;const ref=doc(collection(db,'document_refs'));await setDoc(ref,{itemId:item.id,itemCode:item.itemCode,itemNameSnapshot:item.name,categorySnapshot:item.category||'',supplierId:item.supplierId||'',supplierNameSnapshot:item.supplierName||'',context:'Registration',docType,refNumber,eventId:batchId,status:'current',createdAt:nowISO(),createdBy:user.email,createdByRole:user.role});}}
