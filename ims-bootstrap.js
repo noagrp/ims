@@ -17,7 +17,7 @@ function renderShell(profile,user){
       <nav id="navTabs" class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-1 gap-2">${allowedNavigation().map(x=>`<button data-tab="${esc(x.id)}" class="navBtn text-left px-3 py-2.5 rounded-xl text-xs font-semibold bg-slate-800/50 hover:bg-slate-800">${esc(x.label)}</button>`).join('')}</nav>
       <div class="hidden lg:block mt-6 pt-4 border-t border-slate-800"><div id="currentUser" class="text-xs text-slate-400 break-all">${esc(profile.email||user.email||'')}</div><button id="logoutBtnDesktop" class="mt-3 w-full bg-red-600 hover:bg-red-500 py-2 rounded-lg text-xs font-bold">Logout</button></div>
     </aside>
-    <main class="flex-1 p-3 sm:p-5 lg:p-7 overflow-x-hidden"><div class="max-w-7xl mx-auto"><div class="mb-5"><h1 id="pageTitle" class="text-xl sm:text-2xl font-bold">Main Workspace</h1><p id="pageSubtitle" class="text-xs text-slate-500 mt-1">Loading IMS modules…</p></div><div id="appContent"><section class="bg-slate-900 border border-slate-800 rounded-2xl p-5 text-sm text-slate-400">Loading authorized modules…</section></div></div></main>
+    <main class="flex-1 min-w-0 p-3 sm:p-5 lg:p-7 overflow-x-hidden"><div class="w-full max-w-none min-w-0"><div class="mb-5"><h1 id="pageTitle" class="text-xl sm:text-2xl font-bold">Main Workspace</h1><p id="pageSubtitle" class="text-xs text-slate-500 mt-1">Loading IMS modules…</p></div><div id="appContent" class="w-full min-w-0"><section class="bg-slate-900 border border-slate-800 rounded-2xl p-5 text-sm text-slate-400">Loading authorized modules…</section></div></div></main>
   </div>`;
   const logout=()=>signOut(auth).then(()=>location.href='index.html');
   byId('logoutBtn').onclick=logout;byId('logoutBtnDesktop').onclick=logout;
