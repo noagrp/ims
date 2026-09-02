@@ -35,6 +35,12 @@ const PERMISSIONS = Object.freeze({
   'maintenance.edit': ALL,
   'maintenance.delete': SUPER_ONLY,
 
+  // Invoices derived from movement records
+  'invoice.view': ALL,
+  'invoice.export.csv': ALL,
+  'invoice.print.pdf': ALL,
+  'invoice.cancel': ALL,
+
   // Document references
   'documents.view': ALL,
   'documents.add': ALL,
@@ -86,6 +92,7 @@ const PERMISSIONS = Object.freeze({
 const NAVIGATION = Object.freeze([
   { id: 'workspace', label: 'Main Workspace', permission: 'app.view' },
   { id: 'logs', label: 'Logs / Records', permission: 'app.view' },
+  { id: 'invoices', label: 'Invoices', permission: 'invoice.view' },
   { id: 'suppliers', label: 'Suppliers', permission: 'supplier.view' },
   { id: 'clients', label: 'Clients', permission: 'client.view' },
   { id: 'settings', label: 'Global Settings', permission: 'masters.view' },
