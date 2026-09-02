@@ -14,6 +14,7 @@ const MODULES = Object.freeze([
   { id:'records', src:'./modules/records/records-module.js', permission:'app.view' },
   { id:'backup', src:'./modules/backup/backup-module.js', permission:'backup.create' },
   { id:'items', src:'./modules/items/item-module.js', permission:'inventory.view' },
+  { id:'registration', src:'./modules/registration/registration-module.js', permission:'inventory.add' },
   { id:'classification-master', src:'./classification-master.js', permission:'masters.add' },
   { id:'admin-item-masters-view', src:'./admin-item-masters-view.js', roles:['admin'] },
   { id:'registration-classification', src:'./registration-classification.js' },
