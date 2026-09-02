@@ -16,7 +16,7 @@ const PERMISSIONS = Object.freeze({
   // Core application
   'app.view': ALL,
 
-  // Inventory / registration / movement
+  // Inventory / registration
   'inventory.view': ALL,
   'inventory.add': ALL,
   'inventory.edit': MANAGER_UP,
@@ -35,10 +35,17 @@ const PERMISSIONS = Object.freeze({
   'maintenance.edit': ALL,
   'maintenance.delete': SUPER_ONLY,
 
+  // Document references
+  'documents.view': ALL,
+  'documents.add': ALL,
+  'documents.edit': MANAGER_UP,
+  'documents.delete': SUPER_ONLY,
+
   // Master data
   'masters.view': ALL,
   'masters.add': MANAGER_UP,
   'masters.edit': MANAGER_UP,
+  'masters.status': MANAGER_UP,
   'masters.delete': SUPER_ONLY,
 
   // Supplier / client business masters
@@ -53,13 +60,17 @@ const PERMISSIONS = Object.freeze({
   'client.status': MANAGER_UP,
   'client.delete': SUPER_ONLY,
 
-  // Audit / users
+  // Audit
   'audit.view': MANAGER_UP,
   'audit.export.csv': MANAGER_UP,
   'audit.print.pdf': MANAGER_UP,
+
+  // User management
   'users.view': MANAGER_UP,
   'users.add': MANAGER_UP,
   'users.edit': MANAGER_UP,
+  'users.status': MANAGER_UP,
+  'users.role.edit': SUPER_ONLY,
   'users.delete': SUPER_ONLY,
 
   // Backup / restore
