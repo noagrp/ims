@@ -4,11 +4,11 @@
   s.id='imsCoreLayoutCss';
   s.textContent=`
     /* IMS GLOBAL LAYOUT STANDARD
-       - Main working area and major containers use full available width.
-       - Major sections stack vertically, top to bottom.
-       - Short fields/controls may share a row inside a full-width container.
-       - Internal field rows wrap naturally on narrower screens.
-       - Wide tables/data scroll horizontally inside their own container. */
+       1. Every major section/container uses the full available content width.
+       2. Major containers stack vertically: never left/right peer containers.
+       3. Fields INSIDE a container pack horizontally into sensible rows.
+       4. Field rows wrap naturally as device width becomes smaller.
+       5. Wide tables/data scroll horizontally inside their full-width container. */
 
     main>div.max-w-7xl{
       max-width:none!important;
@@ -29,28 +29,52 @@
       box-sizing:border-box;
     }
 
-    /* Major module/section containers stay vertically stacked. */
+    /* Major content groups stack one below another. */
     #appContent>.grid,
-    #appContent>[data-ims-workspace-module]>.grid:not(.ims-field-grid),
-    #appContent>[data-ims-module]>.grid:not(.ims-field-grid){
+    #workspaceOperation>.grid,
+    #workspaceOperation>.space-y-5>.grid{
       grid-template-columns:minmax(0,1fr)!important;
     }
 
-    /* Internal grids are intentionally NOT globally collapsed.
-       Existing sm/md/lg/xl grid classes may arrange short fields in rows. */
-    #appContent .ims-field-grid{
+    /* Existing internal field grids stay compact and responsive. */
+    #appContent .ims-field-grid,
+    #appContent form .grid{
       width:100%;
+      min-width:0;
+    }
+
+    /* Forms that use full-width SECTION containers but direct field labels
+       automatically pack those fields into rows. This is the site-wide form
+       behavior: full-width container, compact fields inside. */
+    #appContent form>section,
+    #appContent form section[data-ims-field-section]{
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+      gap:.75rem;
+      align-items:end;
+    }
+
+    /* Section headings/messages span the complete container width. */
+    #appContent form>section>div:first-child:not([id]),
+    #appContent form section[data-ims-field-section]>div:first-child:not([id]){
+      grid-column:1/-1;
+    }
+
+    /* Explicit mount/wrapper rows may consume available width where needed. */
+    #appContent form>section>[id$="Wrap"],
+    #appContent form>section>[id$="Mount"],
+    #appContent form>section>.w-full{
       min-width:0;
     }
 
     #appContent input,
     #appContent select,
     #appContent textarea{
+      width:100%;
       min-width:0;
       box-sizing:border-box;
     }
 
-    /* Wide data stays wide and scrolls within its full-width container. */
     #appContent .overflow-x-auto{
       width:100%;
       max-width:100%;
@@ -59,13 +83,15 @@
       -webkit-overflow-scrolling:touch;
     }
 
-    #appContent table{
-      max-width:none;
-    }
+    #appContent table{max-width:none}
 
     @media(max-width:639px){
       main{padding-left:.75rem!important;padding-right:.75rem!important}
       #appContent section{padding-left:1rem;padding-right:1rem}
+      #appContent form>section,
+      #appContent form section[data-ims-field-section]{
+        grid-template-columns:repeat(auto-fit,minmax(145px,1fr));
+      }
     }
 
     @media print{
