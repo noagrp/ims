@@ -28,8 +28,12 @@ function renderShell(profile,user){
 async function routeTab(tab){
   if(tab==='workspace')return window.IMSWorkspace?.show?.();
   if(tab==='stock')return window.IMSInventory?.show?.('overview');
-  if(tab==='logs')return window.IMSRecords?.render?.('');
   if(tab==='invoices')return window.IMSInvoices?.show?.();
+  if(tab==='renttorent')return window.IMSRentToRent?.show?.();
+  if(tab==='reservation')return window.IMSReservation?.show?.();
+  if(tab==='disposition')return window.IMSDisposition?.show?.();
+  if(tab==='incident')return window.IMSIncident?.show?.();
+  if(tab==='logs')return window.IMSRecords?.render?.('');
   if(tab==='suppliers'){await window.IMSBusinesses?.reload?.();return window.IMSBusinesses?.render?.('supplier');}
   if(tab==='clients'){await window.IMSBusinesses?.reload?.();return window.IMSBusinesses?.render?.('client');}
   if(tab==='settings'){await window.IMSMasters?.reload?.();return window.IMSMasters?.render?.();}
