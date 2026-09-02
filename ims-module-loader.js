@@ -19,6 +19,7 @@ const MODULES = Object.freeze([
   { id:'scalable-logs', src:'./scalable-logs.js' },
   { id:'batch-movement', src:'./batch-movement.js' },
   { id:'maintenance-workflow', src:'./maintenance-workflow.js', permission:'maintenance.view' },
+  { id:'businesses', src:'./modules/businesses/business-module.js', permission:'supplier.view' },
   { id:'business-form-controls', src:'./business-form-controls.js' },
   { id:'invoice-management', src:'./invoice-management.js' },
 
