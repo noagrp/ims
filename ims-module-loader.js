@@ -1,7 +1,6 @@
 import { can, currentRole } from './ims-permissions.js';
 
 const MODULES=Object.freeze([
-{id:'layout-core',src:'./layout-core.js',mode:'classic'},
 {id:'nav-active-fix',src:'./nav-active-fix.js',mode:'classic'},
 {id:'date-standard',src:'./date-standard.js',mode:'classic'},
 {id:'masters',src:'./modules/masters/masters-module.js',permission:'masters.view',owner:'IMSMasters'},
