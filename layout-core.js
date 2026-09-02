@@ -2,10 +2,10 @@
   if(document.getElementById('imsCoreLayoutCss'))return;
 
   const IMS_LAYOUT=Object.freeze({
-    version:3,
+    version:4,
     majorFlow:'vertical',
     majorWidth:'full',
-    fieldFlow:'responsive-row',
+    fieldFlow:'flex-wrap',
     fieldMinWidth:180,
     mobileFieldMinWidth:145,
     wideData:'horizontal-scroll',
@@ -13,27 +13,21 @@
     classes:Object.freeze({
       stack:'ims-stack',
       container:'ims-container',
-      fields:'ims-field-grid',
-      wide:'ims-wide-data',
-      generatedFields:'ims-generated-field-row'
+      fields:'ims-field-row',
+      wide:'ims-wide-data'
     })
   });
 
   window.IMSLayout=IMS_LAYOUT;
-  document.documentElement.dataset.imsLayout='full-width-responsive-fields-v3';
+  document.documentElement.dataset.imsLayout='full-width-flex-fields-v4';
 
   const s=document.createElement('style');
   s.id='imsCoreLayoutCss';
   s.textContent=`
-    /* =========================================================
-       IMS GLOBAL LAYOUT CONTRACT — V3
-       =========================================================
-       - Major containers: full width, stacked vertically.
-       - Fields inside a container: compact responsive rows.
-       - layout-core automatically groups consecutive direct fields.
-       - Structural blocks/headings/buttons retain their own full-width row.
-       - Wide tables/data: horizontal scroll inside full-width container.
-       ========================================================= */
+    /* IMS GLOBAL LAYOUT CONTRACT V4
+       Major containers = full width + vertical.
+       Small fields inside containers = flex-wrap rows.
+       Wide tables/data = horizontal scroll. */
 
     main>div.max-w-7xl{
       max-width:none!important;
@@ -55,7 +49,7 @@
       box-sizing:border-box;
     }
 
-    /* Major containers are never side-by-side peers. */
+    /* Major containers stay stacked vertically. */
     #appContent>.grid,
     #workspaceOperation>.grid,
     #workspaceOperation>.space-y-5>.grid,
@@ -64,18 +58,29 @@
       width:100%;
     }
 
-    /* Explicit and automatically generated compact field rows. */
-    #appContent .ims-field-grid,
-    #appContent .ims-generated-field-row{
-      display:grid!important;
-      grid-template-columns:repeat(auto-fit,minmax(${IMS_LAYOUT.fieldMinWidth}px,1fr));
+    /* Global compact field row. */
+    #appContent .ims-field-row{
+      display:flex!important;
+      flex-wrap:wrap!important;
+      align-items:flex-end;
       gap:.75rem!important;
-      align-items:end;
       width:100%;
       min-width:0;
     }
 
-    /* Existing intentional module field grids remain intact. */
+    #appContent .ims-field-row>label{
+      flex:1 1 ${IMS_LAYOUT.fieldMinWidth}px!important;
+      width:auto!important;
+      min-width:${IMS_LAYOUT.fieldMinWidth}px!important;
+      max-width:100%;
+      box-sizing:border-box;
+    }
+
+    #appContent .ims-field-row>label:has(textarea){
+      flex-basis:360px!important;
+    }
+
+    /* Existing intentional grids in modules remain valid compact field rows. */
     #appContent form .grid{
       width:100%;
       min-width:0;
@@ -95,11 +100,6 @@
       width:100%;
     }
 
-    #appContent .ims-generated-field-row>label:has(textarea),
-    #appContent .ims-field-grid>label:has(textarea){
-      grid-column:span 2;
-    }
-
     #appContent .overflow-x-auto,
     #appContent .ims-wide-data{
       width:100%;
@@ -115,19 +115,17 @@
       main{padding-left:.75rem!important;padding-right:.75rem!important}
       #appContent section{padding-left:1rem;padding-right:1rem}
 
-      #appContent .ims-field-grid,
-      #appContent .ims-generated-field-row{
-        grid-template-columns:repeat(auto-fit,minmax(${IMS_LAYOUT.mobileFieldMinWidth}px,1fr));
+      #appContent .ims-field-row>label{
+        flex-basis:${IMS_LAYOUT.mobileFieldMinWidth}px!important;
+        min-width:${IMS_LAYOUT.mobileFieldMinWidth}px!important;
       }
     }
 
     @media(max-width:360px){
-      #appContent .ims-field-grid,
-      #appContent .ims-generated-field-row{
-        grid-template-columns:minmax(0,1fr);
+      #appContent .ims-field-row>label{
+        flex:1 1 100%!important;
+        min-width:0!important;
       }
-      #appContent .ims-generated-field-row>label:has(textarea),
-      #appContent .ims-field-grid>label:has(textarea){grid-column:auto}
     }
 
     @media print{
@@ -143,34 +141,36 @@
 
   function eligibleHost(el){
     if(!el?.children||!el.closest?.('#appContent'))return false;
-    if(el.classList.contains('ims-generated-field-row'))return false;
-    if(el.tagName==='TABLE'||el.tagName==='TBODY'||el.tagName==='TR')return false;
+    if(el.classList.contains('ims-field-row'))return false;
+    if(['TABLE','TBODY','TR','THEAD'].includes(el.tagName))return false;
     return el.matches('form,section,div');
-  }
-
-  function wrapLabelRun(host,run){
-    if(run.length<2)return;
-    const row=document.createElement('div');
-    row.className='ims-generated-field-row';
-    row.dataset.imsGeneratedFieldRow='1';
-    host.insertBefore(row,run[0]);
-    run.forEach(label=>row.appendChild(label));
   }
 
   function normalizeHost(host){
     if(!eligibleHost(host))return;
-    const children=[...host.children];
-    let run=[];
-    const flush=()=>{wrapLabelRun(host,run);run=[];};
+    const direct=[...host.children];
+    const labels=direct.filter(x=>x.tagName==='LABEL');
+    if(labels.length<2)return;
 
-    children.forEach(child=>{
+    let run=[];
+    const flush=()=>{
+      if(run.length<2){run=[];return;}
+      const row=document.createElement('div');
+      row.className='ims-field-row';
+      row.dataset.imsFieldRow='1';
+      host.insertBefore(row,run[0]);
+      run.forEach(label=>row.appendChild(label));
+      run=[];
+    };
+
+    direct.forEach(child=>{
       if(child.tagName==='LABEL')run.push(child);
       else flush();
     });
     flush();
   }
 
-  function normalizeFieldRows(root=document){
+  function normalize(root=document){
     const nodes=[];
     if(root.nodeType===1&&eligibleHost(root))nodes.push(root);
     if(root.querySelectorAll)nodes.push(...root.querySelectorAll('#appContent form,#appContent section,#appContent div'));
@@ -178,7 +178,7 @@
   }
 
   function clean(){
-    normalizeFieldRows(document);
+    normalize(document);
 
     if(document.getElementById('pageTitle')?.textContent.trim()==='Main Workspace'){
       const cards=[...document.querySelectorAll('#appContent .statLog')];
@@ -193,9 +193,7 @@
 
   let t;
   new MutationObserver(records=>{
-    records.forEach(r=>r.addedNodes.forEach(n=>{
-      if(n.nodeType===1)normalizeFieldRows(n);
-    }));
+    records.forEach(r=>r.addedNodes.forEach(n=>{if(n.nodeType===1)normalize(n);}));
     clearTimeout(t);
     t=setTimeout(clean,20);
   }).observe(document.body,{childList:true,subtree:true});
