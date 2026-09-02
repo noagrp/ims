@@ -8,6 +8,7 @@ const MODULES = Object.freeze([
   { id:'nav-active-fix', src:'./nav-active-fix.js', mode:'classic' },
   { id:'date-standard', src:'./date-standard.js', mode:'classic' },
 
+  { id:'masters', src:'./modules/masters/masters-module.js', permission:'masters.view' },
   { id:'classification-master', src:'./classification-master.js', permission:'masters.add' },
   { id:'admin-item-masters-view', src:'./admin-item-masters-view.js', roles:['admin'] },
   { id:'registration-classification', src:'./registration-classification.js' },
