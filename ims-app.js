@@ -1,1 +1,1 @@
-import 'https://cdn.jsdelivr.net/gh/noagrp/ims@52f1f153acc56c00a9ad026434ac51039e579af0/ims-app.js';
+import './ims-core.js';
