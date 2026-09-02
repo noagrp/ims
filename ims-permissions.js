@@ -27,7 +27,7 @@ const PERMISSIONS=Object.freeze({
 const NAVIGATION=Object.freeze([
 {id:'workspace',label:'Main Workspace',permission:'app.view'},
 {id:'stock',label:'Stock Inventory',permission:'inventory.view'},
-{id:'documents',label:'Documents',permission:'documents.view'},
+{id:'invoices',label:'Documents',permission:'documents.view'},
 {id:'renttorent',label:'Rent-to-Rent',permission:'renttorent.view'},
 {id:'reservation',label:'Reservation',permission:'reservation.view'},
 {id:'disposition',label:'Disposition',permission:'disposition.view'},
