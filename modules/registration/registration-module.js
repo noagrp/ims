@@ -3,10 +3,10 @@ import { addDoc, collection, doc, getDoc, getDocs, setDoc } from 'https://www.gs
 import { can } from '../../ims-permissions.js';
 
 const byId=id=>document.getElementById(id);
-const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]));
 const norm=s=>String(s??'').trim().replace(/\s+/g,' ').toLowerCase();
 const nowISO=()=>new Date().toISOString();
-const inputCls='w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2.5 text-sm';
+const inputCls='w-full min-w-0 bg-slate-950 border border-slate-700 rounded-lg px-3 py-2.5 text-sm';
 let settings=[],suppliers=[],inventory=[],saving=false,lastCore=null;
 
 async function loadReferenceData(){const[a,b,c]=await Promise.all([getDocs(collection(db,'settings')),getDocs(collection(db,'supplier_profiles')),getDocs(collection(db,'inventory'))]);settings=a.docs.map(d=>({id:d.id,...d.data()}));suppliers=b.docs.map(d=>({id:d.id,...d.data()})).filter(x=>x.status!=='inactive');inventory=c.docs.map(d=>({id:d.id,...d.data()}));}
@@ -17,10 +17,10 @@ function selected(id){const e=byId(id),o=e?.selectedOptions?.[0];return{id:e?.va
 function options(type,label){return`<option value="">-- ${label} --</option>${active(type).map(x=>`<option value="${x.id}" data-v="${esc(x.value)}">${esc(x.value)}</option>`).join('')}`;}
 function lineValues(id,count,label,required=false){const raw=(byId(id)?.value||'').split('\n').map(x=>x.trim());if(count===1){const v=raw[0]||'';if(required&&!v)throw new Error(`${label} is required.`);return[v];}const nonEmpty=raw.filter(Boolean);if(required&&nonEmpty.length!==count)throw new Error(`Enter exactly ${count} ${label} value(s), one per unit.`);if(!required&&nonEmpty.length&&nonEmpty.length!==count)throw new Error(`For multiple units, enter either no ${label} values or exactly ${count}, one per unit.`);return nonEmpty.length?raw:Array(count).fill('');}
 function aliases(count){const list=lineValues('batchAliases',count,'Alias',true);const dup=list.find((x,i)=>list.findIndex(y=>norm(y)===norm(x))!==i);if(dup)throw new Error(`Duplicate Alias in this batch: ${dup}`);const used=new Set(inventory.map(x=>norm(x.alias||'')).filter(Boolean)),clash=list.find(x=>used.has(norm(x)));if(clash)throw new Error(`Alias already exists: ${clash}`);return list;}
-function initialWrap(){const atSupplier=byId('initialPosition')?.value==='supplier',w=byId('initialLocationWrap');if(!w)return;if(atSupplier){const sid=byId('itemSupplier')?.value||'',s=suppliers.find(x=>x.id===sid);w.innerHTML=`<label class="block text-xs text-slate-400">Initial Supplier Location<input id="initialLocation" readonly class="${inputCls} mt-1" value="${esc(s?.companyName||s?.supplierName||'Select supplier above')}"></label>`;}else w.innerHTML=`<label class="block text-xs text-slate-400">Initial Warehouse / Location<select id="initialLocation" required class="${inputCls} mt-1">${options('warehouse','Warehouse / Location')}</select></label>`;}
+function initialWrap(){const atSupplier=byId('initialPosition')?.value==='supplier',w=byId('initialLocationWrap');if(!w)return;if(atSupplier){const sid=byId('itemSupplier')?.value||'',s=suppliers.find(x=>x.id===sid);w.innerHTML=`<label class="block min-w-0 text-xs text-slate-400">Initial Supplier Location<input id="initialLocation" readonly class="${inputCls} mt-1" value="${esc(s?.companyName||s?.supplierName||'Select supplier above')}"></label>`;}else w.innerHTML=`<label class="block min-w-0 text-xs text-slate-400">Initial Warehouse / Location<select id="initialLocation" required class="${inputCls} mt-1">${options('warehouse','Warehouse / Location')}</select></label>`;}
 function applyItemType(){const t=active('item_type').find(x=>x.id===byId('itemType')?.value),q=byId('itemQty');if(!q)return;if(!t){q.disabled=false;q.value='1';return;}if(t.quantityMode==='single'){q.value='1';q.disabled=true;}else{q.disabled=false;q.value=String(Math.max(1,Number(t.defaultQty||1)));}}
-function field(label,body,accent=''){return`<label class="block text-xs ${accent||'text-slate-400'}">${label}${body}</label>`;}
-function section(title,body){return`<section class="w-full border border-slate-800 rounded-2xl p-4 space-y-3"><div class="text-xs font-bold uppercase tracking-wide text-slate-500">${title}</div>${body}</section>`;}
+function field(label,body,accent=''){return`<label class="block min-w-0 text-xs ${accent||'text-slate-400'}">${label}${body}</label>`;}
+function section(title,body,cols='lg:grid-cols-4'){return`<section class="w-full border border-slate-800 rounded-2xl p-4"><div class="text-xs font-bold uppercase tracking-wide text-slate-500 mb-3">${title}</div><div class="grid grid-cols-1 sm:grid-cols-2 ${cols} gap-3 items-end">${body}</div></section>`;}
 function formHtml(){return`<form id="registerForm" class="space-y-4" data-ims-registration-module="1">
 <div class="text-xs text-slate-500">Every physical unit receives its own permanent IMS Item Code. Alias is the main operational string. Alias, SN and COC may be entered one per line for multi-unit registration.</div>
 ${section('Quantity / Identity',`
@@ -47,13 +47,13 @@ ${field('Weight Unit',`<select id="itemWeightUnit" class="${inputCls} mt-1">${op
 ${section('Supplier / Initial Position',`
 ${field('Supplier',`<select id="itemSupplier" class="${inputCls} mt-1"><option value="">-- Supplier --</option>${suppliers.map(x=>`<option value="${x.id}">${esc(x.companyName||x.supplierName||'')}</option>`).join('')}</select>`)}
 ${field('Initial Position',`<select id="initialPosition" class="${inputCls} mt-1"><option value="warehouse">Available at Warehouse</option><option value="supplier">At Supplier</option></select>`)}
-<div id="initialLocationWrap"></div>
-`)}
+<div id="initialLocationWrap" class="min-w-0"></div>
+`,'lg:grid-cols-3')}
 ${section('Document References',`
 ${field('PO',`<input id="regPO" class="${inputCls} mt-1">`)}
 ${field('Invoice',`<input id="regInvoice" class="${inputCls} mt-1">`)}
 ${field('DO',`<input id="regDO" class="${inputCls} mt-1">`)}
-`)}
+`,'lg:grid-cols-3')}
 ${field('Remark',`<textarea id="itemRemark" rows="2" class="${inputCls} mt-1"></textarea>`)}
 <button id="registerSave" class="w-full bg-red-600 py-2.5 rounded-lg text-sm font-bold">Register Item(s)</button><div id="registrationResult"></div></form>`;}
 async function createDocRefs(item,user,refs,batchId){for(const [docType,refNumber] of Object.entries(refs)){if(!refNumber)continue;const ref=doc(collection(db,'document_refs'));await setDoc(ref,{itemId:item.id,itemCode:item.itemCode,itemNameSnapshot:item.name,categorySnapshot:item.category||'',supplierId:item.supplierId||'',supplierNameSnapshot:item.supplierName||'',context:'Registration',docType,refNumber,eventId:batchId,status:'current',createdAt:nowISO(),createdBy:user.email,createdByRole:user.role});}}
