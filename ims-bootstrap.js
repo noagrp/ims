@@ -25,6 +25,28 @@ function renderShell(profile,user){
   window.dispatchEvent(new CustomEvent('ims:auth-ready',{detail:window.IMSUser}));
 }
 
+async function routeTab(tab){
+  if(tab==='workspace')return window.IMSWorkspace?.show?.();
+  if(tab==='stock')return window.IMSInventory?.show?.('overview');
+  if(tab==='logs')return window.IMSRecords?.render?.('');
+  if(tab==='invoices')return window.IMSInvoices?.show?.();
+  if(tab==='suppliers'){await window.IMSBusinesses?.reload?.();return window.IMSBusinesses?.render?.('supplier');}
+  if(tab==='clients'){await window.IMSBusinesses?.reload?.();return window.IMSBusinesses?.render?.('client');}
+  if(tab==='settings'){await window.IMSMasters?.reload?.();return window.IMSMasters?.render?.();}
+  if(tab==='audit'){await window.IMSAudit?.reload?.();return window.IMSAudit?.render?.();}
+  if(tab==='users'){await window.IMSUsers?.reload?.();return window.IMSUsers?.render?.();}
+}
+
+function bindNavigation(){
+  const nav=byId('navTabs');if(!nav||nav.dataset.imsRouter==='1')return;
+  nav.dataset.imsRouter='1';
+  nav.addEventListener('click',event=>{
+    const btn=event.target.closest?.('.navBtn[data-tab]');if(!btn)return;
+    event.preventDefault();event.stopPropagation();
+    routeTab(btn.dataset.tab).catch(err=>{console.error(`IMS navigation failed: ${btn.dataset.tab}`,err);alert(`Unable to open ${btn.textContent.trim()}: ${err?.message||err}`);});
+  },true);
+}
+
 function activateWorkspace(){
   if(!byId('appContent'))return;
   if(window.IMSWorkspace?.show){window.IMSWorkspace.show();return;}
@@ -45,9 +67,10 @@ onAuthStateChanged(auth,async user=>{
     if(profile.status!=='active'){await signOut(auth);location.href='index.html';return;}
     if(profile.role!==ROLE){location.href=rolePage(profile.role);return;}
     renderShell(profile,user);
+    bindNavigation();
     activateWorkspace();
   }catch(err){console.error('IMS startup failed:',err);showStartupError(err);}
 });
 
-window.IMSBootstrap=Object.freeze({allowedNavigation,activateWorkspace});
+window.IMSBootstrap=Object.freeze({allowedNavigation,activateWorkspace,routeTab,bindNavigation});
 window.dispatchEvent(new CustomEvent('ims:bootstrap-ready'));
