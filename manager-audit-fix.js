@@ -41,6 +41,7 @@ function renderRows(){
 }
 
 async function show(){
+  if(window.IMSAudit)return;
   document.querySelectorAll('.navBtn').forEach(b=>b.className='navBtn text-left px-3 py-2.5 rounded-xl text-xs font-semibold bg-slate-800/50 hover:bg-slate-800');
   const tab=document.querySelector('.navBtn[data-tab="audit"]');
   if(tab)tab.className='navBtn text-left px-3 py-2.5 rounded-xl text-xs font-semibold bg-red-600 text-white';
@@ -64,6 +65,7 @@ async function show(){
 }
 
 function bind(){
+  if(window.IMSAudit)return;
   const tab=document.querySelector('.navBtn[data-tab="audit"]');
   if(!tab||tab.dataset.managerAuditFix==='1')return;
   tab.dataset.managerAuditFix='1';
