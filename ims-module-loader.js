@@ -16,7 +16,11 @@ const MODULES=Object.freeze([
 {id:'movement',src:'./modules/movement/movement-module.js',permission:'movement.view',owner:'IMSMovement'},
 {id:'maintenance',src:'./modules/maintenance/maintenance-module.js',permission:'maintenance.view',owner:'IMSMaintenance'},
 {id:'inspection',src:'./modules/inspection/inspection-module.js',permission:'inspection.view',owner:'IMSInspection'},
-{id:'invoices',src:'./modules/invoices/invoice-module.js',permission:'invoice.view',owner:'IMSInvoices'},
+{id:'invoices',src:'./modules/invoices/invoice-module.js',permission:'documents.view',owner:'IMSInvoices'},
+{id:'renttorent',src:'./modules/renttorent/renttorent-module.js',permission:'renttorent.view',owner:'IMSRentToRent'},
+{id:'reservation',src:'./modules/reservation/reservation-module.js',permission:'reservation.view',owner:'IMSReservation'},
+{id:'disposition',src:'./modules/disposition/disposition-module.js',permission:'disposition.view',owner:'IMSDisposition'},
+{id:'incident',src:'./modules/incident/incident-module.js',permission:'incident.view',owner:'IMSIncident'},
 {id:'sortable-tables',src:'./sortable-tables.js',mode:'classic'},
 {id:'print-clean',src:'./print-clean.js',mode:'classic',permission:'records.print.pdf'}
 ]);
