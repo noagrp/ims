@@ -142,6 +142,7 @@ async function restoreBackup(file){
 }
 
 function mount(){
+  if(window.IMSBackup)return;
   if(window.IMS_ROLE!=='superadmin')return;
   const oldBtn=byId('downloadBackup');
   if(!oldBtn)return;
