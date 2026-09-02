@@ -76,6 +76,7 @@ const PERMISSIONS = Object.freeze({
   // Backup / restore
   'backup.create': SUPER_ONLY,
   'backup.restore': SUPER_ONLY,
+  'system.test.reset': SUPER_ONLY,
 
   // General output actions
   'records.export.csv': ALL,
