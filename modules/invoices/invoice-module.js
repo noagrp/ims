@@ -2,7 +2,7 @@ import { auth, db } from '../../firebase-config.js';
 import { addDoc, collection, doc, getDoc, getDocs, updateDoc } from 'https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js';
 import { can } from '../../ims-permissions.js';
 
-const byId=id=>document.getElementById(id),esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]),),cls='w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2.5 text-sm',now=()=>new Date().toISOString(),money=n=>Number(n||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+const byId=id=>document.getElementById(id),esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),cls='w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2.5 text-sm',now=()=>new Date().toISOString(),money=n=>Number(n||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
 let movements=[],inventory=[],clientPOs=[],supplierInvoices=[],activeTab='client',sort={field:'date',dir:'desc'};
 async function load(name){const s=await getDocs(collection(db,name));return s.docs.map(d=>({id:d.id,...d.data()}));}
 async function me(){const u=auth.currentUser;if(!u)throw new Error('You must be signed in.');const s=await getDoc(doc(db,'users',u.uid));if(!s.exists()||s.data().status!=='active')throw new Error('Active user profile required.');return{email:s.data().email||u.email||'',role:s.data().role||window.IMS_ROLE||''};}
