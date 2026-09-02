@@ -1,9 +1,9 @@
-// Local IMS core entrypoint.
-// Central permissions, shell/navigation, and UI access are initialized before
-// the proven legacy operational core. The legacy core remains local to this
-// repository and operational business logic is unchanged in this stage.
+// IMS core entrypoint.
+// Authentication/bootstrap, permissions, shell policy and UI access initialize
+// before the consolidated business modules. The legacy business core is no
+// longer executed at runtime.
 
 import './ims-permissions.js';
 import './ims-shell.js';
 import './ims-access-ui.js';
-import './ims-legacy-core.js';
+import './ims-bootstrap.js';
