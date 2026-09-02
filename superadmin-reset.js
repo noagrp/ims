@@ -47,6 +47,7 @@ async function deleteCollection(name){
 
 function ensureControl(){
   const old=byId('imsTempReset');
+  if(window.IMSBackup){old?.remove();return;}
   if(window.IMS_ROLE!=='superadmin'||byId('pageTitle')?.textContent!=='Global Settings'){
     old?.remove();
     return;
