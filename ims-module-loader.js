@@ -17,6 +17,7 @@ const MODULES = Object.freeze([
   { id:'registration', src:'./modules/registration/registration-module.js', permission:'inventory.add' },
   { id:'maintenance', src:'./modules/maintenance/maintenance-module.js', permission:'maintenance.view' },
   { id:'movement', src:'./modules/movement/movement-module.js', permission:'movement.view' },
+  { id:'invoices', src:'./modules/invoices/invoice-module.js', permission:'invoice.view' },
   { id:'classification-master', src:'./classification-master.js', permission:'masters.add' },
   { id:'admin-item-masters-view', src:'./admin-item-masters-view.js', roles:['admin'] },
   { id:'registration-classification', src:'./registration-classification.js' },
@@ -30,7 +31,7 @@ const MODULES = Object.freeze([
   { id:'maintenance-workflow', src:'./maintenance-workflow.js', permission:'maintenance.view', fallbackFor:'IMSMaintenance' },
   { id:'businesses', src:'./modules/businesses/business-module.js', permission:'supplier.view' },
   { id:'business-form-controls', src:'./business-form-controls.js' },
-  { id:'invoice-management', src:'./invoice-management.js' },
+  { id:'invoice-management', src:'./invoice-management.js', permission:'invoice.view', fallbackFor:'IMSInvoices' },
 
   { id:'movement-refresh-normalizer', src:'./movement-refresh-normalizer.js', mode:'classic', fallbackFor:'IMSMovement' },
   { id:'manager-audit-fix', src:'./manager-audit-fix.js', roles:['manager'] },
