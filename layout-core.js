@@ -1,14 +1,43 @@
 (()=>{
   if(document.getElementById('imsCoreLayoutCss'))return;
+
+  const IMS_LAYOUT=Object.freeze({
+    version:1,
+    majorFlow:'vertical',
+    majorWidth:'full',
+    fieldFlow:'responsive-row',
+    fieldMinWidth:180,
+    mobileFieldMinWidth:145,
+    wideData:'horizontal-scroll',
+    classes:Object.freeze({
+      stack:'ims-stack',
+      container:'ims-container',
+      fields:'ims-field-grid',
+      wide:'ims-wide-data'
+    })
+  });
+
+  window.IMSLayout=IMS_LAYOUT;
+  document.documentElement.dataset.imsLayout='full-width-responsive-fields-v1';
+
   const s=document.createElement('style');
   s.id='imsCoreLayoutCss';
   s.textContent=`
-    /* IMS GLOBAL LAYOUT STANDARD
-       1. Every major section/container uses the full available content width.
-       2. Major containers stack vertically: never left/right peer containers.
-       3. Fields INSIDE a container pack horizontally into sensible rows.
-       4. Field rows wrap naturally as device width becomes smaller.
-       5. Wide tables/data scroll horizontally inside their full-width container. */
+    /* =========================================================
+       IMS GLOBAL LAYOUT CONTRACT
+       =========================================================
+       Applies automatically to current and future modules:
+       - Major containers: full width, stacked vertically.
+       - Fields inside containers: compact responsive rows.
+       - Narrow screens: field rows wrap, not alternate layouts.
+       - Wide tables/data: horizontal scroll within full-width container.
+
+       Optional semantic classes for future modules:
+       .ims-stack       = vertical major-container flow
+       .ims-container   = one full-width major container
+       .ims-field-grid  = responsive compact field row/grid
+       .ims-wide-data   = horizontal-scroll data area
+       ========================================================= */
 
     main>div.max-w-7xl{
       max-width:none!important;
@@ -23,48 +52,46 @@
 
     #appContent>*,
     #appContent section,
-    #appContent form{
+    #appContent form,
+    #appContent .ims-container{
       width:100%;
       min-width:0;
       box-sizing:border-box;
     }
 
-    /* Major content groups stack one below another. */
+    /* Major content containers always flow vertically. */
     #appContent>.grid,
     #workspaceOperation>.grid,
-    #workspaceOperation>.space-y-5>.grid{
+    #workspaceOperation>.space-y-5>.grid,
+    #appContent .ims-stack{
       grid-template-columns:minmax(0,1fr)!important;
+      width:100%;
     }
 
-    /* Existing internal field grids stay compact and responsive. */
-    #appContent .ims-field-grid,
+    /* Compact fields inside a full-width container. */
+    #appContent form>section,
+    #appContent form section[data-ims-field-section],
+    #appContent .ims-field-grid{
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(${IMS_LAYOUT.fieldMinWidth}px,1fr));
+      gap:.75rem;
+      align-items:end;
+      width:100%;
+      min-width:0;
+    }
+
+    /* Existing internal module grids remain available for short field rows.
+       Major grids above are the only grids forced to one column. */
     #appContent form .grid{
       width:100%;
       min-width:0;
     }
 
-    /* Forms that use full-width SECTION containers but direct field labels
-       automatically pack those fields into rows. This is the site-wide form
-       behavior: full-width container, compact fields inside. */
-    #appContent form>section,
-    #appContent form section[data-ims-field-section]{
-      display:grid;
-      grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
-      gap:.75rem;
-      align-items:end;
-    }
-
-    /* Section headings/messages span the complete container width. */
+    /* Section heading/message spans all compact field columns. */
     #appContent form>section>div:first-child:not([id]),
-    #appContent form section[data-ims-field-section]>div:first-child:not([id]){
+    #appContent form section[data-ims-field-section]>div:first-child:not([id]),
+    #appContent .ims-field-grid>[data-ims-field-heading]{
       grid-column:1/-1;
-    }
-
-    /* Explicit mount/wrapper rows may consume available width where needed. */
-    #appContent form>section>[id$="Wrap"],
-    #appContent form>section>[id$="Mount"],
-    #appContent form>section>.w-full{
-      min-width:0;
     }
 
     #appContent input,
@@ -75,7 +102,9 @@
       box-sizing:border-box;
     }
 
-    #appContent .overflow-x-auto{
+    /* Wide data is never squeezed into a different device layout. */
+    #appContent .overflow-x-auto,
+    #appContent .ims-wide-data{
       width:100%;
       max-width:100%;
       overflow-x:auto!important;
@@ -88,9 +117,11 @@
     @media(max-width:639px){
       main{padding-left:.75rem!important;padding-right:.75rem!important}
       #appContent section{padding-left:1rem;padding-right:1rem}
+
       #appContent form>section,
-      #appContent form section[data-ims-field-section]{
-        grid-template-columns:repeat(auto-fit,minmax(145px,1fr));
+      #appContent form section[data-ims-field-section],
+      #appContent .ims-field-grid{
+        grid-template-columns:repeat(auto-fit,minmax(${IMS_LAYOUT.mobileFieldMinWidth}px,1fr));
       }
     }
 
@@ -99,7 +130,8 @@
       main{padding:0!important}
       body{background:#fff!important;color:#000!important}
       section{box-shadow:none!important;border-color:#bbb!important}
-      #appContent .overflow-x-auto{overflow:visible!important}
+      #appContent .overflow-x-auto,
+      #appContent .ims-wide-data{overflow:visible!important}
     }
   `;
   document.head.appendChild(s);
@@ -122,4 +154,6 @@
     t=setTimeout(clean,20);
   }).observe(document.body,{childList:true,subtree:true});
   clean();
+
+  window.dispatchEvent(new CustomEvent('ims:layout-ready',{detail:IMS_LAYOUT}));
 })();
