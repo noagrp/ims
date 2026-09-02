@@ -26,7 +26,7 @@ const MODULES = Object.freeze([
   { id:'stock-directory', src:'./stock-directory.js' },
   { id:'scalable-logs', src:'./scalable-logs.js' },
   { id:'batch-movement', src:'./batch-movement.js' },
-  { id:'maintenance-workflow', src:'./maintenance-workflow.js', permission:'maintenance.view' },
+  { id:'maintenance-workflow', src:'./maintenance-workflow.js', permission:'maintenance.view', fallbackFor:'IMSMaintenance' },
   { id:'businesses', src:'./modules/businesses/business-module.js', permission:'supplier.view' },
   { id:'business-form-controls', src:'./business-form-controls.js' },
   { id:'invoice-management', src:'./invoice-management.js' },
@@ -42,6 +42,7 @@ const MODULES = Object.freeze([
 
 function allowed(def) {
   const role = currentRole();
+  if (def.fallbackFor && window[def.fallbackFor]) return false;
   if (def.roles && !def.roles.includes(role)) return false;
   if (def.permission && !can(def.permission, role)) return false;
   return true;
