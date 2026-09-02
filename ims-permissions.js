@@ -66,7 +66,10 @@ const PERMISSIONS = Object.freeze({
   'client.status': MANAGER_UP,
   'client.delete': SUPER_ONLY,
 
-  // Audit
+  // Records / audit
+  'records.view': ALL,
+  'records.export.csv': ALL,
+  'records.print.pdf': ALL,
   'audit.view': MANAGER_UP,
   'audit.export.csv': MANAGER_UP,
   'audit.print.pdf': MANAGER_UP,
@@ -82,16 +85,13 @@ const PERMISSIONS = Object.freeze({
   // Backup / restore
   'backup.create': SUPER_ONLY,
   'backup.restore': SUPER_ONLY,
-  'system.test.reset': SUPER_ONLY,
-
-  // General output actions
-  'records.export.csv': ALL,
-  'records.print.pdf': ALL
+  'system.test.reset': SUPER_ONLY
 });
 
 const NAVIGATION = Object.freeze([
   { id: 'workspace', label: 'Main Workspace', permission: 'app.view' },
-  { id: 'logs', label: 'Logs / Records', permission: 'app.view' },
+  { id: 'stock', label: 'Stock Inventory', permission: 'inventory.view' },
+  { id: 'logs', label: 'Logs / Records', permission: 'records.view' },
   { id: 'invoices', label: 'Invoices', permission: 'invoice.view' },
   { id: 'suppliers', label: 'Suppliers', permission: 'supplier.view' },
   { id: 'clients', label: 'Clients', permission: 'client.view' },
