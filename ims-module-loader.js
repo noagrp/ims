@@ -3,6 +3,7 @@ import { can, currentRole } from './ims-permissions.js';
 // Optional IMS modules are loaded independently. A missing or broken optional
 // module is reported and skipped without stopping the rest of the application.
 const MODULES = Object.freeze([
+  { id:'access-ui', src:'./ims-access-ui.js' },
   { id:'layout-core', src:'./layout-core.js', mode:'classic' },
   { id:'nav-active-fix', src:'./nav-active-fix.js', mode:'classic' },
   { id:'date-standard', src:'./date-standard.js', mode:'classic' },
