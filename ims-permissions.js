@@ -1,7 +1,5 @@
 // IMS central role + permission registry.
-// This file defines UI capability intent only. Firestore Security Rules remain
-// the final authority for data access and must be kept aligned with this map.
-
+// UI capability intent only. Firestore Security Rules remain the final authority.
 const ROLES=Object.freeze({ADMIN:'admin',MANAGER:'manager',SUPERADMIN:'superadmin'});
 const ALL=Object.freeze([ROLES.ADMIN,ROLES.MANAGER,ROLES.SUPERADMIN]);
 const MANAGER_UP=Object.freeze([ROLES.MANAGER,ROLES.SUPERADMIN]);
@@ -14,6 +12,10 @@ const PERMISSIONS=Object.freeze({
 'inspection.view':ALL,'inspection.add':ALL,'inspection.edit':ALL,'inspection.delete':SUPER_ONLY,
 'invoice.view':ALL,'invoice.export.csv':ALL,'invoice.print.pdf':ALL,'invoice.cancel':ALL,
 'documents.view':ALL,'documents.add':ALL,'documents.edit':MANAGER_UP,'documents.delete':SUPER_ONLY,
+'reservation.view':ALL,'reservation.add':ALL,'reservation.edit':ALL,'reservation.cancel':ALL,
+'disposition.view':ALL,'disposition.add':MANAGER_UP,'disposition.edit':MANAGER_UP,
+'incident.view':ALL,'incident.add':ALL,'incident.edit':ALL,
+'renttorent.view':ALL,'renttorent.add':ALL,'renttorent.edit':ALL,
 'masters.view':ALL,'masters.add':MANAGER_UP,'masters.edit':MANAGER_UP,'masters.status':MANAGER_UP,'masters.delete':SUPER_ONLY,
 'supplier.view':ALL,'supplier.add':ALL,'supplier.edit':ALL,'supplier.status':MANAGER_UP,'supplier.delete':SUPER_ONLY,
 'client.view':ALL,'client.add':ALL,'client.edit':ALL,'client.status':MANAGER_UP,'client.delete':SUPER_ONLY,
@@ -25,8 +27,12 @@ const PERMISSIONS=Object.freeze({
 const NAVIGATION=Object.freeze([
 {id:'workspace',label:'Main Workspace',permission:'app.view'},
 {id:'stock',label:'Stock Inventory',permission:'inventory.view'},
+{id:'documents',label:'Documents',permission:'documents.view'},
+{id:'renttorent',label:'Rent-to-Rent',permission:'renttorent.view'},
+{id:'reservation',label:'Reservation',permission:'reservation.view'},
+{id:'disposition',label:'Disposition',permission:'disposition.view'},
+{id:'incident',label:'Incident',permission:'incident.view'},
 {id:'logs',label:'Logs / Records',permission:'records.view'},
-{id:'invoices',label:'Invoices',permission:'invoice.view'},
 {id:'suppliers',label:'Suppliers',permission:'supplier.view'},
 {id:'clients',label:'Clients',permission:'client.view'},
 {id:'settings',label:'Global Settings',permission:'masters.view'},
