@@ -13,6 +13,7 @@ const MODULES = Object.freeze([
   { id:'audit', src:'./modules/audit/audit-module.js', permission:'audit.view' },
   { id:'records', src:'./modules/records/records-module.js', permission:'app.view' },
   { id:'backup', src:'./modules/backup/backup-module.js', permission:'backup.create' },
+  { id:'items', src:'./modules/items/item-module.js', permission:'inventory.view' },
   { id:'classification-master', src:'./classification-master.js', permission:'masters.add' },
   { id:'admin-item-masters-view', src:'./admin-item-masters-view.js', roles:['admin'] },
   { id:'registration-classification', src:'./registration-classification.js' },
@@ -89,7 +90,6 @@ async function bootOptionalModules() {
 }
 
 bootOptionalModules().catch(error => {
-  // This catch is intentionally final: optional module boot must never blank IMS.
   console.error('IMS optional module loader failed safely:', error);
 });
 
