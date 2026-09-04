@@ -1,6 +1,6 @@
 import { can, currentRole } from './ims-permissions.js';
 
-const IMS_BUILD='20260904-5';
+const IMS_BUILD='20260904-6';
 const versioned=src=>`${src}${src.includes('?')?'&':'?'}v=${IMS_BUILD}`;
 
 const MODULES=Object.freeze([
@@ -17,7 +17,7 @@ const MODULES=Object.freeze([
 {id:'workspace',src:'./modules/workspace/workspace-module.js',permission:'app.view',owner:'IMSWorkspace'},
 {id:'registration',src:'./modules/registration/registration-module.js',permission:'inventory.add',owner:'IMSRegistration'},
 {id:'movement',src:'./modules/movement/movement-module.js',permission:'movement.view',owner:'IMSMovement'},
-{id:'maintenance',src:'./modules/maintenance/maintenance-module.js',permission:'maintenance.view',owner:'IMSMaintenance'},
+{id:'service-cycle',src:'./modules/service-cycle/service-cycle-module.js',permission:'servicecycle.view',owner:'IMSServiceCycle'},
 {id:'invoices',src:'./modules/invoices/invoice-module.js',permission:'documents.view',owner:'IMSInvoices'},
 {id:'renttorent',src:'./modules/renttorent/renttorent-module.js',permission:'renttorent.view',owner:'IMSRentToRent'},
 {id:'reservation',src:'./modules/reservation/reservation-module.js',permission:'reservation.view',owner:'IMSReservation'},
