@@ -1,6 +1,6 @@
 import { can, currentRole } from './ims-permissions.js';
 
-const IMS_BUILD='20260904-3';
+const IMS_BUILD='20260904-4';
 const versioned=src=>`${src}${src.includes('?')?'&':'?'}v=${IMS_BUILD}`;
 
 const MODULES=Object.freeze([
@@ -18,7 +18,6 @@ const MODULES=Object.freeze([
 {id:'registration',src:'./modules/registration/registration-module.js',permission:'inventory.add',owner:'IMSRegistration'},
 {id:'movement',src:'./modules/movement/movement-module.js',permission:'movement.view',owner:'IMSMovement'},
 {id:'maintenance',src:'./modules/maintenance/maintenance-module.js',permission:'maintenance.view',owner:'IMSMaintenance'},
-{id:'inspection',src:'./modules/inspection/inspection-module.js',permission:'inspection.view',owner:'IMSInspection'},
 {id:'invoices',src:'./modules/invoices/invoice-module.js',permission:'documents.view',owner:'IMSInvoices'},
 {id:'renttorent',src:'./modules/renttorent/renttorent-module.js',permission:'renttorent.view',owner:'IMSRentToRent'},
 {id:'reservation',src:'./modules/reservation/reservation-module.js',permission:'reservation.view',owner:'IMSReservation'},
