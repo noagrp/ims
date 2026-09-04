@@ -47,5 +47,20 @@ function refineRegistration(){
   });
 }
 
-refineRegistration();
-new MutationObserver(()=>refineRegistration()).observe(document.body,{childList:true,subtree:true});
+function seedMovementRedesign(){
+  const legacy=document.getElementById('batchMoveForm');
+  if(!legacy||legacy.querySelector('#tmAction'))return;
+  const seed=document.createElement('select');
+  seed.id='tmAction';
+  seed.hidden=true;
+  seed.innerHTML='<option value="DELIVER_CLIENT" selected>Rental / Send to Client</option>';
+  legacy.appendChild(seed);
+}
+
+function applyTestRefinements(){
+  refineRegistration();
+  seedMovementRedesign();
+}
+
+applyTestRefinements();
+new MutationObserver(applyTestRefinements).observe(document.body,{childList:true,subtree:true});
