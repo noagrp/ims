@@ -1,6 +1,6 @@
 import { can, currentRole } from './ims-permissions.js';
 
-const IMS_BUILD='20260904-12';
+const IMS_BUILD='20260904-13';
 const versioned=src=>`${src}${src.includes('?')?'&':'?'}v=${IMS_BUILD}`;
 
 const MODULES=Object.freeze([
@@ -23,6 +23,7 @@ const MODULES=Object.freeze([
 {id:'reservation',src:'./modules/reservation/reservation-module.js',permission:'reservation.view',owner:'IMSReservation'},
 {id:'disposition',src:'./modules/disposition/disposition-module.js',permission:'disposition.view',owner:'IMSDisposition'},
 {id:'incident',src:'./modules/incident/incident-module.js',permission:'incident.view',owner:'IMSIncident'},
+{id:'terminology-standard',src:'./terminology-standard.js',mode:'classic'},
 {id:'sortable-tables',src:'./sortable-tables.js',mode:'classic'},
 {id:'print-clean',src:'./print-clean.js',mode:'classic',permission:'records.print.pdf'}
 ]);
