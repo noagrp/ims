@@ -1,0 +1,1 @@
+export {ROLES,PERMISSIONS,NAVIGATION,currentRole,can,canAny,canAll} from 'https://cdn.jsdelivr.net/gh/noagrp/ims@09f6aae381463a4d04825d56516b065815d8a577/ims-permissions.js';
