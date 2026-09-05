@@ -2,7 +2,7 @@ import {auth,db} from '../../firebase-config.js';
 import {addDoc,collection,doc,getDoc,getDocs,runTransaction} from 'https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js';
 import {can} from '../../ims-permissions.js';
 import {applyInventorySummaryDelta,combineInventorySummaryDeltas,inventorySummaryDelta} from '../inventory/inventory-summary.js';
-const $=id=>document.getElementById(id),esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c])),norm=s=>String(s??'').trim().replace(/\s+/g,' ').toLowerCase(),now=()=>new Date().toISOString(),today=()=>now().slice(0,10),cls='w-full min-w-0 bg-slate-950 border border-slate-700 rounded-lg px-3 py-2.5 text-sm';
+const $=id=>document.getElementById(id),esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),norm=s=>String(s??'').trim().replace(/\s+/g,' ').toLowerCase(),now=()=>new Date().toISOString(),today=()=>now().slice(0,10),cls='w-full min-w-0 bg-slate-950 border border-slate-700 rounded-lg px-3 py-2.5 text-sm';
 const TYPES=['Inspection','Maintenance','Machine Shop'];let inventory=[],settings=[],businesses=[],cycles=[],me=null,busy=false;
 const roles=x=>Array.isArray(x?.businessRoles)?x.businessRoles:[],name=x=>x?.companyName||x?.supplierName||x?.clientName||x?.name||x?.value||'';
 function bal(i){return(Array.isArray(i?.stockBalances)?i.stockBalances:[]).filter(x=>+x.qty>0).map(x=>({...x,qty:+x.qty,locationType:x.locationType||'warehouse',locationId:x.locationId||'',locationName:x.locationName||'Unknown',status:x.status||'Not Available'}));}
