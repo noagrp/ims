@@ -62,15 +62,23 @@ export function inventorySummaryDelta(beforeItem={},afterItem={}){
   return{global,warehouses:groupDelta(before.warehouses,after.warehouses,true),clients:groupDelta(before.clients,after.clients),suppliers:groupDelta(before.suppliers,after.suppliers),categories};
 }
 
+export function combineInventorySummaryDeltas(deltas=[]){
+  const out={global:Object.fromEntries(GLOBAL_FIELDS.map(k=>[k,0])),warehouses:{},clients:{},suppliers:{},categories:{}};
+  const mergeGroups=(target,src)=>{for(const[k,d]of Object.entries(src||{})){const x=target[k]||(target[k]={id:d.id||'',name:d.name||k,qty:0,availableQty:0});x.qty+=numeric(d.qty);x.availableQty+=numeric(d.availableQty);}};
+  for(const d of deltas){for(const k of GLOBAL_FIELDS)out.global[k]+=numeric(d?.global?.[k]);mergeGroups(out.warehouses,d?.warehouses);mergeGroups(out.clients,d?.clients);mergeGroups(out.suppliers,d?.suppliers);for(const[k,v]of Object.entries(d?.categories||{}))out.categories[k]=(out.categories[k]||0)+numeric(v);}
+  return out;
+}
+
 function applyGroups(base={},delta={},warehouse=false){const out=clone(base);for(const[k,d]of Object.entries(delta)){const x=out[k]||{id:d.id||'',name:d.name||k,qty:0};x.id=d.id||x.id||'';x.name=d.name||x.name||k;x.qty=Math.max(0,numeric(x.qty)+numeric(d.qty));if(warehouse)x.availableQty=Math.max(0,numeric(x.availableQty)+numeric(d.availableQty));if(!x.qty&&(!warehouse||!x.availableQty))delete out[k];else out[k]=x;}return out;}
 function applyCategories(base={},delta={}){const out=clone(base);for(const[k,d]of Object.entries(delta)){const v=Math.max(0,numeric(out[k])+numeric(d));if(v)out[k]=v;else delete out[k];}return out;}
 
 export async function applyInventorySummaryDelta(tx,delta,{updatedAt=new Date().toISOString(),updatedBy=''}={}){
   const gSnap=await tx.get(SUMMARY_GLOBAL),dSnap=await tx.get(SUMMARY_DISTRIBUTION),cSnap=await tx.get(SUMMARY_CATEGORIES);
-  const g={summaryVersion:SUMMARY_VERSION,...(gSnap.exists()?gSnap.data():{})};for(const k of GLOBAL_FIELDS)g[k]=Math.max(0,numeric(g[k])+numeric(delta.global[k]));g.updatedAt=updatedAt;g.updatedBy=updatedBy;
-  const d={summaryVersion:SUMMARY_VERSION,...(dSnap.exists()?dSnap.data():{})};d.warehouses=applyGroups(d.warehouses,delta.warehouses,true);d.clients=applyGroups(d.clients,delta.clients);d.suppliers=applyGroups(d.suppliers,delta.suppliers);d.updatedAt=updatedAt;d.updatedBy=updatedBy;
-  const c={summaryVersion:SUMMARY_VERSION,...(cSnap.exists()?cSnap.data():{})};c.categories=applyCategories(c.categories,delta.categories);c.updatedAt=updatedAt;c.updatedBy=updatedBy;
-  tx.set(SUMMARY_GLOBAL,g,{merge:true});tx.set(SUMMARY_DISTRIBUTION,d,{merge:true});tx.set(SUMMARY_CATEGORIES,c,{merge:true});
+  if(!gSnap.exists()||!dSnap.exists()||!cSnap.exists())return false;
+  const g={summaryVersion:SUMMARY_VERSION,...gSnap.data()};for(const k of GLOBAL_FIELDS)g[k]=Math.max(0,numeric(g[k])+numeric(delta.global[k]));g.updatedAt=updatedAt;g.updatedBy=updatedBy;
+  const d={summaryVersion:SUMMARY_VERSION,...dSnap.data()};d.warehouses=applyGroups(d.warehouses,delta.warehouses,true);d.clients=applyGroups(d.clients,delta.clients);d.suppliers=applyGroups(d.suppliers,delta.suppliers);d.updatedAt=updatedAt;d.updatedBy=updatedBy;
+  const c={summaryVersion:SUMMARY_VERSION,...cSnap.data()};c.categories=applyCategories(c.categories,delta.categories);c.updatedAt=updatedAt;c.updatedBy=updatedBy;
+  tx.set(SUMMARY_GLOBAL,g,{merge:true});tx.set(SUMMARY_DISTRIBUTION,d,{merge:true});tx.set(SUMMARY_CATEGORIES,c,{merge:true});return true;
 }
 
 export async function updateInventorySummary(beforeItem,afterItem,meta={}){const delta=inventorySummaryDelta(beforeItem,afterItem);await runTransaction(db,tx=>applyInventorySummaryDelta(tx,delta,meta));}
