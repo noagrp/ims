@@ -12,17 +12,15 @@ const INVENTORY_FILTERS=[
   ['status','Status']
 ];
 
-function ensureSearchField(field,label){const select=$('stockSearchField');if(!select)return false;let option=[...select.options].find(o=>o.value===field);if(!option){option=document.createElement('option');option.value=field;option.textContent=label;select.appendChild(option);}select.value=field;return true;}
-
 function refineInventoryFilter(){const old=$('stockFilter');if(!old||old.dataset.imsGeneralFilter==='1')return;
   const parent=old.parentElement;if(!parent)return;
   old.dataset.imsGeneralFilter='1';old.hidden=true;
   const wrap=document.createElement('div');wrap.className='grid md:grid-cols-[190px_minmax(0,1fr)_auto] gap-2';wrap.id='imsGeneralStockFilter';
-  wrap.innerHTML=`<select id="imsStockFilterField" class="${cls}">${INVENTORY_FILTERS.map(([v,l])=>`<option value="${v}">${l}</option>`).join('')}</select><input id="imsStockFilterValue" class="${cls}" placeholder="Type exact filter value" disabled><button id="imsStockFilterApply" type="button" class="bg-cyan-700 hover:bg-cyan-600 px-4 py-2.5 rounded-lg text-xs font-bold">Apply Filter</button>`;
+  wrap.innerHTML=`<select id="imsStockFilterField" class="${cls}">${INVENTORY_FILTERS.map(([v,l])=>`<option value="${v}">${l}</option>`).join('')}</select><input id="imsStockFilterValue" class="${cls}" placeholder="Type filter value" disabled><button id="imsStockFilterApply" type="button" class="bg-cyan-700 hover:bg-cyan-600 px-4 py-2.5 rounded-lg text-xs font-bold">Apply Filter</button>`;
   parent.before(wrap);
   const field=$('imsStockFilterField'),value=$('imsStockFilterValue'),apply=$('imsStockFilterApply');
-  const sync=()=>{value.disabled=!field.value;value.value='';value.placeholder=field.value==='ownershipType'?'Type owned or third_party':field.value?'Type exact value':'Choose a filter';};
-  const run=()=>{if(!field.value)return $('stockClearFilters')?.click();const v=value.value.trim();if(!v)return alert('Enter the filter value.');if(!ensureSearchField(field.value,field.selectedOptions[0]?.textContent||field.value))return;const search=$('stockSearch');if(search)search.value=v;$('stockSearchBtn')?.click();};
+  const sync=()=>{value.disabled=!field.value;value.value='';value.placeholder=field.value==='ownershipType'?'owned or third_party':field.value?'Type exact filter value':'Choose a general filter';};
+  const run=()=>{if(!field.value)return $('stockClearFilters')?.click();const v=value.value.trim();if(!v)return alert('Enter the filter value.');const wanted=`${field.value}|${v}`,option=[...old.options].find(o=>o.value===wanted)||[...old.options].find(o=>String(o.value).toLowerCase()===wanted.toLowerCase());if(!option)return alert(`No matching ${field.selectedOptions[0]?.textContent||'filter'} value found. Use the exact search above for specific text.`);old.value=option.value;old.dispatchEvent(new Event('change',{bubbles:true}));};
   field.onchange=sync;value.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();run();}};apply.onclick=run;sync();
 }
 
