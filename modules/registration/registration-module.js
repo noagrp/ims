@@ -4,7 +4,7 @@ import {can} from '../../ims-permissions.js';
 import {applyInventorySummaryDelta,inventorySummaryDelta} from '../inventory/inventory-summary.js';
 
 const $=id=>document.getElementById(id);
-const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]));
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const norm=s=>String(s??'').trim().replace(/\s+/g,' ').toLowerCase();
 const now=()=>new Date().toISOString();
 const cls='w-full min-w-0 bg-slate-950 border border-slate-700 rounded-lg px-3 py-2.5 text-sm';
