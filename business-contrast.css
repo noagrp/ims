@@ -1,0 +1,99 @@
+/* IMS Business profile/readability contrast overrides */
+
+/* Business form + directory controls */
+#bizForm input,
+#bizForm select,
+#bizForm textarea,
+#bizSearch,
+#bizRoleFilter,
+#bizTagFilter {
+  color: #f8fafc !important;
+  background-color: #020617 !important;
+  border-color: #475569 !important;
+}
+
+#bizForm input::placeholder,
+#bizForm textarea::placeholder,
+#bizSearch::placeholder,
+#bizTagFilter::placeholder {
+  color: #94a3b8 !important;
+  opacity: 1 !important;
+}
+
+#bizForm label,
+#bizForm .text-slate-400 {
+  color: #cbd5e1 !important;
+}
+
+#bizList > div {
+  color: #f1f5f9 !important;
+  border-color: #334155 !important;
+}
+
+#bizList .text-slate-500 {
+  color: #94a3b8 !important;
+}
+
+#bizList .bg-slate-800 {
+  color: #f8fafc !important;
+}
+
+/* Business Profile modal */
+#bizProfileModal {
+  color: #f8fafc !important;
+}
+
+#bizProfileModal > div {
+  background-color: #0f172a !important;
+  border-color: #475569 !important;
+}
+
+#bizProfileModal .bg-slate-900 {
+  background-color: #0f172a !important;
+}
+
+#bizProfileModal .bg-slate-950 {
+  background-color: #020617 !important;
+}
+
+#bizProfileModal .border-slate-800,
+#bizProfileModal .border-slate-700 {
+  border-color: #475569 !important;
+}
+
+#bizProfileModal .text-slate-500,
+#bizProfileModal .text-slate-600 {
+  color: #94a3b8 !important;
+}
+
+#bizProfileModal .text-slate-400 {
+  color: #cbd5e1 !important;
+}
+
+#bizProfileModal .text-cyan-300 {
+  color: #67e8f9 !important;
+}
+
+#bizProfileModal .text-emerald-400 {
+  color: #6ee7b7 !important;
+}
+
+#bizProfileModal .text-amber-400 {
+  color: #fbbf24 !important;
+}
+
+#bizProfileModal h2,
+#bizProfileModal h3,
+#bizProfileModal .font-bold,
+#bizProfileModal .font-semibold {
+  color: #f8fafc;
+}
+
+#bizProfileModal .bg-slate-800 {
+  background-color: #1e293b !important;
+  color: #f8fafc !important;
+}
+
+#bizProfileModal button:hover {
+  filter: brightness(1.12);
+}
