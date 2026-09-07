@@ -18,7 +18,7 @@ const PERMISSIONS=Object.freeze({
 'masters.view':ALL,'masters.add':MANAGER_UP,'masters.edit':MANAGER_UP,'masters.status':MANAGER_UP,'masters.delete':SUPER_ONLY,
 'business.view':ALL,'business.add':ALL,'business.edit':ALL,'business.status':MANAGER_UP,'business.delete':SUPER_ONLY,
 'records.view':ALL,'records.export.csv':ALL,'records.print.pdf':ALL,
-'audit.view':MANAGER_UP,'audit.export.csv':MANAGER_UP,'audit.print.pdf':MANAGER_UP,
+'audit.view':SUPER_ONLY,'audit.export.csv':SUPER_ONLY,'audit.print.pdf':SUPER_ONLY,
 'users.view':MANAGER_UP,'users.add':MANAGER_UP,'users.edit':MANAGER_UP,'users.status':MANAGER_UP,'users.role.edit':SUPER_ONLY,'users.delete':SUPER_ONLY,
 'backup.create':MANAGER_UP,'backup.restore':SUPER_ONLY,'system.test.reset':SUPER_ONLY
 });
