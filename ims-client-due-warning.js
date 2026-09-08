@@ -32,40 +32,38 @@ async function loadRefs(force=false){
     return refs;
   }finally{loading=false;}
 }
-function mostUrgentForItem(itemId){
-  const matches=refs.filter(r=>Array.isArray(r.linkedItemIds)&&r.linkedItemIds.includes(itemId)).map(r=>({r,state:dueState(r.periodTo,r.poStatus||'Open')})).filter(x=>x.state);
+function mostUrgentFromRefs(itemId){
+  const matches=refs.filter(r=>Array.isArray(r.linkedItemIds)&&r.linkedItemIds.includes(itemId)).map(r=>({po:r.poNumber||r.refNumber||'',due:r.periodTo,status:r.poStatus||'Open',state:dueState(r.periodTo,r.poStatus||'Open')})).filter(x=>x.state);
   matches.sort((a,b)=>a.state.days-b.state.days);
   return matches[0]||null;
 }
+async function movementDueForItem(itemId){
+  const snap=await getDocs(query(collection(db,'movements'),where('itemId','==',itemId),where('action','==','DELIVER_CLIENT'),limit(25)));
+  const rows=snap.docs.map(d=>d.data()).filter(m=>m.periodTo&&m.status==='arrived').map(m=>({po:m.referenceNumber||'',due:m.periodTo,status:'Open',createdAt:m.createdAt||'',state:dueState(m.periodTo,'Open')})).filter(x=>x.state).sort((a,b)=>a.state.days-b.state.days||String(b.createdAt).localeCompare(String(a.createdAt)));
+  return rows[0]||null;
+}
 function decorateDocuments(){
-  const table=document.querySelector('#docTable table');
-  if(!table)return;
-  const headers=[...table.querySelectorAll('thead th')].map(x=>x.textContent.trim().toLowerCase()),dueIndex=headers.findIndex(x=>x==='due date'),statusIndex=headers.findIndex(x=>x==='status'),poIndex=headers.findIndex(x=>x==='po');
+  const table=document.querySelector('#docTable table');if(!table)return;
+  const headers=[...table.querySelectorAll('thead th')].map(x=>x.textContent.trim().toLowerCase()),dueIndex=headers.findIndex(x=>x==='due date'),statusIndex=headers.findIndex(x=>x==='status');
   if(dueIndex<0)return;
   for(const tr of table.querySelectorAll('tbody tr')){
     const cells=[...tr.children];if(cells.length<=dueIndex)continue;
     tr.querySelectorAll('[data-ims-due-badge]').forEach(x=>x.remove());cleanClasses(tr);
-    const due=cells[dueIndex]?.textContent.trim()||'',status=statusIndex>=0?cells[statusIndex]?.textContent.replace(/^DUE\s*·\s*/i,'').trim():'Open',po=poIndex>=0?cells[poIndex]?.textContent.trim():'';
-    const state=dueState(due,status);if(!state)continue;
-    tr.classList.add(...state.row.split(' '));
-    cells[dueIndex].classList.add('text-red-200','font-bold');
-    cells[dueIndex].insertAdjacentHTML('beforeend',`<div class="mt-1">${badgeHtml(state,'','')}</div>`);
-    const action=tr.querySelector('.openPO');if(action){action.classList.remove('bg-slate-700');action.classList.add(state.days<=0?'bg-red-600':'bg-red-800');if(state.days<=3)action.textContent='Act Now';}
+    const due=cells[dueIndex]?.textContent.trim()||'',status=statusIndex>=0?cells[statusIndex]?.textContent.replace(/^DUE\s*·\s*/i,'').trim():'Open',state=dueState(due,status);if(!state)continue;
+    tr.classList.add(...state.row.split(' '));cells[dueIndex].classList.add('text-red-200','font-bold');cells[dueIndex].insertAdjacentHTML('beforeend',`<div class="mt-1">${badgeHtml(state,'','')}</div>`);
+    const action=tr.querySelector('.openPO');if(action){action.classList.remove('bg-slate-700');action.classList.add(state.days<=0?'bg-red-600':'bg-red-800');action.textContent='Act Now';}
   }
 }
-function decorateAtClient(){
+async function decorateAtClient(){
   const root=document.querySelector('[data-workspace-queue="client"]');if(!root)return;
   for(const card of root.querySelectorAll('.workspaceOpenItem[data-id]')){
     card.querySelectorAll('[data-ims-due-strip]').forEach(x=>x.remove());cleanClasses(card);
-    const hit=mostUrgentForItem(card.dataset.id);if(!hit)continue;
-    const{r,state}=hit;card.classList.add(...state.row.split(' '));
-    card.insertAdjacentHTML('beforeend',`<div data-ims-due-strip class="mt-3 pt-2 border-t border-red-900/60 flex flex-wrap items-center justify-between gap-2"><div>${badgeHtml(state,r.periodTo,r.poNumber||r.refNumber||'')}</div><div class="text-[10px] text-red-200/80">Client PO due warning</div></div>`);
+    let hit=mostUrgentFromRefs(card.dataset.id);if(!hit)hit=await movementDueForItem(card.dataset.id);if(!hit)continue;
+    const{state,due,po}=hit;card.classList.add(...state.row.split(' '));card.insertAdjacentHTML('beforeend',`<div data-ims-due-strip class="mt-3 pt-2 border-t border-red-900/60 flex flex-wrap items-center justify-between gap-2"><div>${badgeHtml(state,due,po)}</div><div class="text-[10px] text-red-200/80">Client PO due warning</div></div>`);
   }
 }
-async function refresh(force=false){try{await loadRefs(force);decorateDocuments();decorateAtClient();}catch(e){console.error('IMS client due warning failed:',e);}}
+async function refresh(force=false){try{await loadRefs(force);decorateDocuments();await decorateAtClient();}catch(e){console.error('IMS client due warning failed:',e);}}
 let timer;new MutationObserver(()=>{clearTimeout(timer);timer=setTimeout(()=>refresh(false),80);}).observe(document.body,{childList:true,subtree:true});
-window.addEventListener('ims:workspace-rendered',()=>refresh(true));
-window.addEventListener('ims:modules-ready',()=>refresh(true));
-refresh(true);
+window.addEventListener('ims:workspace-rendered',()=>refresh(true));window.addEventListener('ims:modules-ready',()=>refresh(true));refresh(true);
 window.IMSDueWarning=Object.freeze({refresh,dueState});
 export{refresh,dueState};
