@@ -1,6 +1,6 @@
 import { can, currentRole } from './ims-permissions.js';
 
-const IMS_BUILD='20260909-01';
+const IMS_BUILD='20260909-02';
 const versioned=src=>`${src}${src.includes('?')?'&':'?'}v=${IMS_BUILD}`;
 
 const MODULES=Object.freeze([
@@ -25,8 +25,9 @@ const MODULES=Object.freeze([
 {id:'incident',src:'./modules/incident/incident-module.js',permission:'incident.view',owner:'IMSIncident'},
 {id:'alpha-usability',src:'./ims-alpha-usability.js',owner:'IMSAlphaUsability'},
 {id:'commercial-context',src:'./ims-commercial-context.js',owner:'IMSCommercialContext'},
-{id:'client-doc-enrichment',src:'./ims-client-doc-enrichment.js',owner:'IMSClientDocEnrichment',permission:'documents.view'},
 {id:'client-due-warning',src:'./ims-client-due-warning.js',owner:'IMSDueWarning'},
+{id:'client-doc-enrichment',src:'./ims-client-doc-enrichment.js',owner:'IMSClientDocEnrichment'},
+{id:'r2r-label-consistency',src:'./ims-r2r-label-consistency.js',owner:'IMSR2RLabelConsistency'},
 {id:'sortable-tables',src:'./sortable-tables.js',mode:'classic'},
 {id:'print-clean',src:'./print-clean.js',mode:'classic',permission:'records.print.pdf'}
 ]);
