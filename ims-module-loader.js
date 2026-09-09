@@ -1,6 +1,6 @@
 import { can, currentRole } from './ims-permissions.js';
 
-const IMS_BUILD='20260909-03';
+const IMS_BUILD='20260910-01';
 const versioned=src=>`${src}${src.includes('?')?'&':'?'}v=${IMS_BUILD}`;
 
 const MODULES=Object.freeze([
@@ -29,6 +29,9 @@ const MODULES=Object.freeze([
 {id:'client-doc-enrichment',src:'./ims-client-doc-enrichment.js',owner:'IMSClientDocEnrichment'},
 {id:'r2r-label-consistency',src:'./ims-r2r-label-consistency.js',owner:'IMSR2RLabelConsistency'},
 {id:'inventory-server-sort',src:'./ims-inventory-server-sort.js',permission:'inventory.view',owner:'IMSInventoryServerSort'},
+{id:'service-refinement',src:'./ims-service-refinement.js',permission:'servicecycle.view',owner:'IMSServiceRefinement'},
+{id:'item-master-editor',src:'./ims-item-master-editor.js',permission:'inventory.view',owner:'IMSItemMasterEditor'},
+{id:'permission-copy',src:'./ims-permission-copy.js',owner:'IMSPermissionCopy'},
 {id:'sortable-tables',src:'./sortable-tables.js',mode:'classic'},
 {id:'print-clean',src:'./print-clean.js',mode:'classic',permission:'records.print.pdf'}
 ]);
