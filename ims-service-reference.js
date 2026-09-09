@@ -13,10 +13,16 @@ function leaf(root,from,to){
 function refineWorkflow(){
   const root=$('serviceCycleWorkflow');
   if(!root)return;
-  leaf(root,'PO','Service No. / PO');
+  leaf(root,'Service No.','Service No. / PO *');
+  leaf(root,'PO','Service No. / PO *');
+  leaf(root,'Service No. / PO','Service No. / PO *');
+  leaf(root,'Active Service No.','Active Service No. / PO');
   leaf(root,'Active PO','Active Service No. / PO');
+  leaf(root,'Failed Service No.','Failed Service No. / PO');
   leaf(root,'Failed PO','Failed Service No. / PO');
+  leaf(root,'Completed / Failed Service No.','Completed / Failed Service No. / PO');
   leaf(root,'Completed / Failed PO','Completed / Failed Service No. / PO');
+  leaf(root,'Select a Service No.','Select a Service No. / PO.');
   leaf(root,'Select a PO.','Select a Service No. / PO.');
   leaf(root,'Select a PO','Select a Service No. / PO');
 }
@@ -27,13 +33,19 @@ function refineItemDetail(){
   const serviceHeading=headings.find(x=>x.textContent.trim()==='Service Cycle History');
   if(serviceHeading){
     const section=serviceHeading.closest('section');
-    if(section)leaf(section,'PO','Service No. / PO');
+    if(section){
+      leaf(section,'Service No.','Service No. / PO');
+      leaf(section,'PO','Service No. / PO');
+    }
   }
   const docsHeading=headings.find(x=>x.textContent.trim()==='Documents & References');
   if(docsHeading){
     const section=docsHeading.closest('section');
     if(section){
-      for(const td of section.querySelectorAll('td'))if(td.textContent.trim()==='PO'&&td.previousElementSibling?.textContent.trim()==='Service Cycle')td.textContent='Service No. / PO';
+      for(const td of section.querySelectorAll('td')){
+        const t=td.textContent.trim();
+        if((t==='PO'||t==='Service No.')&&td.previousElementSibling?.textContent.trim()==='Service Cycle')td.textContent='Service No. / PO';
+      }
     }
   }
 }
