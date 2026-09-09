@@ -1,6 +1,6 @@
 import { can, currentRole } from './ims-permissions.js';
 
-const IMS_BUILD='20260910-05';
+const IMS_BUILD='20260910-06';
 const versioned=src=>`${src}${src.includes('?')?'&':'?'}v=${IMS_BUILD}`;
 
 const MODULES=Object.freeze([
@@ -28,7 +28,6 @@ const MODULES=Object.freeze([
 {id:'client-due-warning',src:'./ims-client-due-warning.js',owner:'IMSDueWarning'},
 {id:'client-doc-enrichment',src:'./ims-client-doc-enrichment.js',owner:'IMSClientDocEnrichment'},
 {id:'r2r-label-consistency',src:'./ims-r2r-label-consistency.js',owner:'IMSR2RLabelConsistency'},
-{id:'r2r-op-cards',src:'./ims-r2r-op-cards.js',permission:'renttorent.view',owner:'IMSR2ROpCards'},
 {id:'inventory-server-sort',src:'./ims-inventory-server-sort.js',permission:'inventory.view',owner:'IMSInventoryServerSort'},
 {id:'service-refinement',src:'./ims-service-refinement.js',permission:'servicecycle.view',owner:'IMSServiceRefinement'},
 {id:'service-reference',src:'./ims-service-reference.js',permission:'servicecycle.view',owner:'IMSServiceReference'},
