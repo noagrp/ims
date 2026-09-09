@@ -1,6 +1,6 @@
 import { can, currentRole } from './ims-permissions.js';
 
-const IMS_BUILD='20260910-02';
+const IMS_BUILD='20260910-03';
 const versioned=src=>`${src}${src.includes('?')?'&':'?'}v=${IMS_BUILD}`;
 
 const MODULES=Object.freeze([
@@ -30,6 +30,7 @@ const MODULES=Object.freeze([
 {id:'r2r-label-consistency',src:'./ims-r2r-label-consistency.js',owner:'IMSR2RLabelConsistency'},
 {id:'inventory-server-sort',src:'./ims-inventory-server-sort.js',permission:'inventory.view',owner:'IMSInventoryServerSort'},
 {id:'service-refinement',src:'./ims-service-refinement.js',permission:'servicecycle.view',owner:'IMSServiceRefinement'},
+{id:'service-reference',src:'./ims-service-reference.js',permission:'servicecycle.view',owner:'IMSServiceReference'},
 {id:'item-master-editor',src:'./ims-item-master-editor.js',permission:'inventory.view',owner:'IMSItemMasterEditor'},
 {id:'permission-copy',src:'./ims-permission-copy.js',owner:'IMSPermissionCopy'},
 {id:'sortable-tables',src:'./sortable-tables.js',mode:'classic'},
