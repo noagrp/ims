@@ -6,7 +6,7 @@ const MANAGER_UP=Object.freeze([ROLES.MANAGER,ROLES.SUPERADMIN]);
 const SUPER_ONLY=Object.freeze([ROLES.SUPERADMIN]);
 const PERMISSIONS=Object.freeze({
 'app.view':ALL,
-'inventory.view':ALL,'inventory.add':ALL,'inventory.edit':MANAGER_UP,'inventory.alias.edit':ALL,'inventory.delete':SUPER_ONLY,'inventory.export.csv':ALL,'inventory.print.pdf':ALL,
+'inventory.view':ALL,'inventory.add':ALL,'inventory.edit':MANAGER_UP,'inventory.alias.edit':ALL,'inventory.delete':SUPER_ONLY,'inventory.export.csv':ALL,'inventory.print.pdf':ALL,'inventory.csv.manage':MANAGER_UP,
 'movement.view':ALL,'movement.add':ALL,'movement.edit':ALL,'movement.delete':SUPER_ONLY,
 'servicecycle.view':ALL,'servicecycle.add':ALL,'servicecycle.edit':ALL,'servicecycle.delete':SUPER_ONLY,
 'invoice.view':ALL,'invoice.export.csv':ALL,'invoice.print.pdf':ALL,'invoice.cancel':ALL,
@@ -14,7 +14,7 @@ const PERMISSIONS=Object.freeze({
 'reservation.view':ALL,'reservation.add':ALL,'reservation.edit':ALL,'reservation.cancel':ALL,
 'disposition.view':ALL,'disposition.add':MANAGER_UP,'disposition.edit':MANAGER_UP,
 'incident.view':ALL,'incident.add':ALL,'incident.edit':ALL,
-'renttorent.view':ALL,'renttorent.add':ALL,'renttorent.edit':ALL,
+'renttorent.view':ALL,'renttorent.add':ALL,'renttorent.edit':ALL,'renttorent.csv.manage':MANAGER_UP,
 'masters.view':ALL,'masters.add':MANAGER_UP,'masters.edit':MANAGER_UP,'masters.status':MANAGER_UP,'masters.delete':SUPER_ONLY,
 'business.view':ALL,'business.add':ALL,'business.edit':ALL,'business.status':MANAGER_UP,'business.delete':SUPER_ONLY,
 'records.view':ALL,'records.export.csv':ALL,'records.print.pdf':ALL,
