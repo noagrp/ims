@@ -1,0 +1,54 @@
+// Normalize Rent-to-Rent operational queues to the same compact card presentation used by Main Workspace Movement.
+// Existing R2R Firestore queries and action handlers remain authoritative.
+const $=id=>document.getElementById(id);
+const KINDS=['incoming','warehouse','returning'];
+const TITLES={
+  incoming:{title:'R2R Supplier → Warehouse · In Transit',subtitle:'Physical R2R movements waiting for warehouse arrival'},
+  warehouse:{title:'R2R in Warehouse',subtitle:'R2R items currently available in warehouse'},
+  returning:{title:'R2R Warehouse → Supplier · In Transit',subtitle:'Physical R2R returns waiting for supplier arrival'}
+};
+function queueSection(kind){return $(kind+'List')?.closest('section')||null;}
+function normalizeHeader(kind,section){
+  const heading=section.querySelector('h2');
+  if(heading){heading.className='font-bold';heading.textContent=TITLES[kind].title;}
+  const head=heading?.parentElement;
+  if(head){
+    head.className='flex flex-wrap justify-between gap-2 items-start mb-3';
+    let left=head.querySelector('[data-r2r-movement-head]');
+    if(!left&&heading){left=document.createElement('div');left.dataset.r2rMovementHead='1';heading.replaceWith(left);left.appendChild(heading);const sub=document.createElement('div');sub.className='text-[10px] text-slate-500 mt-0.5';sub.textContent=TITLES[kind].subtitle;left.appendChild(sub);}
+  }
+  const count=$(kind+'Count');
+  if(count){count.className='text-[10px] text-emerald-400 mt-1';const raw=(count.textContent||'').replace(/\s*·\s*Firestore server pagination\s*$/,'').trim();if(raw)count.textContent=raw+' · Firestore server pagination';}
+}
+function hideLegacyControls(kind,section){
+  const input=$(kind+'PO');
+  const filterRow=input?.closest('.grid');
+  if(filterRow)filterRow.classList.add('hidden');
+  const bulk=$(kind+'Action');if(bulk)bulk.classList.add('hidden');
+  const list=$(kind+'List');if(list){list.classList.remove('max-w-5xl');list.classList.add('w-full');}
+  const prev=$(kind+'Prev'),next=$(kind+'Next');
+  const pager=prev?.parentElement;if(pager){pager.classList.remove('max-w-5xl');pager.classList.add('w-full');}
+}
+function normalizeCards(kind){
+  const list=$(kind+'List');if(!list)return;
+  list.className='space-y-2 w-full';
+  [...list.children].forEach(card=>{
+    if(!card.querySelector('.r2rOpen'))return;
+    card.className='bg-slate-950 border border-slate-800 rounded-xl p-3';
+    const row=card.firstElementChild;if(row)row.className='flex flex-col sm:flex-row sm:items-center justify-between gap-3';
+    const pick=card.querySelector(`.${kind}Pick`);if(pick){pick.classList.add('hidden');pick.setAttribute('aria-hidden','true');}
+    const left=pick?.parentElement;if(left)left.className='min-w-0 flex-1';
+    const open=card.querySelector('.r2rOpen');if(open){open.className='r2rOpen w-full text-left min-w-0 flex-1 hover:border-cyan-800';}
+    const grid=open?.querySelector('.grid');if(grid)grid.className='grid sm:grid-cols-2 lg:grid-cols-6 gap-2 mt-2';
+    const movementLine=open?.querySelector('.font-mono.text-\[9px\]');if(movementLine)movementLine.classList.add('hidden');
+    const action=card.querySelector('.r2rSingle');if(action)action.className='r2rSingle shrink-0 bg-emerald-600 hover:bg-emerald-500 px-4 py-2 rounded-lg text-xs font-bold';
+  });
+}
+function normalize(kind){const section=queueSection(kind);if(!section)return;section.className='w-full bg-slate-900 border border-slate-800 rounded-2xl p-4';normalizeHeader(kind,section);hideLegacyControls(kind,section);normalizeCards(kind);}
+function apply(){if(!document.getElementById('r2rForm'))return;KINDS.forEach(normalize);}
+let timer;new MutationObserver(()=>{clearTimeout(timer);timer=setTimeout(apply,20);}).observe(document.body,{childList:true,subtree:true,characterData:true});
+window.addEventListener('ims:renttorent-ready',()=>setTimeout(apply,0));
+apply();
+window.IMSR2RMovementCardDesign=Object.freeze({apply});
+window.dispatchEvent(new CustomEvent('ims:r2r-movement-card-design-ready'));
+export{apply};
