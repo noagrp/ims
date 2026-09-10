@@ -1,0 +1,22 @@
+import './ims-registration-csv-v3.js';
+
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const OLD_REG=['Item Type','Wellora SN','Description','COC / Mill No','Unit','Category','Size','Grade','PPF','Connection','Range','Brand','Model','Weight','Weight Unit','Supplier','Wellora PO','PO Total Amount','Currency','Initial Position','Warehouse','Delivery Ticket / DO','Receiving Ticket','Remark'];
+const OLD_R2R=['Item Type','R2R SN','Description','COC / Mill No','Unit','Category','Size','Grade','PPF','Connection','Range','Brand','Model','Weight','Weight Unit','Supplier','Our PO','PO Total Amount','Currency','Destination Warehouse','Rental Start','Rental Due','Supplier Reference / Remark'];
+const allowedRole=()=>['manager','superadmin'].includes(String(window.IMS_ROLE||'').toLowerCase());
+
+function detectDelimiter(text){const first=String(text||'').replace(/^\ufeff/,'').split(/\r?\n/,1)[0]||'';let commas=0,tabs=0,q=false;for(let i=0;i<first.length;i++){const c=first[i];if(c==='"'&&first[i+1]==='"'){i++;continue;}if(c==='"'){q=!q;continue;}if(!q&&c===',')commas++;if(!q&&c==='\t')tabs++;}return tabs>commas?'\t':',';}
+function parse(text){text=String(text||'').replace(/^\ufeff/,'');const delim=detectDelimiter(text),rows=[];let row=[],cell='',q=false;for(let i=0;i<text.length;i++){const c=text[i];if(q){if(c==='"'&&text[i+1]==='"'){cell+='"';i++;}else if(c==='"')q=false;else cell+=c;}else if(c==='"')q=true;else if(c===delim){row.push(cell);cell='';}else if(c==='\n'){row.push(cell.replace(/\r$/,''));rows.push(row);row=[];cell='';}else cell+=c;}if(cell.length||row.length){row.push(cell.replace(/\r$/,''));rows.push(row);}return rows.filter(r=>r.some(v=>String(v).trim()!==''));}
+function csvEscape(v){v=String(v??'');return /[",\n\r]/.test(v)?`"${v.replace(/"/g,'""')}"`:v;}
+function toObjects(rows){if(!rows.length)throw Error('CSV is empty.');const headers=rows[0].map(v=>String(v).trim()),items=rows.slice(1).map((r,i)=>({row:i+2,data:Object.fromEntries(headers.map((h,j)=>[h,String(r[j]??'').trim()]))}));if(!items.length)throw Error('No data rows found. The file contains only the header row.');return{headers,items};}
+function blankPlaceholder(v){return /^--\s+.*\s+--$/.test(String(v??'').trim())?'':String(v??'');}
+function legacyText(mode,parsed){const headers=mode==='registration'?OLD_REG:OLD_R2R,rows=parsed.items.map(x=>headers.map(h=>blankPlaceholder(x.data[h]??'')));return '\ufeff'+[headers,...rows].map(r=>r.map(csvEscape).join(',')).join('\r\n');}
+function showError(root,msg){const p=root?.querySelector('.imsCsvPreview');if(!p)return;p.classList.remove('hidden');p.innerHTML=`<div class="border border-red-900/60 rounded-lg p-3"><b class="text-red-300">Import blocked</b><div class="mt-2 text-xs text-red-200">${esc(msg)}</div><div class="text-[11px] text-slate-500 mt-2">Nothing has been imported.</div></div>`;}
+function installOne(mode){const root=$(mode==='registration'?'regCsvTools':'r2rCsvTools');if(!root||root.dataset.csvV4==='1')return;root.dataset.csvV4='1';const oldInput=root.querySelector('.imsCsvFile'),button=root.querySelector('.imsCsvImport');if(!oldInput||!button)return;const picker=document.createElement('input');picker.type='file';picker.accept='.csv,.tsv,text/csv,text/tab-separated-values';picker.className='hidden imsCsvFileV4';root.appendChild(picker);button.onclick=()=>{picker.value='';picker.click();};picker.onchange=async()=>{const f=picker.files?.[0];if(!f)return;try{const parsed=toObjects(parse(await f.text())),text=legacyText(mode,parsed),dt=new DataTransfer();dt.items.add(new File([text],f.name,{type:'text/csv'}));oldInput.files=dt.files;oldInput.dataset.imsCsvNormalized='1';oldInput.dispatchEvent(new Event('change',{bubbles:true}));}catch(e){showError(root,e?.message||String(e));}};}
+function install(){if(!allowedRole())return;installOne('registration');installOne('r2r');}
+let timer;new MutationObserver(()=>{clearTimeout(timer);timer=setTimeout(install,30);}).observe(document.body,{childList:true,subtree:true});
+install();
+window.IMSCsvRowHandoffFix=Object.freeze({install});
+window.dispatchEvent(new CustomEvent('ims:csv-row-handoff-fix-ready'));
+export{install};
