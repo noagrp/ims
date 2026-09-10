@@ -1,6 +1,6 @@
-import { can, currentRole } from './ims-permissions.js?v=20260910-13';
+import { can, currentRole } from './ims-permissions.js?v=20260910-14';
 
-const IMS_BUILD='20260910-13';
+const IMS_BUILD='20260910-14';
 const versioned=src=>`${src}${src.includes('?')?'&':'?'}v=${IMS_BUILD}`;
 
 const MODULES=Object.freeze([
@@ -21,7 +21,7 @@ const MODULES=Object.freeze([
 {id:'invoices',src:'./modules/invoices/invoice-module.js',permission:'documents.view',owner:'IMSInvoices'},
 {id:'renttorent',src:'./modules/renttorent/renttorent-module.js',permission:'renttorent.view',owner:'IMSRentToRent'},
 {id:'r2r-movement-card-design',src:'./ims-r2r-movement-card-design.js',permission:'renttorent.view',owner:'IMSR2RMovementCardDesign'},
-{id:'registration-csv',src:'./ims-registration-csv-v3.js',roles:['manager','superadmin'],owner:'IMSRegistrationCSV'},
+{id:'registration-csv',src:'./ims-registration-csv-v4.js',roles:['manager','superadmin'],owner:'IMSRegistrationCSV'},
 {id:'csv-toolbar-keeper',src:'./ims-csv-toolbar-keeper.js',roles:['manager','superadmin'],owner:'IMSCsvToolbarKeeper'},
 {id:'reservation',src:'./modules/reservation/reservation-module.js',permission:'reservation.view',owner:'IMSReservation'},
 {id:'disposition',src:'./modules/disposition/disposition-module.js',permission:'disposition.view',owner:'IMSDisposition'},
