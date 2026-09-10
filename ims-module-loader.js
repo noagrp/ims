@@ -1,6 +1,6 @@
-import { can, currentRole } from './ims-permissions.js?v=20260910-26';
+import { can, currentRole } from './ims-permissions.js?v=20260910-27';
 
-const IMS_BUILD='20260910-26';
+const IMS_BUILD='20260910-27';
 const versioned=src=>`${src}${src.includes('?')?'&':'?'}v=${IMS_BUILD}`;
 
 const MODULES=Object.freeze([
@@ -19,7 +19,6 @@ const MODULES=Object.freeze([
 {id:'workspace',src:'./modules/workspace/workspace-module.js',permission:'app.view',owner:'IMSWorkspace'},
 {id:'registration',src:'./modules/registration/registration-module.js',permission:'inventory.add',owner:'IMSRegistration'},
 {id:'registration-import-export',src:'./modules/registration/registration-import-export.js',roles:['manager','superadmin'],owner:'IMSRegistrationCSV'},
-{id:'registration-audit-csv',src:'./modules/registration/registration-csv.js',roles:['manager','superadmin'],owner:'IMSRegistrationAuditCSV'},
 {id:'movement',src:'./modules/movement/movement-module.js',permission:'movement.view',owner:'IMSMovement'},
 {id:'service-cycle',src:'./modules/service-cycle/service-cycle-module.js',permission:'servicecycle.view',owner:'IMSServiceCycle'},
 {id:'invoices',src:'./modules/invoices/invoice-module.js',permission:'documents.view',owner:'IMSInvoices'},
@@ -43,7 +42,7 @@ function waitForAuth(){if(window.IMSUser&&document.getElementById('navTabs'))ret
 function loadClassic(def){return new Promise((resolve,reject)=>{const s=document.createElement('script');s.src=versioned(def.src);s.async=false;s.dataset.imsModule=def.id;s.onload=()=>resolve(def.id);s.onerror=()=>reject(new Error(`Failed to load ${def.src}`));document.body.appendChild(s);});}
 async function loadModule(def){await import(versioned(def.src));return def.id;}
 async function loadOne(def){await(def.mode==='classic'?loadClassic(def):loadModule(def));if(def.owner&&!window[def.owner])throw new Error(`${def.id} imported but did not publish window.${def.owner}`);return def.id;}
-function refreshImportExport(){if(window.IMSRegistrationCSV?.install){queueMicrotask(()=>window.IMSRegistrationCSV?.install?.());setTimeout(()=>window.IMSRegistrationCSV?.install?.(),100);}if(window.IMSRegistrationAuditCSV?.install){queueMicrotask(()=>window.IMSRegistrationAuditCSV?.install?.());setTimeout(()=>window.IMSRegistrationAuditCSV?.install?.(),150);setTimeout(()=>window.IMSRegistrationAuditCSV?.install?.(),450);}if(window.IMSBusinessCSV?.install){queueMicrotask(()=>window.IMSBusinessCSV?.install?.());setTimeout(()=>window.IMSBusinessCSV?.install?.(),150);}if(window.IMSMasterCSV?.install){queueMicrotask(()=>window.IMSMasterCSV?.install?.());setTimeout(()=>window.IMSMasterCSV?.install?.(),150);}}
+function refreshImportExport(){if(window.IMSRegistrationCSV?.install){queueMicrotask(()=>window.IMSRegistrationCSV?.install?.());setTimeout(()=>window.IMSRegistrationCSV?.install?.(),100);}if(window.IMSBusinessCSV?.install){queueMicrotask(()=>window.IMSBusinessCSV?.install?.());setTimeout(()=>window.IMSBusinessCSV?.install?.(),150);}if(window.IMSMasterCSV?.install){queueMicrotask(()=>window.IMSMasterCSV?.install?.());setTimeout(()=>window.IMSMasterCSV?.install?.(),150);}}
 function bindDirectNavigation(){const stock=document.querySelector('.navBtn[data-tab="stock"]');if(stock&&window.IMSInventory)stock.onclick=()=>window.IMSInventory.show('overview');const workspace=document.querySelector('.navBtn[data-tab="workspace"]');if(workspace&&window.IMSWorkspace)workspace.onclick=()=>window.IMSWorkspace.show();}
 function publishStatus(loaded,failed,skipped){const owners=Object.fromEntries(MODULES.filter(x=>x.owner).map(x=>[x.id,{owner:x.owner,ready:Boolean(window[x.owner]),allowed:allowed(x)}]));window.IMSModules=Object.freeze({build:IMS_BUILD,loaded:[...loaded],failed:[...failed],skipped:[...skipped],owners,registry:MODULES});window.dispatchEvent(new CustomEvent('ims:modules-ready',{detail:window.IMSModules}));console.info('IMS consolidated module status',window.IMSModules);}
 async function bootOptionalModules(){await waitForAuth();const loaded=[],failed=[],skipped=[];for(const def of MODULES){if(!allowed(def)){skipped.push(def.id);continue;}try{await loadOne(def);loaded.push(def.id);refreshImportExport();}catch(error){failed.push({id:def.id,error:String(error?.message||error)});console.error(`IMS module failed: ${def.id}`,error);}}bindDirectNavigation();refreshImportExport();publishStatus(loaded,failed,skipped);if(window.IMSWorkspace&&!document.querySelector('[data-ims-workspace-module="1"]'))window.IMSWorkspace.show();return window.IMSModules;}
