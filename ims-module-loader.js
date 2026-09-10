@@ -1,6 +1,6 @@
-import { can, currentRole } from './ims-permissions.js?v=20260910-17';
+import { can, currentRole } from './ims-permissions.js?v=20260910-18';
 
-const IMS_BUILD='20260910-17';
+const IMS_BUILD='20260910-18';
 const versioned=src=>`${src}${src.includes('?')?'&':'?'}v=${IMS_BUILD}`;
 
 const MODULES=Object.freeze([
@@ -20,8 +20,8 @@ const MODULES=Object.freeze([
 {id:'service-cycle',src:'./modules/service-cycle/service-cycle-module.js',permission:'servicecycle.view',owner:'IMSServiceCycle'},
 {id:'invoices',src:'./modules/invoices/invoice-module.js',permission:'documents.view',owner:'IMSInvoices'},
 {id:'renttorent',src:'./modules/renttorent/renttorent-module.js',permission:'renttorent.view',owner:'IMSRentToRent'},
-{id:'r2r-movement-card-design',src:'./ims-r2r-movement-card-design.js',permission:'renttorent.view',owner:'IMSR2RMovementCardDesign'},
-{id:'registration-csv',src:'./ims-registration-csv-v4.js',roles:['manager','superadmin'],owner:'IMSRegistrationCSV'},
+{id:'r2r-ui',src:'./modules/renttorent/renttorent-ui.js',permission:'renttorent.view',owner:'IMSR2RMovementCardDesign'},
+{id:'registration-import-export',src:'./modules/registration/registration-import-export.js',roles:['manager','superadmin'],owner:'IMSRegistrationCSV'},
 {id:'reservation',src:'./modules/reservation/reservation-module.js',permission:'reservation.view',owner:'IMSReservation'},
 {id:'disposition',src:'./modules/disposition/disposition-module.js',permission:'disposition.view',owner:'IMSDisposition'},
 {id:'incident',src:'./modules/incident/incident-module.js',permission:'incident.view',owner:'IMSIncident'},
@@ -29,11 +29,9 @@ const MODULES=Object.freeze([
 {id:'commercial-context',src:'./ims-commercial-context.js',owner:'IMSCommercialContext'},
 {id:'client-due-warning',src:'./ims-client-due-warning.js',owner:'IMSDueWarning'},
 {id:'client-doc-enrichment',src:'./ims-client-doc-enrichment.js',owner:'IMSClientDocEnrichment'},
-{id:'inventory-server-sort',src:'./ims-inventory-server-sort.js',permission:'inventory.view',owner:'IMSInventoryServerSort'},
-{id:'service-refinement',src:'./ims-service-refinement.js',permission:'servicecycle.view',owner:'IMSServiceRefinement'},
-{id:'service-reference',src:'./ims-service-reference.js',permission:'servicecycle.view',owner:'IMSServiceReference'},
-{id:'item-master-editor',src:'./ims-item-master-editor.js',permission:'inventory.view',owner:'IMSItemMasterEditor'},
-{id:'permission-copy',src:'./ims-permission-copy.js',owner:'IMSPermissionCopy'},
+{id:'inventory-sort',src:'./modules/inventory/inventory-sort.js',permission:'inventory.view',owner:'IMSInventoryServerSort'},
+{id:'service-enhancements',src:'./modules/service-cycle/service-cycle-enhancements.js',permission:'servicecycle.view',owner:'IMSServiceEnhancements'},
+{id:'item-master-editor',src:'./modules/items/item-master-editor.js',permission:'inventory.view',owner:'IMSItemMasterEditor'},
 {id:'sortable-tables',src:'./sortable-tables.js',mode:'classic'},
 {id:'print-clean',src:'./print-clean.js',mode:'classic',permission:'records.print.pdf'}
 ]);
