@@ -70,7 +70,8 @@ function normalizeCards(kind){
   });
 }
 function normalize(kind){const section=queueSection(kind);if(!section)return;section.className='w-full bg-slate-900 border border-slate-800 rounded-2xl p-4';normalizeHeader(kind,section);hideLegacyControls(kind);normalizeCards(kind);}
-function apply(){if(!document.getElementById('r2rForm'))return;KINDS.forEach(normalize);}
+function attachCsv(){window.IMSRegistrationCSV?.install?.();window.IMSRegistrationAuditCSV?.install?.();}
+function apply(){if(!document.getElementById('r2rForm'))return;KINDS.forEach(normalize);attachCsv();}
 let timer;
 new MutationObserver(mutations=>{
   const relevant=mutations.some(m=>m.type==='childList'&&(m.addedNodes.length||m.removedNodes.length));
@@ -79,6 +80,8 @@ new MutationObserver(mutations=>{
   timer=setTimeout(apply,20);
 }).observe(document.body,{childList:true,subtree:true});
 window.addEventListener('ims:renttorent-ready',()=>setTimeout(apply,0));
+window.addEventListener('ims:registration-csv-ready',()=>setTimeout(attachCsv,0));
+window.addEventListener('ims:registration-audit-csv-ready',()=>setTimeout(attachCsv,0));
 apply();
 window.IMSR2RMovementCardDesign=Object.freeze({apply});
 window.dispatchEvent(new CustomEvent('ims:r2r-movement-card-design-ready'));
