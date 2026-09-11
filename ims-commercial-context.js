@@ -26,16 +26,13 @@ async function currentClientAssignment(itemId,clientName=''){
 
 async function readAllByFilter(name,filters=[]){const rows=[];let cursor=null;while(true){const parts=[...filters,orderBy(documentId(),'asc')];if(cursor)parts.push(startAfter(cursor));parts.push(limit(500));const snap=await getDocs(query(collection(db,name),...parts));rows.push(...snap.docs.map(d=>({id:d.id,...d.data()})));if(snap.size<500)break;cursor=snap.docs.at(-1);}return rows;}
 async function existingCommercialKeys(keys){const found=new Set();for(let i=0;i<keys.length;i+=30){const chunk=keys.slice(i,i+30);if(!chunk.length)continue;const snap=await getDocs(query(collection(db,'document_refs'),where('commercialKey','in',chunk)));for(const d of snap.docs){const k=d.data().commercialKey;if(k)found.add(k);}}return found;}
-async function recentRows(name,filters=[]){return(await getDocs(query(collection(db,name),...filters,orderBy(documentId(),'desc'),limit(100)))).docs.map(d=>({id:d.id,...d.data()}));}
+async function recentRows(name){return(await getDocs(query(collection(db,name),orderBy('createdAt','desc'),limit(200)))).docs.map(d=>({id:d.id,...d.data()}));}
 async function syncRecentCommercialIndex(){
   if(recentIndexSync)return recentIndexSync;
   recentIndexSync=(async()=>{
     const actor=window.IMSUser?.email||'';if(!actor)return{created:0};
-    const[clients,owned,r2r]=await Promise.all([
-      recentRows('movement_groups',[where('referenceType','==','client_po')]),
-      recentRows('registration_batches',[where('completionStatus','==','completed')]),
-      recentRows('movement_groups',[where('referenceType','==','r2r_po')])
-    ]);
+    const[movementGroups,registrationBatches]=await Promise.all([recentRows('movement_groups'),recentRows('registration_batches')]);
+    const clients=movementGroups.filter(x=>x.referenceType==='client_po'),r2r=movementGroups.filter(x=>x.referenceType==='r2r_po'),owned=registrationBatches.filter(x=>x.completionStatus==='completed');
     const candidates=[];
     for(const g of clients){const po=String(g.referenceNumber||'').trim(),businessId=String(g.partyId||g.toId||'');if(po&&businessId)candidates.push({kind:'client',key:key('client',businessId,po),g,po,businessId});}
     for(const b of owned){const po=String(b.ourPONumber||'').trim(),businessId=String(b.supplierId||'');if(po&&businessId)candidates.push({kind:'owned',key:key('supplier',businessId,po),b,po,businessId});}
