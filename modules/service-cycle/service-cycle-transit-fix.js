@@ -20,7 +20,6 @@ function finalStatus(t,f){if(f)return'Not Available';return t==='warehouse'?'Ava
 
 async function startSentTo(e){
   if(busy||$('scMode')?.value!=='Sent To'||!can('servicecycle.add'))return;
-  e.preventDefault();e.stopImmediatePropagation();
   try{
     const s=source(),type=$('scType')?.value||'Inspection / Maintenance',p=$('scProv'),pid=p?.value||'',pn=p?.selectedOptions?.[0]?.dataset?.name||p?.selectedOptions?.[0]?.textContent?.trim()||'',addr=$('scAddr')?.value.trim()||'',ref=$('scNo')?.value.trim()||'',date=$('scDate')?.value||'',rows=[...document.querySelectorAll('.scLine')],lg=logi('ss'),email=imsEmail();
     if(!s||!pid||!pn||!addr||!ref||!date||!rows.length)throw Error('Complete source, provider, provider address, Service No. / PO, date and items.');
@@ -57,7 +56,7 @@ async function renderOutbound(){
 }
 
 async function arriveProvider(id,e){
-  if(busy||!can('servicecycle.edit'))return;e.preventDefault();e.stopImmediatePropagation();
+  if(busy||!can('servicecycle.edit'))return;
   try{
     const s=await getDocs(query(collection(db,'service_cycles'),where('serviceGroupId','==',id),limit(500))),rows=s.docs.map(d=>({id:d.id,...d.data()})).filter(c=>c.status==='outbound_transit'),date=$(`pa-${id}`)?.value||today(),rm=$(`pr-${id}`)?.value.trim()||'',email=imsEmail();
     if(!rows.length)throw Error('Transit not found.');if(!email)throw Error('Active IMS user email is unavailable. Please sign in again.');busy=true;
@@ -69,7 +68,7 @@ async function arriveProvider(id,e){
 async function returnRows(){const id=$('scRetG')?.value||'';if(!id)return[];const s=await getDocs(query(collection(db,'service_cycles'),where('serviceGroupId','==',id),limit(500)));return s.docs.map(d=>({id:d.id,...d.data()})).filter(c=>['ready_return','failed'].includes(c.status))}
 
 async function startReturn(e){
-  if(busy||!can('servicecycle.edit'))return;e.preventDefault();e.stopImmediatePropagation();
+  if(busy||!can('servicecycle.edit'))return;
   try{
     const rows=await returnRows(),t=$('scDstType')?.value||'',d=$('scDst'),did=d?.value||'',dn=d?.selectedOptions?.[0]?.dataset?.name||d?.selectedOptions?.[0]?.textContent?.trim()||'',addr=$('scDstAddr')?.value.trim()||'',ref=$('scRetRef')?.value.trim()||'',lg=logi('sr'),email=imsEmail();
     if(!rows.length||!did||!dn)throw Error('Select service and destination.');if(!email)throw Error('Active IMS user email is unavailable. Please sign in again.');busy=true;
@@ -79,7 +78,7 @@ async function startReturn(e){
 }
 
 async function arriveReturn(id,e){
-  if(busy||!can('servicecycle.edit'))return;e.preventDefault();e.stopImmediatePropagation();
+  if(busy||!can('servicecycle.edit'))return;
   try{
     const s=await getDocs(query(collection(db,'service_cycles'),where('serviceGroupId','==',id),limit(500))),rows=s.docs.map(d=>({id:d.id,...d.data()})).filter(c=>c.status==='return_transit'),date=$(`ad-${id}`)?.value||today(),rm=$(`ar-${id}`)?.value.trim()||'',email=imsEmail();
     if(!rows.length)return;if(!email)throw Error('Active IMS user email is unavailable. Please sign in again.');busy=true;
@@ -88,11 +87,12 @@ async function arriveReturn(id,e){
   }catch(err){alert('Arrival failed: '+(err?.message||err))}finally{busy=false}
 }
 
+function intercept(e){e.preventDefault();e.stopImmediatePropagation();if(busy){console.info('IMS Service Cycle action ignored while another service action is saving.');return false}return true}
 document.addEventListener('click',e=>{
-  const s=e.target.closest?.('#scStart');if(s&&$('scMode')?.value==='Sent To'){startSentTo(e);return}
-  const p=e.target.closest?.('.provider-arrive');if(p){arriveProvider(p.dataset.g,e);return}
-  const r=e.target.closest?.('#scReturn');if(r){startReturn(e);return}
-  const a=e.target.closest?.('.arrive[data-g]');if(a){arriveReturn(a.dataset.g,e)}
+  const s=e.target.closest?.('#scStart');if(s&&$('scMode')?.value==='Sent To'){if(intercept(e))startSentTo(e);return}
+  const p=e.target.closest?.('.provider-arrive');if(p){if(intercept(e))arriveProvider(p.dataset.g,e);return}
+  const r=e.target.closest?.('#scReturn');if(r){if(intercept(e))startReturn(e);return}
+  const a=e.target.closest?.('.arrive[data-g]');if(a){if(intercept(e))arriveReturn(a.dataset.g,e);return}
 },true);
 
 new MutationObserver(()=>{clearTimeout(timer);timer=setTimeout(()=>renderOutbound().catch(console.error),80)}).observe(document.body,{childList:true,subtree:true});
