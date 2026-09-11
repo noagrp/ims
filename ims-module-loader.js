@@ -1,6 +1,6 @@
-import { can, currentRole } from './ims-permissions.js?v=20260911-33';
+import { can, currentRole } from './ims-permissions.js?v=20260911-34';
 
-const IMS_BUILD='20260911-33';
+const IMS_BUILD='20260911-34';
 const versioned=src=>`${src}${src.includes('?')?'&':'?'}v=${IMS_BUILD}`;
 
 const MODULES=Object.freeze([
