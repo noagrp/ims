@@ -1,6 +1,6 @@
-import { can, currentRole } from './ims-permissions.js?v=20260910-29';
+import { can, currentRole } from './ims-permissions.js?v=20260911-30';
 
-const IMS_BUILD='20260910-29';
+const IMS_BUILD='20260911-30';
 const versioned=src=>`${src}${src.includes('?')?'&':'?'}v=${IMS_BUILD}`;
 
 const MODULES=Object.freeze([
@@ -33,6 +33,7 @@ const MODULES=Object.freeze([
 {id:'client-doc-enrichment',src:'./ims-client-doc-enrichment.js',owner:'IMSClientDocEnrichment'},
 {id:'inventory-sort',src:'./modules/inventory/inventory-sort.js',permission:'inventory.view',owner:'IMSInventoryServerSort'},
 {id:'service-enhancements',src:'./modules/service-cycle/service-cycle-enhancements.js',permission:'servicecycle.view',owner:'IMSServiceEnhancements'},
+{id:'service-transit-fix',src:'./modules/service-cycle/service-cycle-transit-fix.js',permission:'servicecycle.view',owner:'IMSServiceTransitFix'},
 {id:'item-master-editor',src:'./modules/items/item-master-editor.js',permission:'inventory.view',owner:'IMSItemMasterEditor'},
 {id:'sortable-tables',src:'./sortable-tables.js',mode:'classic'},
 {id:'print-clean',src:'./print-clean.js',mode:'classic',permission:'records.print.pdf'}
