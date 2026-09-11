@@ -1,0 +1,1094 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function userPath() {
+      return /databases/$(database)/documents/users/$(request.auth.uid);
+    }
+
+    function userExists() {
+      return isAuthenticated() && exists(userPath());
+    }
+
+    function userData() {
+      return get(userPath()).data;
+    }
+
+    function isActiveUser() {
+      return userExists()
+        && userData().status == 'active'
+        && userData().role in ['admin', 'manager', 'superadmin'];
+    }
+
+    function hasRole(role) {
+      return isActiveUser() && userData().role == role;
+    }
+
+    function isAdmin() {
+      return hasRole('admin');
+    }
+
+    function isManager() {
+      return hasRole('manager');
+    }
+
+    function isSuperAdmin() {
+      return hasRole('superadmin');
+    }
+
+    function managerOrSuper() {
+      return isManager() || isSuperAdmin();
+    }
+
+    // Accept either the canonical IMS profile email or the Firebase auth token
+    // email for the same authenticated UID. This keeps audit identity strict
+    // while avoiding false denials caused by legacy/case/profile differences.
+    function currentUserEmail(value) {
+      return isActiveUser()
+        && value is string
+        && (
+          value == userData().email
+          || (
+            request.auth.token.keys().hasAll(['email'])
+            && request.auth.token.email is string
+            && value == request.auth.token.email
+          )
+        );
+    }
+
+    function sameCreatedIdentity() {
+      return (
+        !resource.data.keys().hasAll(['createdBy'])
+        || request.resource.data.createdBy == resource.data.createdBy
+      )
+      && (
+        !resource.data.keys().hasAll(['createdAt'])
+        || request.resource.data.createdAt == resource.data.createdAt
+      );
+    }
+
+    function sameServiceIdentity() {
+      return request.resource.data.cycleId == resource.data.cycleId
+        && request.resource.data.itemId == resource.data.itemId
+        && request.resource.data.itemCode == resource.data.itemCode
+        && request.resource.data.serviceGroupId == resource.data.serviceGroupId
+        && request.resource.data.serviceNo == resource.data.serviceNo
+        && (
+          !resource.data.keys().hasAll(['serviceReference'])
+          || request.resource.data.serviceReference == resource.data.serviceReference
+        )
+        && request.resource.data.createdBy == resource.data.createdBy
+        && request.resource.data.createdAt == resource.data.createdAt;
+    }
+
+    // Legacy-compatible immutable identity check. Existing service records may
+    // predate some identity fields. If an identity field exists, it must remain
+    // unchanged; if it never existed, it does not block a valid transition.
+    function sameServiceIdentityCompat() {
+      return (
+          !resource.data.keys().hasAll(['cycleId'])
+          || request.resource.data.cycleId == resource.data.cycleId
+        )
+        && (
+          !resource.data.keys().hasAll(['itemId'])
+          || request.resource.data.itemId == resource.data.itemId
+        )
+        && (
+          !resource.data.keys().hasAll(['itemCode'])
+          || request.resource.data.itemCode == resource.data.itemCode
+        )
+        && (
+          !resource.data.keys().hasAll(['serviceGroupId'])
+          || request.resource.data.serviceGroupId == resource.data.serviceGroupId
+        )
+        && (
+          !resource.data.keys().hasAll(['serviceNo'])
+          || request.resource.data.serviceNo == resource.data.serviceNo
+        )
+        && (
+          !resource.data.keys().hasAll(['serviceReference'])
+          || request.resource.data.serviceReference == resource.data.serviceReference
+        )
+        && (
+          !resource.data.keys().hasAll(['createdBy'])
+          || request.resource.data.createdBy == resource.data.createdBy
+        )
+        && (
+          !resource.data.keys().hasAll(['createdAt'])
+          || request.resource.data.createdAt == resource.data.createdAt
+        );
+    }
+
+    function sameCommercialIdentity() {
+      return request.resource.data.docType == resource.data.docType
+        && request.resource.data.commercialKey == resource.data.commercialKey
+        && request.resource.data.commercialSide == resource.data.commercialSide
+        && request.resource.data.businessId == resource.data.businessId
+        && request.resource.data.poNumber == resource.data.poNumber
+        && request.resource.data.createdBy == resource.data.createdBy
+        && request.resource.data.createdAt == resource.data.createdAt;
+    }
+
+    function validCommercialStatus(status) {
+      return status in [
+        'Open',
+        'Partially Fulfilled',
+        'Fulfilled / Completed',
+        'Extended / Superseded',
+        'Cancelled',
+        'Closed'
+      ];
+    }
+
+    function validInventoryStatus(status) {
+      return status in [
+        'At Supplier',
+        'Available',
+        'Reserved',
+        'At Client',
+        'Maintenance',
+        'Inspection',
+        'Not Available',
+        'In Transit',
+        'Missing',
+        'Stolen',
+        'Disposed - Sold',
+        'Disposed - Scrapped',
+        'Written Off',
+        'Returned to Supplier',
+        'Returned to Owner',
+        'Disposed - Other'
+      ];
+    }
+
+    match /users/{userId} {
+      allow read: if (
+          isAuthenticated() && userId == request.auth.uid
+        ) || isSuperAdmin() || (
+          isManager() && resource.data.role == 'admin'
+        );
+
+      allow create: if isSuperAdmin() || (
+        isManager()
+        && request.resource.data.uid == userId
+        && request.resource.data.role == 'admin'
+        && request.resource.data.status == 'active'
+        && request.resource.data.email is string
+        && request.resource.data.email.size() > 0
+      );
+
+      allow update: if isSuperAdmin() || (
+        isManager()
+        && userId != request.auth.uid
+        && resource.data.role == 'admin'
+        && request.resource.data.role == 'admin'
+        && request.resource.data.uid == resource.data.uid
+        && request.resource.data.email == resource.data.email
+        && request.resource.data.status in ['active', 'inactive']
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+      );
+
+      allow delete: if false;
+    }
+
+    match /inventory/{itemId} {
+      allow read: if isActiveUser();
+
+      allow create: if isSuperAdmin() || (
+        isActiveUser()
+        && currentUserEmail(request.resource.data.createdBy)
+        && request.resource.data.createdAt is string
+        && request.resource.data.itemCode is string
+        && request.resource.data.itemCode.size() > 0
+        && request.resource.data.alias is string
+        && request.resource.data.alias.size() > 0
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.unit is string
+        && request.resource.data.unit.size() > 0
+        && request.resource.data.quantity is number
+        && request.resource.data.quantity > 0
+        && request.resource.data.stockBalances is list
+        && request.resource.data.stockBalances.size() > 0
+        && request.resource.data.ownershipType in ['owned', 'third_party']
+        && (
+          (
+            request.resource.data.ownershipType == 'owned'
+            && request.resource.data.status in ['At Supplier', 'Available', 'Not Available']
+          ) || (
+            request.resource.data.ownershipType == 'third_party'
+            && request.resource.data.status == 'In Transit'
+          )
+        )
+        && request.resource.data.currentLocation is string
+      );
+
+      allow update: if isSuperAdmin()
+        || (
+          isActiveUser()
+          && request.resource.data.itemCode == resource.data.itemCode
+          && sameCreatedIdentity()
+          && request.resource.data.alias is string
+          && request.resource.data.alias.size() > 0
+          && currentUserEmail(request.resource.data.lastEditedBy)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'alias', 'lastEditedAt', 'lastEditedBy'
+          ])
+        )
+        || (
+          managerOrSuper()
+          && request.resource.data.itemCode == resource.data.itemCode
+          && sameCreatedIdentity()
+          && request.resource.data.name is string
+          && request.resource.data.name.size() > 0
+          && currentUserEmail(request.resource.data.lastEditedBy)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'name', 'lastEditedAt', 'lastEditedBy'
+          ])
+        )
+        || (
+          managerOrSuper()
+          && request.resource.data.itemCode == resource.data.itemCode
+          && sameCreatedIdentity()
+          && request.resource.data.alias is string
+          && request.resource.data.alias.size() > 0
+          && request.resource.data.name is string
+          && request.resource.data.name.size() > 0
+          && (
+            !request.resource.data.keys().hasAll(['weight'])
+            || request.resource.data.weight == null
+            || request.resource.data.weight is number
+          )
+          && (
+            !request.resource.data.keys().hasAll(['weight'])
+            || request.resource.data.weight == null
+            || request.resource.data.weight >= 0
+          )
+          && currentUserEmail(request.resource.data.lastEditedBy)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'alias','name','coc','remark','type','itemTypeId','category','categoryId',
+            'size','sizeId','grade','gradeId','ppf','ppfId','connection','connectionId',
+            'range','rangeId','brand','brandId','model','modelId','weight','weightUnit',
+            'weightUnitId','unit','unitId','lastEditedAt','lastEditedBy'
+          ])
+        )
+        || (
+          isActiveUser()
+          && request.resource.data.itemCode == resource.data.itemCode
+          && sameCreatedIdentity()
+          && request.resource.data.stockBalances is list
+          && request.resource.data.stockBalances.size() > 0
+          && validInventoryStatus(request.resource.data.status)
+          && request.resource.data.currentLocation is string
+          && currentUserEmail(request.resource.data.lastEditedBy)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'stockBalances','status','currentLocation','activeReservation','lastReservation',
+            'activeServiceCycleId','activeIncident','lastRecoveredAt','lastRecoveredBy',
+            'returnedToOwnerAt','returnedToOwnerBy','r2rWorkflowState','lastEditedAt','lastEditedBy'
+          ])
+        )
+        || (
+          managerOrSuper()
+          && request.resource.data.itemCode == resource.data.itemCode
+          && sameCreatedIdentity()
+          && request.resource.data.stockBalances is list
+          && request.resource.data.stockBalances.size() > 0
+          && request.resource.data.status in [
+            'Disposed - Sold','Disposed - Scrapped','Written Off','Returned to Supplier','Disposed - Other'
+          ]
+          && request.resource.data.disposition is map
+          && currentUserEmail(request.resource.data.lastEditedBy)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'stockBalances','status','currentLocation','disposition','lastEditedAt','lastEditedBy'
+          ])
+        );
+
+      allow delete: if isSuperAdmin();
+    }
+
+    match /inventory_summary/{summaryId} {
+      allow read: if isActiveUser();
+      allow create: if isSuperAdmin();
+
+      allow update: if isSuperAdmin()
+        || (
+          isActiveUser()
+          && summaryId == 'global'
+          && request.resource.data.summaryVersion == resource.data.summaryVersion
+          && currentUserEmail(request.resource.data.updatedBy)
+          && request.resource.data.liveQty is number && request.resource.data.liveQty >= 0
+          && request.resource.data.availableQty is number && request.resource.data.availableQty >= 0
+          && request.resource.data.atClientQty is number && request.resource.data.atClientQty >= 0
+          && request.resource.data.atSupplierQty is number && request.resource.data.atSupplierQty >= 0
+          && request.resource.data.reservedQty is number && request.resource.data.reservedQty >= 0
+          && request.resource.data.maintenanceQty is number && request.resource.data.maintenanceQty >= 0
+          && request.resource.data.inspectionQty is number && request.resource.data.inspectionQty >= 0
+          && request.resource.data.notAvailableQty is number && request.resource.data.notAvailableQty >= 0
+          && request.resource.data.inTransitQty is number && request.resource.data.inTransitQty >= 0
+          && request.resource.data.missingQty is number && request.resource.data.missingQty >= 0
+          && request.resource.data.stolenQty is number && request.resource.data.stolenQty >= 0
+          && request.resource.data.ownedQty is number && request.resource.data.ownedQty >= 0
+          && request.resource.data.r2rQty is number && request.resource.data.r2rQty >= 0
+          && request.resource.data.updatedAt is string
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'liveQty','availableQty','atClientQty','atSupplierQty','reservedQty','maintenanceQty',
+            'inspectionQty','notAvailableQty','inTransitQty','missingQty','stolenQty','ownedQty',
+            'r2rQty','updatedAt','updatedBy'
+          ])
+        )
+        || (
+          isActiveUser()
+          && summaryId == 'distribution'
+          && request.resource.data.summaryVersion == resource.data.summaryVersion
+          && currentUserEmail(request.resource.data.updatedBy)
+          && request.resource.data.warehouses is map
+          && request.resource.data.clients is map
+          && request.resource.data.suppliers is map
+          && request.resource.data.r2rOwners is map
+          && request.resource.data.updatedAt is string
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'warehouses','clients','suppliers','r2rOwners','updatedAt','updatedBy'
+          ])
+        )
+        || (
+          isActiveUser()
+          && summaryId == 'categories'
+          && request.resource.data.summaryVersion == resource.data.summaryVersion
+          && currentUserEmail(request.resource.data.updatedBy)
+          && request.resource.data.categories is map
+          && request.resource.data.updatedAt is string
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'categories','updatedAt','updatedBy'
+          ])
+        );
+
+      allow delete: if isSuperAdmin();
+    }
+
+    match /registration_batches/{batchId} {
+      allow read: if isActiveUser();
+      allow create: if isSuperAdmin() || (
+        isActiveUser()
+        && request.resource.data.batchId == batchId
+        && currentUserEmail(request.resource.data.createdBy)
+        && request.resource.data.createdAt is string
+        && request.resource.data.ownershipType == 'owned'
+        && request.resource.data.completionStatus == 'open'
+        && request.resource.data.quantity is number
+        && request.resource.data.quantity > 0
+        && request.resource.data.completedCount == 0
+        && request.resource.data.itemIds is list
+        && request.resource.data.itemCodes is list
+        && request.resource.data.aliases is list
+      );
+      allow update: if isSuperAdmin() || (
+        isActiveUser()
+        && request.resource.data.batchId == resource.data.batchId
+        && request.resource.data.createdBy == resource.data.createdBy
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.ownershipType == resource.data.ownershipType
+        && request.resource.data.ourPONumber == resource.data.ourPONumber
+        && request.resource.data.itemType == resource.data.itemType
+        && request.resource.data.itemName == resource.data.itemName
+        && request.resource.data.category == resource.data.category
+        && request.resource.data.unit == resource.data.unit
+        && request.resource.data.supplierId == resource.data.supplierId
+        && request.resource.data.quantity is number
+        && request.resource.data.quantity >= 1
+        && request.resource.data.completedCount is number
+        && request.resource.data.completedCount >= 0
+        && request.resource.data.completionStatus in ['open','completed']
+        && request.resource.data.itemIds is list
+        && request.resource.data.itemCodes is list
+        && request.resource.data.aliases is list
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'quantity','completedCount','itemIds','itemCodes','aliases','lastAddedAt',
+          'completionStatus','completedAt','completedBy'
+        ])
+      );
+      allow delete: if isSuperAdmin();
+    }
+
+    match /operational_logs/{logId} {
+      allow read: if isActiveUser();
+      allow create: if isSuperAdmin() || (
+        isActiveUser()
+        && currentUserEmail(request.resource.data.performedBy)
+        && request.resource.data.date is string
+        && request.resource.data.activity is string
+        && (
+          !request.resource.data.keys().hasAll(['performedByRole'])
+          || request.resource.data.performedByRole == userData().role
+        )
+      );
+      allow update, delete: if isSuperAdmin();
+    }
+
+    match /movement_groups/{groupId} {
+      allow read: if isActiveUser();
+      allow create: if isSuperAdmin() || (
+        isActiveUser()
+        && request.resource.data.movementGroupId == groupId
+        && currentUserEmail(request.resource.data.createdBy)
+        && request.resource.data.createdAt is string
+        && request.resource.data.referenceType in [
+          'wellora_po','client_po','internal_transfer','receiving_no','r2r_po'
+        ]
+        && request.resource.data.referenceNumber is string
+        && request.resource.data.referenceNumber.size() > 0
+        && request.resource.data.status == 'open'
+        && (
+          (
+            request.resource.data.referenceType != 'r2r_po'
+            && request.resource.data.batchCount is number
+            && request.resource.data.batchCount >= 1
+          ) || (
+            request.resource.data.referenceType == 'r2r_po'
+            && request.resource.data.movementSource == 'renttorent'
+            && request.resource.data.ownershipType == 'third_party'
+            && (
+              !request.resource.data.keys().hasAll(['batchCount'])
+              || (
+                request.resource.data.batchCount is number
+                && request.resource.data.batchCount >= 1
+              )
+            )
+          )
+        )
+      );
+
+      allow update: if isSuperAdmin()
+        || (
+          isActiveUser()
+          && resource.data.referenceType == 'r2r_po'
+          && request.resource.data.referenceType == resource.data.referenceType
+          && request.resource.data.movementGroupId == resource.data.movementGroupId
+          && request.resource.data.referenceNumber == resource.data.referenceNumber
+          && request.resource.data.createdBy == resource.data.createdBy
+          && request.resource.data.createdAt == resource.data.createdAt
+          && request.resource.data.status == 'open'
+          && request.resource.data.batchCount is number
+          && request.resource.data.batchCount >= 1
+          && (
+            !resource.data.keys().hasAll(['batchCount'])
+            || request.resource.data.batchCount >= resource.data.batchCount
+          )
+          && (
+            !request.resource.data.keys().hasAll(['updatedBy'])
+            || currentUserEmail(request.resource.data.updatedBy)
+          )
+          && (
+            !request.resource.data.keys().hasAll(['registeredBy'])
+            || currentUserEmail(request.resource.data.registeredBy)
+          )
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'referenceLabel','partyId','partyName','status','batchCount','updatedAt','updatedBy',
+            'lastBatchId','fromId','fromName','toId','toName','movementSource','ownershipType',
+            'r2rBatchId','itemIds','movementIds','itemCount','registrationStatus','registeredAt','registeredBy'
+          ])
+        )
+        || (
+          isActiveUser()
+          && request.resource.data.movementGroupId == resource.data.movementGroupId
+          && request.resource.data.referenceType == resource.data.referenceType
+          && request.resource.data.referenceNumber == resource.data.referenceNumber
+          && request.resource.data.createdBy == resource.data.createdBy
+          && request.resource.data.createdAt == resource.data.createdAt
+          && request.resource.data.status == 'open'
+          && request.resource.data.batchCount is number
+          && request.resource.data.batchCount >= resource.data.batchCount
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'referenceLabel','poType','poLabel','poNumber','internalTransferNumber','receivingNumber',
+            'partyId','partyName','status','batchCount','updatedAt','lastBatchId','fromId','fromName','toId','toName'
+          ])
+        );
+      allow delete: if isSuperAdmin();
+    }
+
+    match /movements/{movementId} {
+      allow read: if isActiveUser();
+      allow create: if isSuperAdmin() || (
+        isActiveUser()
+        && request.resource.data.movementId == movementId
+        && currentUserEmail(request.resource.data.createdBy)
+        && request.resource.data.createdAt is string
+        && (
+          !request.resource.data.keys().hasAll(['createdByRole'])
+          || request.resource.data.createdByRole == userData().role
+        )
+        && request.resource.data.status == 'in_transit'
+        && request.resource.data.qty is number
+        && request.resource.data.qty > 0
+        && request.resource.data.itemId is string
+        && request.resource.data.itemId.size() > 0
+        && request.resource.data.itemCode is string
+        && request.resource.data.itemCode.size() > 0
+        && request.resource.data.fromType in ['warehouse','supplier','client']
+        && request.resource.data.toType in ['warehouse','client','supplier']
+        && request.resource.data.fromName is string
+        && request.resource.data.toName is string
+      );
+
+      allow update: if isSuperAdmin()
+        || (
+          isActiveUser()
+          && resource.data.movementSource == 'renttorent'
+          && request.resource.data.movementSource == resource.data.movementSource
+          && resource.data.status == 'in_transit'
+          && request.resource.data.status == 'arrived'
+          && currentUserEmail(request.resource.data.arrivedBy)
+          && request.resource.data.movementId == resource.data.movementId
+          && request.resource.data.itemId == resource.data.itemId
+          && request.resource.data.itemCode == resource.data.itemCode
+          && request.resource.data.createdBy == resource.data.createdBy
+          && request.resource.data.createdAt == resource.data.createdAt
+          && request.resource.data.r2rQueueState in ['warehouse','returned']
+          && request.resource.data.r2rQueueKey is string
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'status','arrivedAt','arrivedBy','r2rQueueState','r2rQueueKey'
+          ])
+        )
+        || (
+          isActiveUser()
+          && resource.data.movementSource == 'renttorent'
+          && request.resource.data.movementSource == resource.data.movementSource
+          && resource.data.status == 'arrived'
+          && request.resource.data.status == 'arrived'
+          && request.resource.data.movementId == resource.data.movementId
+          && request.resource.data.itemId == resource.data.itemId
+          && request.resource.data.itemCode == resource.data.itemCode
+          && request.resource.data.createdBy == resource.data.createdBy
+          && request.resource.data.createdAt == resource.data.createdAt
+          && resource.data.r2rQueueState == 'warehouse'
+          && request.resource.data.r2rQueueState == 'return_started'
+          && request.resource.data.returnMovementId is string
+          && request.resource.data.returnMovementId.size() > 0
+          && currentUserEmail(request.resource.data.returnStartedBy)
+          && request.resource.data.returnStartedAt is string
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'r2rQueueState','returnMovementId','returnStartedAt','returnStartedBy'
+          ])
+        )
+        || (
+          isActiveUser()
+          && resource.data.status == 'in_transit'
+          && request.resource.data.status == 'arrived'
+          && currentUserEmail(request.resource.data.arrivedBy)
+          && request.resource.data.movementId == resource.data.movementId
+          && request.resource.data.itemId == resource.data.itemId
+          && request.resource.data.itemCode == resource.data.itemCode
+          && request.resource.data.createdBy == resource.data.createdBy
+          && request.resource.data.createdAt == resource.data.createdAt
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'status','arrivedAt','arrivedBy'
+          ])
+        );
+      allow delete: if isSuperAdmin();
+    }
+
+    match /reservation_events/{reservationId} {
+      allow read: if isActiveUser();
+      allow create: if isSuperAdmin() || (
+        isActiveUser()
+        && request.resource.data.reservationId == reservationId
+        && currentUserEmail(request.resource.data.createdBy)
+        && request.resource.data.createdAt is string
+        && request.resource.data.status == 'Open'
+        && request.resource.data.qty is number
+        && request.resource.data.qty > 0
+        && request.resource.data.clientId is string
+        && request.resource.data.clientId.size() > 0
+        && request.resource.data.locationId is string
+        && request.resource.data.locationName is string
+        && request.resource.data.lines is list
+        && request.resource.data.lines.size() > 0
+      );
+
+      allow update: if isSuperAdmin()
+        || (
+          isActiveUser()
+          && resource.data.status == 'Open'
+          && request.resource.data.status == 'Cancelled'
+          && request.resource.data.reservationId == resource.data.reservationId
+          && request.resource.data.createdBy == resource.data.createdBy
+          && request.resource.data.createdAt == resource.data.createdAt
+          && currentUserEmail(request.resource.data.cancelledBy)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'status','cancelledAt','cancelledBy','releasedBack'
+          ])
+        )
+        || (
+          isActiveUser()
+          && resource.data.status == 'Open'
+          && request.resource.data.status == 'Fulfilled'
+          && request.resource.data.reservationId == resource.data.reservationId
+          && request.resource.data.createdBy == resource.data.createdBy
+          && request.resource.data.createdAt == resource.data.createdAt
+          && currentUserEmail(request.resource.data.fulfilledBy)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'status','fulfilledAt','fulfilledBy','movementBatchId','movementGroupId','actualMovedQty',
+            'reservedUsed','releasedBack','extraAvailableUsed','additionalAvailableUsed','clientPONumber'
+          ])
+        );
+      allow delete: if isSuperAdmin();
+    }
+
+    match /service_cycles/{cycleId} {
+      allow read: if isActiveUser();
+
+      allow create: if isSuperAdmin() || (
+        isActiveUser()
+        && request.resource.data.cycleId == cycleId
+        && currentUserEmail(request.resource.data.createdBy)
+        && request.resource.data.itemId is string
+        && request.resource.data.itemId.size() > 0
+        && request.resource.data.itemCode is string
+        && request.resource.data.itemCode.size() > 0
+        && request.resource.data.serviceGroupId is string
+        && request.resource.data.serviceGroupId.size() > 0
+        && request.resource.data.serviceNo is string
+        && request.resource.data.serviceNo.size() > 0
+        && request.resource.data.serviceType in ['Inspection / Maintenance','Machine Shop']
+        && request.resource.data.serviceMode in ['Sent To','On Site']
+        && request.resource.data.providerName is string
+        && (
+          request.resource.data.serviceMode == 'On Site'
+          || (
+            request.resource.data.serviceMode == 'Sent To'
+            && request.resource.data.providerName.size() > 0
+            && request.resource.data.providerAddress is string
+            && request.resource.data.providerAddress.size() > 0
+          )
+        )
+        && request.resource.data.qty is number
+        && request.resource.data.qty > 0
+        && (
+          (
+            request.resource.data.serviceMode == 'Sent To'
+            && request.resource.data.status == 'outbound_transit'
+          ) || (
+            request.resource.data.serviceMode == 'On Site'
+            && request.resource.data.status == 'active'
+          )
+        )
+        && request.resource.data.stages is list
+        && request.resource.data.stages.size() == 1
+        && request.resource.data.stages[0].stageType == request.resource.data.serviceType
+        && (
+          request.resource.data.serviceMode != 'Sent To'
+          || request.resource.data.stages[0].status == 'transit_to_provider'
+        )
+        && (
+          request.resource.data.serviceMode != 'On Site'
+          || request.resource.data.stages[0].status == 'in_progress'
+        )
+        && request.resource.data.createdAt is string
+        && request.resource.data.updatedAt is string
+      );
+
+      allow update: if isSuperAdmin()
+        || (
+          isActiveUser()
+          && request.resource.data.cycleId == resource.data.cycleId
+          && request.resource.data.itemId == resource.data.itemId
+          && request.resource.data.itemCode == resource.data.itemCode
+          && request.resource.data.serviceGroupId == resource.data.serviceGroupId
+          && request.resource.data.serviceNo == resource.data.serviceNo
+          && (
+            !resource.data.keys().hasAll(['serviceReference'])
+            || resource.data.serviceReference != resource.data.serviceNo
+          )
+          && request.resource.data.serviceReference == resource.data.serviceNo
+          && request.resource.data.serviceReference is string
+          && request.resource.data.serviceReference.size() > 0
+          && request.resource.data.createdBy == resource.data.createdBy
+          && request.resource.data.createdAt == resource.data.createdAt
+          && request.resource.data.stages is list
+          && request.resource.data.stages.size() == resource.data.stages.size()
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'serviceReference','stages'
+          ])
+        )
+        || (
+          isActiveUser()
+          && sameServiceIdentityCompat()
+          && resource.data.serviceMode == 'Sent To'
+          && resource.data.status == 'outbound_transit'
+          && request.resource.data.status == 'active'
+          && request.resource.data.stages is list
+          && request.resource.data.stages.size() == resource.data.stages.size()
+          && request.resource.data.providerArrivalDate is string
+          && request.resource.data.providerArrivedAt is string
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'status','stages','providerArrivalDate','providerArrivalRemark','providerArrivedAt','updatedAt'
+          ])
+        )
+        || (
+          isActiveUser()
+          && sameServiceIdentityCompat()
+          && resource.data.status == 'active'
+          && resource.data.serviceMode == 'Sent To'
+          && request.resource.data.status == 'ready_return'
+          && request.resource.data.result == 'Pass'
+          && request.resource.data.lastStageResult == 'Completed'
+          && request.resource.data.stages is list
+          && request.resource.data.endDate is string
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'stages','result','lastStageResult','status','readyAt','endDate','endRemark','updatedAt'
+          ])
+        )
+        || (
+          isActiveUser()
+          && sameServiceIdentityCompat()
+          && resource.data.status == 'active'
+          && resource.data.serviceMode == 'On Site'
+          && request.resource.data.status == 'closed'
+          && request.resource.data.result == 'Pass'
+          && request.resource.data.lastStageResult == 'Completed'
+          && request.resource.data.stages is list
+          && request.resource.data.closedAt is string
+          && request.resource.data.endDate is string
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'stages','result','lastStageResult','status','closedAt','endDate','endRemark','updatedAt'
+          ])
+        )
+        || (
+          isActiveUser()
+          && sameServiceIdentityCompat()
+          && resource.data.status == 'active'
+          && request.resource.data.status == 'failed'
+          && request.resource.data.result == 'Failed'
+          && request.resource.data.lastStageResult == 'Failed'
+          && request.resource.data.stages is list
+          && request.resource.data.failedAt is string
+          && request.resource.data.endDate is string
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'stages','result','lastStageResult','status','failedAt','endDate','endRemark','updatedAt'
+          ])
+        )
+        || (
+          isActiveUser()
+          && sameServiceIdentityCompat()
+          && resource.data.status == 'failed'
+          && request.resource.data.status == 'active'
+          && request.resource.data.result == ''
+          && request.resource.data.lastStageResult == ''
+          && request.resource.data.stages is list
+          && request.resource.data.activeStageId is string
+          && request.resource.data.activeStageId.size() > 0
+          && request.resource.data.restartCount is number
+          && request.resource.data.restartCount >= 1
+          && request.resource.data.restartedAt is string
+          && currentUserEmail(request.resource.data.restartedBy)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'stages','status','result','lastStageResult','activeStageId','restartCount','restartedAt','restartedBy','updatedAt'
+          ])
+        )
+        || (
+          isActiveUser()
+          && sameServiceIdentityCompat()
+          && resource.data.status == 'failed'
+          && resource.data.serviceMode == 'On Site'
+          && request.resource.data.status == 'closed'
+          && request.resource.data.closedAt is string
+          && request.resource.data.arrivalDate is string
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'status','closedAt','arrivalDate','arrivalRemark','updatedAt'
+          ])
+        )
+        || (
+          isActiveUser()
+          && sameServiceIdentityCompat()
+          && resource.data.status in ['ready_return','failed']
+          && request.resource.data.status == 'return_transit'
+          && request.resource.data.returnType in ['warehouse','client','supplier','other']
+          && request.resource.data.returnId is string
+          && request.resource.data.returnId.size() > 0
+          && request.resource.data.returnName is string
+          && request.resource.data.returnName.size() > 0
+          && request.resource.data.returnDate is string
+          && request.resource.data.returnLogistics is map
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'status','returnType','returnId','returnName','returnAddress','returnRef','returnDate','returnLogistics','updatedAt'
+          ])
+        )
+        || (
+          isActiveUser()
+          && sameServiceIdentityCompat()
+          && resource.data.status == 'return_transit'
+          && request.resource.data.status == 'closed'
+          && request.resource.data.closedAt is string
+          && request.resource.data.arrivalDate is string
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'status','closedAt','arrivalDate','arrivalRemark','updatedAt'
+          ])
+        );
+
+      allow delete: if isSuperAdmin();
+    }
+
+    match /document_refs/{documentId} {
+      allow read: if isActiveUser();
+      allow create: if isSuperAdmin()
+        || (
+          isActiveUser()
+          && request.resource.data.docType == 'Commercial PO'
+          && request.resource.data.context == 'Commercial Documents'
+          && currentUserEmail(request.resource.data.createdBy)
+          && request.resource.data.createdAt is string
+          && request.resource.data.commercialKey is string
+          && request.resource.data.commercialKey.size() > 0
+          && request.resource.data.commercialSide in ['client','supplier']
+          && request.resource.data.businessId is string
+          && request.resource.data.poNumber is string
+          && request.resource.data.poNumber.size() > 0
+          && request.resource.data.refNumber is string
+          && request.resource.data.refNumber.size() > 0
+          && request.resource.data.poStatus == 'Open'
+          && request.resource.data.linkedItemIds is list
+          && request.resource.data.invoices is list
+        )
+        || (
+          isActiveUser()
+          && currentUserEmail(request.resource.data.createdBy)
+          && request.resource.data.itemId is string
+          && request.resource.data.itemId.size() > 0
+          && request.resource.data.docType is string
+          && request.resource.data.docType.size() > 0
+          && request.resource.data.refNumber is string
+          && request.resource.data.refNumber.size() > 0
+          && request.resource.data.status == 'current'
+          && (
+            !request.resource.data.keys().hasAll(['createdByRole'])
+            || request.resource.data.createdByRole == userData().role
+          )
+        );
+
+      allow update: if isSuperAdmin()
+        || (
+          isActiveUser()
+          && resource.data.docType == 'Commercial PO'
+          && sameCommercialIdentity()
+          && request.resource.data.invoices is list
+          && currentUserEmail(request.resource.data.lastEditedBy)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'invoices','lastEditedAt','lastEditedBy'
+          ])
+        )
+        || (
+          managerOrSuper()
+          && resource.data.docType == 'Commercial PO'
+          && sameCommercialIdentity()
+          && validCommercialStatus(request.resource.data.poStatus)
+          && request.resource.data.linkedItemIds is list
+          && (
+            !request.resource.data.keys().hasAll(['lastEditedBy'])
+            || currentUserEmail(request.resource.data.lastEditedBy)
+          )
+          && (
+            !request.resource.data.keys().hasAll(['statusChangedBy'])
+            || currentUserEmail(request.resource.data.statusChangedBy)
+          )
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'poAmount','currency','expectedQty','fulfilledQty','periodFrom','periodTo','poStatus',
+            'linkedItemIds','statusReason','statusChangedAt','statusChangedBy','supersededByPOKey',
+            'lastEditedAt','lastEditedBy'
+          ])
+        )
+        || (
+          isActiveUser()
+          && resource.data.docType == 'Commercial PO'
+          && sameCommercialIdentity()
+          && resource.data.commercialSide == 'client'
+          && resource.data.poStatus != 'Extended / Superseded'
+          && request.resource.data.poStatus == 'Extended / Superseded'
+          && request.resource.data.supersededByPOKey is string
+          && request.resource.data.supersededByPOKey.size() > 0
+          && currentUserEmail(request.resource.data.lastEditedBy)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'poStatus','supersededByPOKey','lastEditedAt','lastEditedBy'
+          ])
+        )
+        || (
+          managerOrSuper()
+          && resource.data.docType != 'Commercial PO'
+          && request.resource.data.itemId == resource.data.itemId
+          && request.resource.data.docType == resource.data.docType
+          && request.resource.data.createdBy == resource.data.createdBy
+          && (
+            (
+              resource.data.status == 'current'
+              && request.resource.data.status == 'superseded'
+              && request.resource.data.refNumber == resource.data.refNumber
+              && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+                'status','supersededBy','supersededAt','supersededByUser','supersedeReason'
+              ])
+            ) || (
+              resource.data.status == 'current'
+              && request.resource.data.status == 'current'
+              && request.resource.data.refNumber == resource.data.refNumber
+              && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+                'replaces','correctionReason'
+              ])
+            )
+          )
+        );
+      allow delete: if isSuperAdmin();
+    }
+
+    match /supplier_profiles/{profileId} {
+      allow read: if isActiveUser();
+      allow create: if isSuperAdmin() || (
+        isActiveUser()
+        && currentUserEmail(request.resource.data.createdBy)
+        && request.resource.data.status in ['active','inactive']
+        && request.resource.data.companyName is string
+        && request.resource.data.companyName.size() > 0
+        && request.resource.data.businessRoles is list
+        && request.resource.data.businessRoles.size() > 0
+      );
+      allow update: if isSuperAdmin()
+        || (
+          isAdmin()
+          && sameCreatedIdentity()
+          && request.resource.data.status == resource.data.status
+          && currentUserEmail(request.resource.data.updatedBy)
+        )
+        || (
+          managerOrSuper()
+          && sameCreatedIdentity()
+          && request.resource.data.status in ['active','inactive']
+          && currentUserEmail(request.resource.data.updatedBy)
+        );
+      allow delete: if isSuperAdmin();
+    }
+
+    match /client_profiles/{profileId} {
+      allow read: if isActiveUser();
+      allow create: if isSuperAdmin() || (
+        isActiveUser()
+        && currentUserEmail(request.resource.data.createdBy)
+        && request.resource.data.status in ['active','inactive']
+        && request.resource.data.companyName is string
+        && request.resource.data.companyName.size() > 0
+        && request.resource.data.businessRoles is list
+        && request.resource.data.businessRoles.size() > 0
+      );
+      allow update: if isSuperAdmin()
+        || (
+          isAdmin()
+          && sameCreatedIdentity()
+          && request.resource.data.status == resource.data.status
+          && currentUserEmail(request.resource.data.updatedBy)
+        )
+        || (
+          managerOrSuper()
+          && sameCreatedIdentity()
+          && request.resource.data.status in ['active','inactive']
+          && currentUserEmail(request.resource.data.updatedBy)
+        );
+      allow delete: if isSuperAdmin();
+    }
+
+    match /settings/{settingId} {
+      allow read: if isActiveUser();
+      allow create: if isSuperAdmin() || (
+        managerOrSuper()
+        && request.resource.data.type in [
+          'warehouse','item_type','unit','category','size','grade','ppf','connection','range',
+          'weight_unit','brand','model','specification'
+        ]
+        && request.resource.data.value is string
+        && request.resource.data.value.size() > 0
+        && request.resource.data.normalizedValue is string
+        && request.resource.data.status in ['active','inactive']
+        && currentUserEmail(request.resource.data.createdBy)
+        && (
+          request.resource.data.type != 'item_type'
+          || (
+            request.resource.data.quantityMode in ['single','flexible']
+            && request.resource.data.defaultQty is number
+            && request.resource.data.defaultQty >= 1
+          )
+        )
+      );
+      allow update: if isSuperAdmin() || (
+        managerOrSuper()
+        && request.resource.data.type == resource.data.type
+        && request.resource.data.value == resource.data.value
+        && (
+          !resource.data.keys().hasAll(['normalizedValue'])
+          || request.resource.data.normalizedValue == resource.data.normalizedValue
+        )
+        && (
+          resource.data.type != 'item_type'
+          || (
+            request.resource.data.quantityMode == resource.data.quantityMode
+            && request.resource.data.defaultQty == resource.data.defaultQty
+          )
+        )
+        && request.resource.data.status in ['active','inactive']
+        && currentUserEmail(request.resource.data.updatedBy)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'status','updatedAt','updatedBy'
+        ])
+      );
+      allow delete: if isSuperAdmin();
+    }
+
+    match /audit_traces/{traceId} {
+      allow create: if isSuperAdmin() || (
+        isActiveUser()
+        && currentUserEmail(request.resource.data.performedBy)
+        && request.resource.data.performedByRole == userData().role
+        && request.resource.data.performedAt is string
+      );
+      allow read: if isSuperAdmin();
+      allow update, delete: if isSuperAdmin();
+    }
+
+    match /client_docs/{docId} {
+      allow read: if isActiveUser();
+      allow create: if isSuperAdmin() || (
+        isActiveUser()
+        && (
+          currentUserEmail(request.resource.data.uploadedBy)
+          || currentUserEmail(request.resource.data.recordedBy)
+        )
+      );
+      allow update: if managerOrSuper();
+      allow delete: if isSuperAdmin();
+    }
+
+    match /supplier_docs/{docId} {
+      allow read: if isActiveUser();
+      allow create: if isSuperAdmin() || (
+        isActiveUser()
+        && (
+          currentUserEmail(request.resource.data.uploadedBy)
+          || currentUserEmail(request.resource.data.recordedBy)
+        )
+      );
+      allow update: if managerOrSuper();
+      allow delete: if isSuperAdmin();
+    }
+
+    match /attachments/{attachmentId} {
+      allow read: if isActiveUser();
+      allow create, update, delete: if false;
+      match /chunks/{chunkId} {
+        allow read: if isActiveUser();
+        allow create, update, delete: if false;
+      }
+    }
+
+    match /{document=**} {
+      allow read, create, update, delete: if false;
+    }
+  }
+}
