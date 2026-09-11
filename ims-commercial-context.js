@@ -1,9 +1,11 @@
 import {db} from './firebase-config.js';
-import {collection,doc,getDoc,getDocs,limit,query,where} from 'https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js';
+import {addDoc,collection,doc,documentId,getDoc,getDocs,limit,orderBy,query,startAfter,where} from 'https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js';
 
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const norm=s=>String(s??'').trim().replace(/\s+/g,' ').toLowerCase();
 const movementCache=new Map();
+const key=(side,businessId,po)=>`${side}|${businessId||''}|${norm(po)}`;
+let recentIndexSync=null;
 
 async function movementsForItem(itemId,force=false){
   if(!itemId)return[];
@@ -20,6 +22,41 @@ async function currentClientAssignment(itemId,clientName=''){
   const m=candidates[0];
   if(!m)return null;
   return{movementId:m.id,clientId:m.toId||'',clientName:m.toName||'',po:m.referenceNumber||'',periodFrom:m.periodFrom||'',periodTo:m.periodTo||'',createdAt:m.createdAt||'',status:m.status||''};
+}
+
+async function readAllByFilter(name,filters=[]){const rows=[];let cursor=null;while(true){const parts=[...filters,orderBy(documentId(),'asc')];if(cursor)parts.push(startAfter(cursor));parts.push(limit(500));const snap=await getDocs(query(collection(db,name),...parts));rows.push(...snap.docs.map(d=>({id:d.id,...d.data()})));if(snap.size<500)break;cursor=snap.docs.at(-1);}return rows;}
+async function existingCommercialKeys(keys){const found=new Set();for(let i=0;i<keys.length;i+=30){const chunk=keys.slice(i,i+30);if(!chunk.length)continue;const snap=await getDocs(query(collection(db,'document_refs'),where('commercialKey','in',chunk)));for(const d of snap.docs){const k=d.data().commercialKey;if(k)found.add(k);}}return found;}
+async function recentRows(name,filters=[]){return(await getDocs(query(collection(db,name),...filters,orderBy(documentId(),'desc'),limit(100)))).docs.map(d=>({id:d.id,...d.data()}));}
+async function syncRecentCommercialIndex(){
+  if(recentIndexSync)return recentIndexSync;
+  recentIndexSync=(async()=>{
+    const actor=window.IMSUser?.email||'';if(!actor)return{created:0};
+    const[clients,owned,r2r]=await Promise.all([
+      recentRows('movement_groups',[where('referenceType','==','client_po')]),
+      recentRows('registration_batches',[where('completionStatus','==','completed')]),
+      recentRows('movement_groups',[where('referenceType','==','r2r_po')])
+    ]);
+    const candidates=[];
+    for(const g of clients){const po=String(g.referenceNumber||'').trim(),businessId=String(g.partyId||g.toId||'');if(po&&businessId)candidates.push({kind:'client',key:key('client',businessId,po),g,po,businessId});}
+    for(const b of owned){const po=String(b.ourPONumber||'').trim(),businessId=String(b.supplierId||'');if(po&&businessId)candidates.push({kind:'owned',key:key('supplier',businessId,po),b,po,businessId});}
+    for(const g of r2r){const po=String(g.referenceNumber||'').trim(),businessId=String(g.partyId||g.fromId||'');if(po&&businessId)candidates.push({kind:'r2r',key:key('supplier',businessId,po),g,po,businessId});}
+    const unique=[...new Map(candidates.map(x=>[x.key,x])).values()],existing=await existingCommercialKeys(unique.map(x=>x.key));let created=0;
+    for(const c of unique){if(existing.has(c.key))continue;let rec=null;
+      if(c.kind==='client'){
+        const moves=await readAllByFilter('movements',[where('movementGroupId','==',c.g.id)]),ids=[...new Set(moves.map(x=>x.itemId).filter(Boolean))],first=moves[0]||{};
+        rec={docType:'Commercial PO',context:'Commercial Documents',commercialKey:c.key,commercialSide:'client',businessId:c.businessId,businessName:c.g.partyName||c.g.toName||'',poNumber:c.po,refNumber:c.po,poAmount:Number(first.clientPOAmount||0),currency:first.currency||'MYR',poStatus:'Open',expectedQty:null,fulfilledQty:ids.length,periodFrom:first.periodFrom||'',periodTo:first.periodTo||'',linkedItemIds:ids,invoices:[],createdAt:c.g.createdAt||c.g.updatedAt||new Date().toISOString(),createdBy:actor};
+      }else if(c.kind==='owned'){
+        const ids=Array.isArray(c.b.itemIds)?c.b.itemIds.filter(Boolean):[];
+        rec={docType:'Commercial PO',context:'Commercial Documents',commercialKey:c.key,commercialSide:'supplier',businessId:c.businessId,businessName:c.b.supplierName||'',poNumber:c.po,refNumber:c.po,poAmount:Number(c.b.ourPOAmount||0),currency:c.b.currency||'MYR',poStatus:'Open',expectedQty:Number(c.b.quantity||ids.length)||null,fulfilledQty:ids.length,periodFrom:'',periodTo:'',linkedItemIds:ids,invoices:[],createdAt:c.b.createdAt||new Date().toISOString(),createdBy:actor};
+      }else{
+        const ids=Array.isArray(c.g.itemIds)?c.g.itemIds.filter(Boolean):[];
+        rec={docType:'Commercial PO',context:'Commercial Documents',commercialKey:c.key,commercialSide:'supplier',businessId:c.businessId,businessName:c.g.partyName||c.g.fromName||'',poNumber:c.po,refNumber:c.po,poAmount:0,currency:'MYR',poStatus:'Open',expectedQty:Number(c.g.itemCount||ids.length)||null,fulfilledQty:ids.length,periodFrom:'',periodTo:'',linkedItemIds:ids,invoices:[],createdAt:c.g.createdAt||c.g.updatedAt||new Date().toISOString(),createdBy:actor};
+      }
+      await addDoc(collection(db,'document_refs'),rec);existing.add(c.key);created++;
+    }
+    return{created};
+  })().catch(e=>{console.warn('IMS recent Commercial PO index sync skipped:',e?.message||e);return{created:0,error:String(e?.message||e)};}).finally(()=>{setTimeout(()=>{recentIndexSync=null;},15000);});
+  return recentIndexSync;
 }
 
 function metaNode(card,label){return[...card.querySelectorAll('span')].find(x=>norm(x.textContent)===norm(label))?.parentElement||null;}
@@ -80,10 +117,11 @@ function decorateBusinessDocuments(){
   addGroup('Supplier / Procurement','Wellora / Our PO and supplier-side invoices.',supplier);
 }
 
-async function refresh(){wrapItems();await decorateWorkspace();decorateBusinessDocuments();}
+async function refresh(){wrapItems();await syncRecentCommercialIndex();await decorateWorkspace();decorateBusinessDocuments();}
 let timer;new MutationObserver(()=>{clearTimeout(timer);timer=setTimeout(()=>refresh().catch(e=>console.error('IMS commercial context failed:',e)),70);}).observe(document.body,{childList:true,subtree:true});
 window.addEventListener('ims:workspace-rendered',()=>refresh().catch(console.error));
 window.addEventListener('ims:items-ready',wrapItems);
+window.addEventListener('ims:auth-ready',()=>syncRecentCommercialIndex().catch(()=>{}));
 refresh().catch(e=>console.error('IMS commercial context failed:',e));
-window.IMSCommercialContext=Object.freeze({currentClientAssignment,movementsForItem,decorateItemDetail,refresh});
-export{currentClientAssignment,movementsForItem,decorateItemDetail,refresh};
+window.IMSCommercialContext=Object.freeze({currentClientAssignment,movementsForItem,decorateItemDetail,syncRecentCommercialIndex,refresh});
+export{currentClientAssignment,movementsForItem,decorateItemDetail,syncRecentCommercialIndex,refresh};
