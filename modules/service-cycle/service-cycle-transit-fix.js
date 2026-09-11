@@ -16,107 +16,85 @@ const logi=p=>{const e=$(`${p}LP`),o=e?.selectedOptions?.[0];return{providerId:e
 
 async function summary(before,after){try{await updateInventorySummary(before,after,{updatedAt:now(),updatedBy:imsEmail()})}catch(e){console.warn('IMS summary sync skipped after successful service operation:',e?.message||e)}}
 async function log(x){try{await addDoc(collection(db,'operational_logs'),{logVersion:3,date:now(),performedBy:imsEmail(),performedByRole:imsRole(),module:'Service Cycle',...x})}catch(e){console.warn('IMS service log skipped:',e?.message||e)}}
+function finalStatus(t,f){if(f)return'Not Available';return t==='warehouse'?'Available':t==='client'?'At Client':t==='supplier'?'At Supplier':'Not Available'}
 
 async function startSentTo(e){
   if(busy||$('scMode')?.value!=='Sent To'||!can('servicecycle.add'))return;
-  e.preventDefault();
-  e.stopImmediatePropagation();
+  e.preventDefault();e.stopImmediatePropagation();
   try{
     const s=source(),type=$('scType')?.value||'Inspection / Maintenance',p=$('scProv'),pid=p?.value||'',pn=p?.selectedOptions?.[0]?.dataset?.name||p?.selectedOptions?.[0]?.textContent?.trim()||'',addr=$('scAddr')?.value.trim()||'',ref=$('scNo')?.value.trim()||'',date=$('scDate')?.value||'',rows=[...document.querySelectorAll('.scLine')],lg=logi('ss'),email=imsEmail();
     if(!s||!pid||!pn||!addr||!ref||!date||!rows.length)throw Error('Complete source, provider, provider address, Service No. / PO, date and items.');
     if(!email)throw Error('Active IMS user email is unavailable. Please sign in again.');
     const q1=await getDocs(query(collection(db,'service_cycles'),where('serviceReference','==',ref),limit(20)));
     if(q1.docs.some(d=>d.data().status!=='closed'))throw Error('Service No. / PO already open.');
-    busy=true;
-    const group=doc(collection(db,'service_cycles')).id,at=now();
+    busy=true;const group=doc(collection(db,'service_cycles')).id,at=now();
     for(const row of rows){
       const itemId=row.dataset.id,qty=+row.querySelector('.qty')?.value,cr=doc(collection(db,'service_cycles'));
       if(!itemId||!Number.isInteger(qty)||qty<1)throw Error('Invalid quantity.');
       let before,after;
       await runTransaction(db,async tx=>{
-        const ir=doc(db,'inventory',itemId),is=await tx.get(ir);
-        if(!is.exists())throw Error('Item missing.');
-        before=is.data();
+        const ir=doc(db,'inventory',itemId),is=await tx.get(ir);if(!is.exists())throw Error('Item missing.');before=is.data();
         if(before.activeServiceCycleId)throw Error(`${before.alias||before.itemCode}: already in a Service Cycle.`);
-        const b=bs(before),src=b.find(x=>same(x,s)&&allowed(x,s.type));
-        if(!src||src.qty<qty)throw Error(`${before.alias||before.itemCode}: source stock changed.`);
-        const old=src.status;
-        src.qty-=qty;
-        b.push({qty,locationType:'service',locationId:cr.id,locationName:`In Transit → ${pn}`,status:'In Transit',serviceCycleId:cr.id,serviceGroupId:group,serviceReference:ref,serviceNo:ref,providerId:pid,providerName:pn,serviceMode:'Sent To'});
-        const clean=b.filter(x=>x.qty>0),sm=sum(clean);
-        after={...before,stockBalances:clean,status:sm.status,currentLocation:sm.location,activeServiceCycleId:cr.id};
+        const b=bs(before),src=b.find(x=>same(x,s)&&allowed(x,s.type));if(!src||src.qty<qty)throw Error(`${before.alias||before.itemCode}: source stock changed.`);
+        const old=src.status;src.qty-=qty;b.push({qty,locationType:'service',locationId:cr.id,locationName:`In Transit → ${pn}`,status:'In Transit',serviceCycleId:cr.id,serviceGroupId:group,serviceReference:ref,serviceNo:ref,providerId:pid,providerName:pn,serviceMode:'Sent To'});
+        const clean=b.filter(x=>x.qty>0),sm=sum(clean);after={...before,stockBalances:clean,status:sm.status,currentLocation:sm.location,activeServiceCycleId:cr.id};
         tx.update(ir,{stockBalances:clean,status:sm.status,currentLocation:sm.location,activeServiceCycleId:cr.id,lastEditedAt:at,lastEditedBy:email});
         tx.set(cr,{cycleId:cr.id,serviceGroupId:group,serviceReference:ref,serviceNo:ref,itemId,itemCode:before.itemCode||'',itemAlias:before.alias||'',itemName:before.name||'',unit:before.unit||'',qty,sourceType:s.type,sourceId:s.id,sourceName:s.name,sourceStatus:old,serviceType:type,serviceMode:'Sent To',providerId:pid,providerName:pn,providerAddress:addr,serviceDate:date,status:'outbound_transit',activeStageId:cr.id,stages:[{stageId:cr.id,stageType:type,status:'transit_to_provider',serviceLocation:'Sent To',providerId:pid,providerName:pn,address:addr,serviceReference:ref,dispatchDate:date,startDate:'',result:''}],logistics:lg,dispatchedAt:at,createdAt:at,createdBy:email,updatedAt:at});
       });
       await summary(before,after);
       await log({activity:'SERVICE_OUTBOUND_TRANSIT',activityLabel:'Start Service Transit to Provider',status:'In Transit',serviceCycleId:cr.id,serviceGroupId:group,serviceReference:ref,serviceNo:ref,itemId,itemAlias:before.alias||'',fromName:s.name,toName:pn,qty,referenceNumber:ref,referenceLabel:'Service No. / PO',remark:lg.remark});
     }
-    await window.IMSServiceCycle?.refresh?.();
-    await renderOutbound();
+    await window.IMSServiceCycle?.refresh?.();await renderOutbound();
   }catch(err){alert('Start Service failed: '+(err?.message||err))}finally{busy=false}
 }
 
-async function outbound(){
-  const s=await getDocs(query(collection(db,'service_cycles'),where('status','==','outbound_transit'),limit(500))),m=new Map();
-  for(const d of s.docs){const c={id:d.id,...d.data()},g=c.serviceGroupId||c.id;if(!m.has(g))m.set(g,[]);m.get(g).push(c)}
-  return[...m].map(([id,items])=>({id,items,first:items[0]}));
-}
+async function outbound(){const s=await getDocs(query(collection(db,'service_cycles'),where('status','==','outbound_transit'),limit(500))),m=new Map();for(const d of s.docs){const c={id:d.id,...d.data()},g=c.serviceGroupId||c.id;if(!m.has(g))m.set(g,[]);m.get(g).push(c)}return[...m].map(([id,items])=>({id,items,first:items[0]}))}
 
 async function renderOutbound(){
-  const root=$('serviceCycleWorkflow');
-  if(!root)return;
-  root.querySelector('#imsOutboundTransit')?.remove();
-  let a=[];
-  try{a=await outbound()}catch{return}
-  if(!a.length)return;
-  const sec=document.createElement('section');
-  sec.id='imsOutboundTransit';
-  sec.className='space-y-3';
-  sec.innerHTML=`<div class="font-bold">Transit to Service Provider</div>${a.map(g=>`<div class="border border-amber-900/60 rounded-xl p-3"><div class="flex justify-between"><div><div class="font-semibold text-amber-300">${g.first.serviceReference||g.first.serviceNo||''}</div><div class="text-xs text-slate-400">${g.first.providerName||''} · ${g.items.length} item(s)</div></div><span class="text-xs">In Transit to Provider</span></div><div class="grid sm:grid-cols-2 gap-2 mt-3"><label class="text-xs text-slate-400">Arrival Date<input id="pa-${g.id}" type="date" value="${today()}" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2.5 text-sm mt-1"></label><label class="text-xs text-slate-400">Remark<input id="pr-${g.id}" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2.5 text-sm mt-1"></label></div><button class="provider-arrive w-full bg-amber-700 py-2.5 rounded-lg mt-3" data-g="${g.id}">Arrive at Provider</button></div>`).join('')}`;
-  root.appendChild(sec);
+  const root=$('serviceCycleWorkflow');if(!root)return;root.querySelector('#imsOutboundTransit')?.remove();let a=[];try{a=await outbound()}catch{return}if(!a.length)return;
+  const sec=document.createElement('section');sec.id='imsOutboundTransit';sec.className='space-y-3';
+  sec.innerHTML=`<div class="font-bold">Transit to Service Provider</div>${a.map(g=>`<div class="border border-amber-900/60 rounded-xl p-3"><div class="flex justify-between"><div><div class="font-semibold text-amber-300">${g.first.serviceReference||g.first.serviceNo||''}</div><div class="text-xs text-slate-400">${g.first.providerName||''} · ${g.items.length} item(s)</div></div><span class="text-xs">In Transit to Provider</span></div><div class="grid sm:grid-cols-2 gap-2 mt-3"><label class="text-xs text-slate-400">Arrival Date<input id="pa-${g.id}" type="date" value="${today()}" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2.5 text-sm mt-1"></label><label class="text-xs text-slate-400">Remark<input id="pr-${g.id}" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2.5 text-sm mt-1"></label></div><button class="provider-arrive w-full bg-amber-700 py-2.5 rounded-lg mt-3" data-g="${g.id}">Arrive at Provider</button></div>`).join('')}`;root.appendChild(sec)
 }
 
 async function arriveProvider(id,e){
-  if(busy||!can('servicecycle.edit'))return;
-  e.preventDefault();
-  e.stopImmediatePropagation();
+  if(busy||!can('servicecycle.edit'))return;e.preventDefault();e.stopImmediatePropagation();
   try{
     const s=await getDocs(query(collection(db,'service_cycles'),where('serviceGroupId','==',id),limit(500))),rows=s.docs.map(d=>({id:d.id,...d.data()})).filter(c=>c.status==='outbound_transit'),date=$(`pa-${id}`)?.value||today(),rm=$(`pr-${id}`)?.value.trim()||'',email=imsEmail();
-    if(!rows.length)throw Error('Transit not found.');
-    if(!email)throw Error('Active IMS user email is unavailable. Please sign in again.');
-    busy=true;
-    for(const c of rows){
-      let before,after;
-      await runTransaction(db,async tx=>{
-        const cr=doc(db,'service_cycles',c.id),ir=doc(db,'inventory',c.itemId),cs=await tx.get(cr),is=await tx.get(ir);
-        if(!cs.exists()||!is.exists())throw Error('Service or inventory record missing.');
-        const live=cs.data();
-        if(live.status!=='outbound_transit')throw Error('Service transit changed.');
-        before=is.data();
-        const b=bs(before),sb=b.find(x=>x.serviceCycleId===c.id);
-        if(!sb)throw Error('Transit stock missing.');
-        sb.status='Maintenance';
-        sb.locationName=live.providerName||'Service Provider';
-        const sm=sum(b),stages=(live.stages||[]).map(x=>x.status==='transit_to_provider'?{...x,status:'in_progress',arrivalDate:date,startDate:date,arrivalRemark:rm}:x);
-        after={...before,stockBalances:b,status:sm.status,currentLocation:sm.location,activeServiceCycleId:c.id};
-        const at=now();
-        tx.update(ir,{stockBalances:b,status:sm.status,currentLocation:sm.location,activeServiceCycleId:c.id,lastEditedAt:at,lastEditedBy:email});
-        tx.update(cr,{status:'active',stages,providerArrivalDate:date,providerArrivalRemark:rm,providerArrivedAt:at,updatedAt:at});
-      });
-      await summary(before,after);
-      await log({activity:'SERVICE_PROVIDER_ARRIVED',activityLabel:'Arrive at Service Provider',status:'Under Service',serviceCycleId:c.id,serviceGroupId:id,serviceReference:c.serviceReference||c.serviceNo||'',itemId:c.itemId,itemAlias:c.itemAlias||'',fromName:c.sourceName||'',toName:c.providerName||'',qty:c.qty,referenceNumber:c.serviceReference||c.serviceNo||'',referenceLabel:'Service No. / PO',remark:rm});
-    }
+    if(!rows.length)throw Error('Transit not found.');if(!email)throw Error('Active IMS user email is unavailable. Please sign in again.');busy=true;
+    for(const c of rows){let before,after;await runTransaction(db,async tx=>{const cr=doc(db,'service_cycles',c.id),ir=doc(db,'inventory',c.itemId),cs=await tx.get(cr),is=await tx.get(ir);if(!cs.exists()||!is.exists())throw Error('Service or inventory record missing.');const live=cs.data();if(live.status!=='outbound_transit')throw Error('Service transit changed.');before=is.data();const b=bs(before),sb=b.find(x=>x.serviceCycleId===c.id);if(!sb)throw Error('Transit stock missing.');sb.status='Maintenance';sb.locationName=live.providerName||'Service Provider';const sm=sum(b),stages=(live.stages||[]).map(x=>x.status==='transit_to_provider'?{...x,status:'in_progress',arrivalDate:date,startDate:date,arrivalRemark:rm}:x);after={...before,stockBalances:b,status:sm.status,currentLocation:sm.location,activeServiceCycleId:c.id};const at=now();tx.update(ir,{stockBalances:b,status:sm.status,currentLocation:sm.location,activeServiceCycleId:c.id,lastEditedAt:at,lastEditedBy:email});tx.update(cr,{status:'active',stages,providerArrivalDate:date,providerArrivalRemark:rm,providerArrivedAt:at,updatedAt:at})});await summary(before,after);await log({activity:'SERVICE_PROVIDER_ARRIVED',activityLabel:'Arrive at Service Provider',status:'Under Service',serviceCycleId:c.id,serviceGroupId:id,serviceReference:c.serviceReference||c.serviceNo||'',itemId:c.itemId,itemAlias:c.itemAlias||'',fromName:c.sourceName||'',toName:c.providerName||'',qty:c.qty,referenceNumber:c.serviceReference||c.serviceNo||'',referenceLabel:'Service No. / PO',remark:rm})}
     await window.IMSServiceCycle?.refresh?.();
   }catch(err){alert('Provider arrival failed: '+(err?.message||err))}finally{busy=false}
 }
 
+async function returnRows(){const id=$('scRetG')?.value||'';if(!id)return[];const s=await getDocs(query(collection(db,'service_cycles'),where('serviceGroupId','==',id),limit(500)));return s.docs.map(d=>({id:d.id,...d.data()})).filter(c=>['ready_return','failed'].includes(c.status))}
+
+async function startReturn(e){
+  if(busy||!can('servicecycle.edit'))return;e.preventDefault();e.stopImmediatePropagation();
+  try{
+    const rows=await returnRows(),t=$('scDstType')?.value||'',d=$('scDst'),did=d?.value||'',dn=d?.selectedOptions?.[0]?.dataset?.name||d?.selectedOptions?.[0]?.textContent?.trim()||'',addr=$('scDstAddr')?.value.trim()||'',ref=$('scRetRef')?.value.trim()||'',lg=logi('sr'),email=imsEmail();
+    if(!rows.length||!did||!dn)throw Error('Select service and destination.');if(!email)throw Error('Active IMS user email is unavailable. Please sign in again.');busy=true;
+    for(const c of rows){let before,after;await runTransaction(db,async tx=>{const cr=doc(db,'service_cycles',c.id),ir=doc(db,'inventory',c.itemId),cs=await tx.get(cr),is=await tx.get(ir);if(!cs.exists()||!is.exists())throw Error('Service or inventory record missing.');const live=cs.data();if(!['ready_return','failed'].includes(live.status))throw Error('Service cycle changed.');before=is.data();const b=bs(before),sb=b.find(x=>x.serviceCycleId===c.id);if(!sb)throw Error('Service stock missing.');sb.status='In Transit';sb.locationName=`In Transit → ${dn}`;const sm=sum(b),at=now();after={...before,stockBalances:b,status:sm.status,currentLocation:sm.location};tx.update(ir,{stockBalances:b,status:sm.status,currentLocation:sm.location,lastEditedAt:at,lastEditedBy:email});tx.update(cr,{status:'return_transit',returnType:t,returnId:did,returnName:dn,returnAddress:addr,returnRef:ref,returnDate:lg.movementDate,returnLogistics:lg,updatedAt:at})});await summary(before,after);await log({activity:'SERVICE_RETURN_TRANSIT',activityLabel:'Start Service Return Transit',status:'In Transit',serviceCycleId:c.id,serviceGroupId:c.serviceGroupId,serviceReference:c.serviceReference||c.serviceNo||'',itemId:c.itemId,itemAlias:c.itemAlias||'',toName:dn,referenceNumber:ref||c.serviceReference||c.serviceNo||'',referenceLabel:ref?'Return Reference':'Service No. / PO',remark:lg.remark})}
+    await window.IMSServiceCycle?.refresh?.();
+  }catch(err){alert('Return failed: '+(err?.message||err))}finally{busy=false}
+}
+
+async function arriveReturn(id,e){
+  if(busy||!can('servicecycle.edit'))return;e.preventDefault();e.stopImmediatePropagation();
+  try{
+    const s=await getDocs(query(collection(db,'service_cycles'),where('serviceGroupId','==',id),limit(500))),rows=s.docs.map(d=>({id:d.id,...d.data()})).filter(c=>c.status==='return_transit'),date=$(`ad-${id}`)?.value||today(),rm=$(`ar-${id}`)?.value.trim()||'',email=imsEmail();
+    if(!rows.length)return;if(!email)throw Error('Active IMS user email is unavailable. Please sign in again.');busy=true;
+    for(const c of rows){let before,after;await runTransaction(db,async tx=>{const cr=doc(db,'service_cycles',c.id),ir=doc(db,'inventory',c.itemId),cs=await tx.get(cr),is=await tx.get(ir);if(!cs.exists()||!is.exists())throw Error('Service or inventory record missing.');const live=cs.data();if(live.status!=='return_transit')throw Error('Service cycle changed.');before=is.data();const b=bs(before),sb=b.find(x=>x.serviceCycleId===c.id),failed=live.result==='Failed'||live.lastStageResult==='Failed',fs=finalStatus(live.returnType,failed);if(!sb)throw Error('Transit stock missing.');sb.qty-=+live.qty;let dest=b.find(x=>x!==sb&&x.locationType===live.returnType&&String(x.locationId||'')===String(live.returnId||'')&&x.status===fs);dest?dest.qty+=+live.qty:b.push({qty:+live.qty,locationType:live.returnType,locationId:live.returnId||'',locationName:live.returnName,status:fs,address:live.returnAddress||''});const clean=b.filter(x=>x.qty>0),sm=sum(clean),at=now();after={...before,stockBalances:clean,status:sm.status,currentLocation:sm.location,activeServiceCycleId:null};tx.update(ir,{stockBalances:clean,status:sm.status,currentLocation:sm.location,activeServiceCycleId:null,lastEditedAt:at,lastEditedBy:email});tx.update(cr,{status:'closed',closedAt:at,arrivalDate:date,arrivalRemark:rm,updatedAt:at})});await summary(before,after);await log({activity:'SERVICE_RETURN_ARRIVED',activityLabel:'Service Return Arrived',status:finalStatus(c.returnType,c.result==='Failed'||c.lastStageResult==='Failed'),serviceCycleId:c.id,serviceGroupId:id,serviceReference:c.serviceReference||c.serviceNo||'',itemId:c.itemId,itemAlias:c.itemAlias||'',toName:c.returnName||'',referenceNumber:c.serviceReference||c.serviceNo||'',referenceLabel:'Service No. / PO',remark:rm})}
+    await window.IMSServiceCycle?.refresh?.();
+  }catch(err){alert('Arrival failed: '+(err?.message||err))}finally{busy=false}
+}
+
 document.addEventListener('click',e=>{
-  const s=e.target.closest?.('#scStart');
-  if(s&&$('scMode')?.value==='Sent To'){startSentTo(e);return}
-  const p=e.target.closest?.('.provider-arrive');
-  if(p){arriveProvider(p.dataset.g,e)}
+  const s=e.target.closest?.('#scStart');if(s&&$('scMode')?.value==='Sent To'){startSentTo(e);return}
+  const p=e.target.closest?.('.provider-arrive');if(p){arriveProvider(p.dataset.g,e);return}
+  const r=e.target.closest?.('#scReturn');if(r){startReturn(e);return}
+  const a=e.target.closest?.('.arrive[data-g]');if(a){arriveReturn(a.dataset.g,e)}
 },true);
 
 new MutationObserver(()=>{clearTimeout(timer);timer=setTimeout(()=>renderOutbound().catch(console.error),80)}).observe(document.body,{childList:true,subtree:true});
 renderOutbound().catch(console.error);
-window.IMSServiceTransitFix=Object.freeze({ready:true,renderOutbound,startSentTo,arriveProvider});
+window.IMSServiceTransitFix=Object.freeze({ready:true,renderOutbound,startSentTo,arriveProvider,startReturn,arriveReturn});
